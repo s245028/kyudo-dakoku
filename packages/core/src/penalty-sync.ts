@@ -11,8 +11,8 @@ export type ExistingAutoPenalty = {
   autoKey: string;
   reason: string;
   baseCount: number;
-  /** やることを割り当て済み（消化済みを含む） */
-  hasTasks: boolean;
+  /** やることを割り当て済み、または消化済み。判定が変わっても変えない */
+  locked: boolean;
 };
 
 export type AutoPenalty = {
@@ -31,7 +31,7 @@ export type PenaltyChanges = {
 
 /**
  * その日の自動の罰を、最終判定に合わせるための変更を返す。
- * 判定し直した部員の分だけを渡す。やることを割り当てた罰は、判定が変わっても残す。
+ * 判定し直した部員の分だけを渡す。割り当て済み・消化済みの罰は、判定が変わっても残す。
  */
 export function planAutoPenaltySync(input: {
   date: PracticeDate;
@@ -46,7 +46,7 @@ export function planAutoPenaltySync(input: {
   for (const { memberId, result } of input.judged) {
     const autoKey = autoPenaltyKey(input.date, memberId);
     const current = input.existing.find((penalty) => penalty.autoKey === autoKey);
-    if (current?.hasTasks) continue;
+    if (current?.locked) continue;
 
     const reason = result === null ? undefined : AUTO_PENALTY_REASONS[result];
     if (reason === undefined) {

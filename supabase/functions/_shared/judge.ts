@@ -88,7 +88,8 @@ export async function judgeDate(
   return judged.filter((entry) => entry.result !== null).length;
 }
 
-async function syncAutoPenalties(
+/** その日の自動の罰を、最終判定に合わせる。 */
+export async function syncAutoPenalties(
   tx: Sql,
   date: PracticeDate,
   judged: readonly { memberId: string; result: Judgement | null }[],
@@ -96,7 +97,8 @@ async function syncAutoPenalties(
   const keys = judged.map((entry) => autoPenaltyKey(date, entry.memberId));
   const existing = await tx<ExistingAutoPenalty[]>`
     select p.id, p.auto_key as "autoKey", p.reason, p.base_count as "baseCount",
-      exists (select 1 from public.penalty_tasks t where t.penalty_id = p.id) as "hasTasks"
+      p.completed_on is not null
+        or exists (select 1 from public.penalty_tasks t where t.penalty_id = p.id) as locked
     from public.penalties p where p.auto_key in ${tx(keys)}`;
   const types = await loadPenaltyTypes(tx);
   const changes = planAutoPenaltySync({ date, judged, existing, types });
