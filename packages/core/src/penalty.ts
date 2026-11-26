@@ -1,5 +1,6 @@
 import { addDays, daysBetween, isPracticeDate, type PracticeDate } from './date.ts';
 import type { Judgement } from './attendance.ts';
+import { invalid, type Validated } from './validation.ts';
 
 /** 判定によって自動でつく罰の理由。罰の種類（DB の `penalty_types`）の名前と一致させる。 */
 export const AUTO_PENALTY_REASONS: Partial<Record<Judgement, string>> = {
@@ -131,10 +132,6 @@ export type NewPenalty = {
   memo: string;
   contents: string[];
 };
-
-export type Validated<T> = { ok: true; value: T } | { ok: false; message: string };
-
-const invalid = (message: string) => ({ ok: false as const, message });
 
 /** 副務・主将が罰をつけるときの入力を確かめる。基本の数ぶんの「やること」が必須。 */
 export function validateNewPenalty(input: {
