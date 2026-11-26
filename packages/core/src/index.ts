@@ -1,3 +1,4 @@
+export * from './admin-input.ts';
 export * from './attendance.ts';
 export * from './date.ts';
 export * from './join.ts';

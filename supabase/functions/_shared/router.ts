@@ -1,9 +1,30 @@
 import type { RequestContext } from './context.ts';
 import { AppError } from './errors.ts';
+import {
+  addException,
+  deleteException,
+  rejudge,
+  setManualJudgement,
+} from './actions/attendance.ts';
+import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions/configuration.ts';
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
+import {
+  approveMember,
+  deletePendingMember,
+  resetDevice,
+  updateMember,
+} from './actions/members.ts';
+import {
+  addPenalty,
+  assignTask,
+  closePenalty,
+  completeTask,
+  editTask,
+} from './actions/penalties.ts';
 import { register } from './actions/register.ts';
 import { scan, undoScan } from './actions/scan.ts';
+import { changeGeneration, promoteGrades } from './actions/yearly.ts';
 import type { Params } from './params.ts';
 
 type Action = (context: RequestContext, params: Params) => Promise<object>;
@@ -16,6 +37,27 @@ export const ACTIONS = {
   'undo-scan': undoScan,
   join,
   unjoin,
+  // 副務・主将
+  'add-penalty': addPenalty,
+  'assign-task': assignTask,
+  'edit-task': editTask,
+  'complete-task': completeTask,
+  // 主将
+  'admin-close-penalty': closePenalty,
+  'admin-approve': approveMember,
+  'admin-update-member': updateMember,
+  'admin-reset-device': resetDevice,
+  'admin-delete-pending': deletePendingMember,
+  'admin-add-exception': addException,
+  'admin-delete-exception': deleteException,
+  'admin-rejudge': rejudge,
+  'admin-set-manual': setManualJudgement,
+  'admin-update-settings': updateSettings,
+  'admin-save-rule': saveRule,
+  'admin-delete-rule': deleteRule,
+  'admin-save-penalty-type': savePenaltyType,
+  'change-generation': changeGeneration,
+  'promote-grades': promoteGrades,
 } satisfies Record<string, Action>;
 
 export type ActionName = keyof typeof ACTIONS;

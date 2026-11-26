@@ -35,6 +35,18 @@ const memberColumns = (sql: Sql) => sql`
   id, student_no as "studentNo", name, grade, status, role, approved,
   retired_on::text as "retiredOn"`;
 
+export async function findMemberByDevice(sql: Sql, userId: string): Promise<MemberRow | null> {
+  const [member] = await sql<MemberRow[]>`
+    select ${memberColumns(sql)} from public.members where auth_user_id = ${userId}`;
+  return member ?? null;
+}
+
+/** 名簿全体をロックして読む。複数の部員を変える操作で使う。 */
+export async function lockRoster(sql: Sql): Promise<MemberRow[]> {
+  return sql<MemberRow[]>`
+    select ${memberColumns(sql)} from public.members order by id for update`;
+}
+
 /**
  * この端末の部員を読み、トランザクションが終わるまで行をロックする。
  * 同じ人の打刻や判定が同時に走らないようにする。

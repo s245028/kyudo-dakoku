@@ -22,7 +22,7 @@ const late = (overrides: Partial<ExistingAutoPenalty> = {}): ExistingAutoPenalty
   autoKey: autoPenaltyKey(MONDAY, 'm1'),
   reason: '遅刻',
   baseCount: 1,
-  hasTasks: false,
+  locked: false,
   ...overrides,
 });
 
@@ -73,11 +73,11 @@ describe('判定し直したときの罰', () => {
   it('17: 割り当て済みの罰は、出席に直しても消えない', () => {
     const result = finalJudgement('late', 'present');
 
-    expect(sync(result, [late({ hasTasks: true })])).toEqual(nothing);
+    expect(sync(result, [late({ locked: true })])).toEqual(nothing);
   });
 
   it('割り当て済みの罰があれば、同じ日の罰を重ねてつけない', () => {
-    expect(sync('absent_unexcused', [late({ hasTasks: true })])).toEqual(nothing);
+    expect(sync('absent_unexcused', [late({ locked: true })])).toEqual(nothing);
   });
 
   it('手を付けていない罰は、判定がなくなれば外す', () => {
