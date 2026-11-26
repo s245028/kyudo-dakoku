@@ -49,6 +49,18 @@
   h2 { font-size: 17px; margin: 4px 0 12px; }
   h3 { font-size: 15px; margin: 22px 0 10px; }
 
+  /* 引退した人の参加登録 */
+  .joincard { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
+  .joincard h3 { margin: 0 0 4px; }
+  .joincard .hint { font-size: 12px; color: var(--sub); margin: 0 0 8px; }
+  .joinrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .joinrow:first-of-type { border-top: 0; }
+  .joinrow .d { font-weight: 700; }
+  .joinrow .d small { font-weight: 400; color: var(--sub); margin-left: 6px; }
+  .joinrow button { width: auto; min-height: 38px; padding: 8px 14px; margin: 0; font-size: 14px; white-space: nowrap; }
+  .joinrow .act { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .joinrow .on { color: var(--green); font-weight: 700; font-size: 14px; }
+
   /* 今日のカード */
   .todaycard {
     display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
@@ -237,6 +249,11 @@
         <div class="big" id="tcPenaltyNum">—</div>
       </a>
     </div>
+    <div class="joincard" id="joinCard" style="display:none">
+      <h3>参加する練習日</h3>
+      <p class="hint">引退した人は、参加を登録した日だけ遅刻・欠席を判定します。登録は集合時刻まで、取り消しは集合の1時間前までです。</p>
+      <div id="joinList"></div>
+    </div>
     <div class="scanner" id="scanner">
       <video id="video" playsinline muted></video>
       <div class="frame"></div>
@@ -401,7 +418,7 @@ function render() {
   els.who.textContent = status.name + ' さん';
   els.today.textContent = status.today
     ? `今日：${status.today.part}（${status.today.deadline}までに入室）`
-    : '今日は練習日ではありません';
+    : status.retired ? '引退：今日は参加登録なし（判定しません）' : '今日は練習日ではありません';
   els.state.textContent = !status.approved ? '承認待ち' : status.inRoom ? `在室中 ${status.since}〜` : '不在';
   els.state.classList.toggle('in', status.approved && status.inRoom);
   const rp = $('rolePill');
@@ -422,11 +439,58 @@ function render() {
   badge.style.display = total ? '' : 'none';
   badge.textContent = total;
 
+  renderJoins();
   renderPresence();
   renderPenalties();
   renderTaskSuggest();
   renderProfile();
   renderKoma();
+}
+
+function renderJoins() {
+  const card = $('joinCard');
+  card.style.display = status.retired ? '' : 'none';
+  if (!status.retired) return;
+  const box = $('joinList');
+  box.replaceChildren();
+  const list = status.joins || [];
+  if (!list.length) { box.append(el('div', 'empty', '登録できる練習日はありません')); return; }
+  list.forEach(d => {
+    const row = el('div', 'joinrow');
+    const label = el('div', 'd', `${d.date.slice(5).replace('-', '/')}（${d.day}）`);
+    label.append(el('small', '', `${d.deadline}集合・${d.part}`));
+    row.append(label);
+    const act = el('div', 'act');
+    if (d.joined) {
+      act.append(el('span', 'on', '参加予定'));
+      if (d.canCancel) {
+        const b = el('button', 'secondary', '取消');
+        b.addEventListener('click', () => setJoin(d.date, false, b));
+        act.append(b);
+      }
+    } else if (d.canJoin) {
+      const b = el('button', 'join', '参加する');
+      b.addEventListener('click', () => setJoin(d.date, true, b));
+      act.append(b);
+    }
+    row.append(act);
+    box.append(row);
+  });
+}
+
+async function setJoin(date, join, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api(join ? 'join' : 'unjoin', { date });
+    if (!r.ok) { alert(r.error); return; }
+    if (r.joins) status.joins = r.joins;
+    renderJoins();
+    refreshStatus();
+  } catch (e) {
+    alert('通信できませんでした。もう一度お試しください。');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function renderPresence() {
