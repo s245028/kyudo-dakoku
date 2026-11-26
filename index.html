@@ -823,7 +823,7 @@ function showResult(r) {
   els.result.className = 'result' + (isIn ? '' : ' out');
   setType(r.type);
   els.resTime.textContent = r.time;
-  els.resJudge.textContent = r.judge || '';
+  els.resJudge.textContent = (r.judge || '') + (r.penaltyAdded ? '　罰がつきました（罰タブで確認）' : '');
   els.resJudge.className = 'judge' + (r.late > 0 ? ' late' : '');
   els.resNote.textContent = r.duplicate ? r.message : `${r.name} さん`;
   showCard();
