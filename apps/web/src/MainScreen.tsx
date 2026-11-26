@@ -1,4 +1,5 @@
-import { PART_LABELS, ROLE_LABELS, toClockTime } from '@kyudo/core';
+import { canAdminister, PART_LABELS, ROLE_LABELS, toClockTime } from '@kyudo/core';
+import { lazy, Suspense } from 'react';
 import { useState } from 'react';
 import { Header } from './components/Header.tsx';
 import { TabBar } from './components/TabBar.tsx';
@@ -19,12 +20,20 @@ type MainScreenProps = {
 };
 
 const MEMBER_TABS: TabId[] = ['scan', 'presence', 'penalty', 'me'];
+const CAPTAIN_TABS: TabId[] = [...MEMBER_TABS, 'admin'];
+
+// 管理画面は、主将が開いたときにだけ読み込む
+const AdminTab = lazy(async () => {
+  const { AdminTab: component } = await import('./features/admin/AdminTab.tsx');
+  return { default: component };
+});
 
 export function MainScreen(props: MainScreenProps) {
   const { home, now, error, onHome, onRefresh } = props;
   const [tab, setTab] = useState<TabId>(props.initialTab);
   const view = describeHome(home, now);
   const { member } = home;
+  const captain = canAdminister(member);
 
   function select(next: TabId) {
     setTab(next);
@@ -67,12 +76,17 @@ export function MainScreen(props: MainScreenProps) {
           />
         </div>
         {tab === 'presence' && <PresenceTab />}
-        {tab === 'penalty' && <PenaltyTab home={home} view={view} />}
+        {tab === 'penalty' && <PenaltyTab home={home} view={view} onHome={onHome} />}
         {tab === 'me' && <ProfileTab home={home} onHome={onHome} />}
+        {tab === 'admin' && captain && (
+          <Suspense fallback={<p className="empty">読み込み中…</p>}>
+            <AdminTab today={view.today} onHome={onHome} />
+          </Suspense>
+        )}
       </main>
       <TabBar
         current={tab}
-        tabs={MEMBER_TABS}
+        tabs={captain ? CAPTAIN_TABS : MEMBER_TABS}
         penaltyCount={totalRemaining(view.penalties)}
         onSelect={select}
       />

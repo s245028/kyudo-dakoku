@@ -15,6 +15,10 @@ export const TABS = {
     label: '自分',
     icon: 'M8.4 8a3.6 3.6 0 1 0 7.2 0a3.6 3.6 0 1 0-7.2 0M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6',
   },
+  admin: {
+    label: '管理',
+    icon: 'M4 7h10M18 7h2M4 12h2M10 12h10M4 17h8M16 17h4M14 7a2 2 0 1 0 4 0a2 2 0 1 0-4 0M6 12a2 2 0 1 0 4 0a2 2 0 1 0-4 0M12 17a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
+  },
 } as const;
 
 export type TabId = keyof typeof TABS;

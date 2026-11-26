@@ -1,0 +1,100 @@
+.section-menu {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 4px;
+}
+
+.section-menu button.small {
+  width: 100%;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.sub {
+  color: var(--sub);
+  font-size: 13px;
+}
+
+small.sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.row-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+}
+
+.expandable {
+  border-bottom: 1px solid var(--line);
+}
+
+.expandable:last-child {
+  border-bottom: 0;
+}
+
+.expand-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 13px 16px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 400;
+  text-align: left;
+}
+
+.expandable .form {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--soft);
+}
+
+.judgement {
+  flex-shrink: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.row-note {
+  padding: 0 16px 10px;
+  color: var(--sub);
+  font-size: 12px;
+}
+
+.field-group {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.field-group legend {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form label.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.count-input {
+  width: 4.5em;
+  padding: 8px;
+}
+
+.list + .form {
+  margin-top: 12px;
+}

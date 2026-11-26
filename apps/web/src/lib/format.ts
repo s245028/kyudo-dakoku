@@ -1,6 +1,6 @@
 import { weekdayOf, type PracticeDate } from '@kyudo/core';
 
-const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 
 /** `12/1` */
 export function shortDate(date: PracticeDate): string {

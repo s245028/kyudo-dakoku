@@ -110,7 +110,7 @@
 
 .penalty-tasks,
 .penalty-paid {
-  grid-column: 2 / 4;
+  grid-column: 1 / -1;
 }
 
 .penalty-tasks {
@@ -139,4 +139,18 @@
 .task-unassigned {
   border-style: dashed;
   color: var(--sub);
+}
+
+.task input {
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.add-penalty {
+  margin-top: 12px;
 }
