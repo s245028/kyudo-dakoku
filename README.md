@@ -23,8 +23,13 @@
 ```sh
 corepack enable          # 初回だけ。package.json に書いた版の pnpm が使えるようになる
 pnpm install
+pnpm exec supabase start # ローカルの Supabase（データベースと Edge Function）
 pnpm --filter web dev    # http://localhost:5173
 ```
+
+アプリの接続先は `apps/web/.env.local` に書きます。`apps/web/.env.example` をコピーし、キーには `pnpm exec supabase status` に出る Publishable key を入れます。ローカルの入口QRの中身は `LOCAL-TEST-QR` です。
+
+Edge Function のファイルを作り直したり、ブランチを切り替えたあとに「Worker failed to boot」が出る場合は、`supabase stop` のあと `supabase start` し直します。
 
 | コマンド | 内容 |
 |---|---|
@@ -48,8 +53,11 @@ pnpm exec supabase stop
 接続済みの開発用プロジェクトには、次のコマンドでマイグレーションを反映します。
 
 ```sh
-pnpm exec supabase db push --linked
+pnpm exec supabase db push --remote              # マイグレーション
+pnpm exec supabase functions deploy api --use-api --remote   # Edge Function
 ```
+
+Vercel の環境変数（Production と Preview）には `VITE_SUPABASE_URL` と `VITE_SUPABASE_PUBLISHABLE_KEY` を設定します。切り替えまでは、どちらも開発用プロジェクトにつなぎます。
 
 `supabase start` が PostgREST のイメージを取得できないときは、`supabase/.temp/rest-version`（接続時に作られるキャッシュ）を削除してから実行します。
 

@@ -1,0 +1,142 @@
+.my-penalties {
+  margin-bottom: 14px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.my-penalties-open {
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.my-penalties-total {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.my-penalties-note {
+  margin-top: 4px;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.my-penalties ul {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.my-penalties li {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(255 255 255 / 70%);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.my-penalties li::before,
+.task-content::before {
+  margin-right: 4px;
+  color: var(--red);
+  font-weight: 800;
+  content: '・';
+}
+
+.my-penalties li.unassigned {
+  color: var(--sub);
+  font-weight: 400;
+}
+
+.penalty {
+  display: grid;
+  grid-template-columns: 3.4em 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.penalty:last-child {
+  border-bottom: 0;
+}
+
+.penalty-mine {
+  background: var(--red-faint);
+}
+
+.penalty-date {
+  color: var(--sub);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.penalty-student {
+  margin-left: 6px;
+  color: var(--sub);
+  font-size: 12px;
+}
+
+.penalty-reason {
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.penalty-memo {
+  color: var(--sub);
+}
+
+.penalty-count {
+  text-align: right;
+}
+
+.penalty-count strong {
+  color: var(--red);
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.penalty-count small {
+  display: block;
+  color: var(--sub);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.penalty-tasks,
+.penalty-paid {
+  grid-column: 2 / 4;
+}
+
+.penalty-tasks {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.penalty-paid {
+  color: var(--green);
+  font-size: 12px;
+}
+
+.task {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.task-unassigned {
+  border-style: dashed;
+  color: var(--sub);
+}

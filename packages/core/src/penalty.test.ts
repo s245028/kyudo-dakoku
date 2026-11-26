@@ -3,6 +3,7 @@ import { addDays } from './date.ts';
 import {
   cleanTaskContent,
   countPenalty,
+  summarizePenalty,
   DEFAULT_PENALTY_TYPES,
   taskSuggestions,
   unassignedCount,
@@ -71,6 +72,22 @@ describe('罰の残りの数（受け入れテスト13〜16）', () => {
 });
 
 describe('やること', () => {
+  it('残り・未消化のやること・未割り当ての数をまとめる', () => {
+    const state = summarizePenalty({
+      date: GIVEN,
+      baseCount: 1,
+      tasks: [
+        { id: 'a', content: '掃除', completedOn: on(9) },
+        { id: 'b', content: '的貼り', completedOn: null },
+      ],
+      today: on(14),
+      doublingDays: 7,
+    });
+
+    expect(state).toMatchObject({ remaining: 2, paid: 1, unassigned: 1 });
+    expect(state.openTasks.map((task) => task.id)).toEqual(['b']);
+  });
+
   it('割り当てていない数を数える', () => {
     expect(unassignedCount(4, 1)).toBe(3);
     expect(unassignedCount(1, 2)).toBe(0);

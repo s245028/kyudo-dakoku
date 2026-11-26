@@ -116,6 +116,34 @@ export function unassignedCount(remaining: number, openTaskCount: number): numbe
   return Math.max(0, remaining - openTaskCount);
 }
 
+export type PenaltyTask = {
+  id: string;
+  content: string;
+  /** 消化した日。未消化なら null */
+  completedOn: PracticeDate | null;
+};
+
+export type PenaltyState = PenaltyCount & {
+  /** まだ消化していないやること */
+  openTasks: PenaltyTask[];
+  /** やることを割り当てていない罰の数 */
+  unassigned: number;
+};
+
+/** 罰1件の、今日時点の状態。 */
+export function summarizePenalty(input: {
+  date: PracticeDate;
+  baseCount: number;
+  tasks: readonly PenaltyTask[];
+  today: PracticeDate;
+  doublingDays: number;
+}): PenaltyState {
+  const completedOn = input.tasks.flatMap((task) => task.completedOn ?? []);
+  const count = countPenalty({ ...input, completedOn });
+  const openTasks = input.tasks.filter((task) => task.completedOn === null);
+  return { ...count, openTasks, unassigned: unassignedCount(count.remaining, openTasks.length) };
+}
+
 export function cleanTaskContent(value: string): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, TASK_CONTENT_MAX_LENGTH);
 }

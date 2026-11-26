@@ -1,50 +1,123 @@
 :root {
   --bg: #f4f1ea;
   --ink: #1d2b24;
-  --gold-line: #e8d98a;
+  --sub: #6b746f;
+  --card: #fff;
+  --soft: #faf8f3;
+  --line: #dcd7cc;
+  --green: #2f6b4f;
+  --green-soft: #e4efe8;
+  --accent: #4c9a74;
+  --red: #b3392f;
+  --red-soft: #f8e6e3;
+  --red-faint: #fdf3f1;
+  --gray: #8a918d;
   --gold-soft: #fff7d6;
+  --gold-line: #e8d98a;
   --content-width: 520px;
+  --radius: 14px;
 }
 
 * {
   box-sizing: border-box;
+  min-width: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
 }
 
 body {
-  margin: 0;
   background: var(--bg);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
   line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.app-header {
-  background: var(--ink);
-  color: #fff;
-  padding: calc(env(safe-area-inset-top) + 14px) 18px 14px;
+h2 {
+  font-size: 17px;
+  margin: 4px 0 12px;
 }
 
-.app-title {
+h3 {
+  font-size: 15px;
+  margin: 22px 0 10px;
+}
+
+p {
   margin: 0;
-  font-size: 18px;
 }
 
-.app-date {
-  font-size: 12px;
-  opacity: 0.8;
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.app-main {
-  max-width: var(--content-width);
-  margin: 0 auto;
-  padding: 16px;
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
 }
 
 .notice {
-  margin: 0;
+  margin-bottom: 14px;
   padding: 14px 16px;
   background: var(--gold-soft);
   border: 1px solid var(--gold-line);
   border-radius: 12px;
   font-size: 14px;
+  line-height: 1.7;
+}
+
+.hint {
+  margin-top: 12px;
+  color: var(--sub);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.empty {
+  padding: 18px 16px;
+  color: var(--sub);
+}
+
+.list {
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.list-row:last-child {
+  border-bottom: 0;
+}
+
+.count-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.count-heading strong {
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
 }
