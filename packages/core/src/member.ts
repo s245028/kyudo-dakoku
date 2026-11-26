@@ -51,6 +51,28 @@ export function isEnrolled(status: MemberStatus): boolean {
   return status === 'active' || status === 'retired';
 }
 
+/** 判定・打刻・管理の対象になる部員（承認済みで在籍中）か。 */
+export function isApprovedMember(member: Pick<Member, 'status' | 'approved'>): boolean {
+  return member.approved && isEnrolled(member.status);
+}
+
+/** 管理できる主将が1人は残るか。いなくなると、アプリから誰も管理できなくなる。 */
+export function hasActingCaptain(
+  members: readonly (Pick<Member, 'status' | 'approved'> & { role: Role })[],
+): boolean {
+  return members.some((member) => member.role === 'captain' && isApprovedMember(member));
+}
+
+/** 罰をつける・割り当てる・消化できるか。 */
+export function canManagePenalties(member: Pick<Member, 'status' | 'approved'> & { role: Role }) {
+  return isApprovedMember(member) && (member.role === 'captain' || member.role === 'vice');
+}
+
+/** 承認・名簿・臨時変更・判定・設定などを操作できるか。 */
+export function canAdminister(member: Pick<Member, 'status' | 'approved'> & { role: Role }) {
+  return isApprovedMember(member) && member.role === 'captain';
+}
+
 /** その日を引退後として扱うか。引退日がなければ、引退にした人は常に引退後。 */
 export function isRetiredOn(
   member: Pick<Member, 'status' | 'retiredOn'>,

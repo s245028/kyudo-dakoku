@@ -1,5 +1,5 @@
 import { toInstant, toPracticeDate, type ClockTime, type PracticeDate } from './date.ts';
-import { isEnrolled, isRetiredOn, type Member } from './member.ts';
+import { isApprovedMember, isRetiredOn, type Member } from './member.ts';
 import {
   resolvePracticePlan,
   type Koma,
@@ -163,18 +163,13 @@ export type JudgementInput = {
   settings: JudgementSettings;
 };
 
-/** その人を判定の対象にするか。対象外の人の過去の記録には触れない。 */
-export function isJudgeable(member: Pick<Member, 'status' | 'approved'>): boolean {
-  return member.approved && isEnrolled(member.status);
-}
-
 /**
  * その日の出欠を判定する。出欠一覧に載せない場合は null
  * （対象外の部員、練習日でない、引退した人が参加登録せず来てもいない）。
  */
 export function judgeAttendance(input: JudgementInput): AttendanceRecord | null {
   const { date, now, member, settings } = input;
-  if (!isJudgeable(member)) return null;
+  if (!isApprovedMember(member)) return null;
 
   const plan = resolvePracticePlan({ ...input, memberId: member.id });
   if (!plan) return null;
