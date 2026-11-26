@@ -449,6 +449,13 @@
     }
   },
 
+  "functions": {
+    // ログインの確認は関数の中で行う（api/index.ts）
+    "api": {
+      "verify_jwt": false
+    }
+  },
+
   "edge_runtime": {
     "enabled": true,
     // Supported request policies: `oneshot`, `per_worker`.
