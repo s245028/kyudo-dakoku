@@ -25,7 +25,7 @@
     // `postgres` are reachable through the Data API roles (`anon`, `authenticated`, `service_role`)
     // without explicit GRANTs, matching the cloud default. Set to `false` to require explicit GRANTs
     // instead. Left unset, a fresh project falls back to `true`.
-    // "auto_expose_new_tables": true,
+    "auto_expose_new_tables": false,
 
     "tls": {
       // Enable HTTPS endpoints locally using a self-signed certificate.
@@ -205,7 +205,7 @@
     // Allow/disallow new user signups to your project. Existing users can still sign in.
     "enable_signup": true,
     // Allow/disallow anonymous sign-ins to your project.
-    "enable_anonymous_sign_ins": false,
+    "enable_anonymous_sign_ins": true,
     // Allow/disallow testing manual linking of accounts
     "enable_manual_linking": false,
     // Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
@@ -232,7 +232,7 @@
       // Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
       "sms_sent": 30,
       // Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
-      "anonymous_users": 30,
+      "anonymous_users": 1000,
       // Number of sessions that can be refreshed in a 5 minute interval per IP address.
       "token_refresh": 150,
       // Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).

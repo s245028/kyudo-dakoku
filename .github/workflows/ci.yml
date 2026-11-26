@@ -25,3 +25,18 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # テストに使わないサービスは起動しない
+      - run: pnpm exec supabase start -x studio,imgproxy,mailpit,logflare,vector,storage-api,postgres-meta,supavisor
+      - run: pnpm test:db

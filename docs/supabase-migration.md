@@ -151,7 +151,8 @@ kyudo-dakoku/
 ├─ supabase/
 │  ├─ migrations/          テーブル・RLS・関数（supabase CLI で管理）
 │  ├─ functions/           Edge Functions（scan, register, penalties … ）
-│  └─ seed.sql             練習ルール・罰の種類・設定の初期値
+│  ├─ tests/               ローカルの DB を使うテスト（RLS など）
+│  └─ seed.sql             ローカルだけの値（仮の入口QR）
 ├─ legacy/                 現行の Apps Script とアプリ（参照用。編集しない）
 ├─ docs/                   この計画書、設計メモ
 ├─ .github/workflows/      テスト（core・web）
@@ -175,9 +176,11 @@ kyudo-dakoku/
 | `punches` | id, member_id, punched_at(timestamptz), practice_date(date), kind(in/out/auto_out), canceled_at, distance_m, via | 消さずに取り消し時刻を入れる |
 | `attendance` | practice_date, member_id, part, deadline, first_in, last_out, minutes, auto_result, late_minutes, manual_result, manual_reason, note | (practice_date, member_id) で一意 |
 | `penalty_types` | reason, base_count, assigned_by(auto/officer), description | 2.4 の初期値を seed に |
-| `penalties` | id, practice_date, member_id, reason, base_count, memo, created_by, auto_key(unique, null可), created_at | auto_key = `auto|日付|member_id` |
+| `penalties` | id, practice_date, member_id, reason, base_count, memo, created_by(null=自動), auto_key(unique, null可), completed_on, created_at | auto_key = `auto|日付|member_id`。completed_on は残りが0になった日 |
 | `penalty_tasks` | id, penalty_id, content, assigned_at, assigned_by, done_at, done_by | done_at が入ったら消化済み（罰1個） |
+| `grade_promotions` | fiscal_year(主キー), executed_at, executed_by | 学年の繰り上げを年度ごとに1回にする |
 
+- 列の定義は `supabase/migrations/`。`members.linked` は端末が結びついているか（`auth_user_id` はアプリに見せない）。
 - 残りの数・次に倍になるまでの日数は**保存せず**、`packages/core` で計算する（現行の「経過日数」「残りの数」列は表示用だった）。
 - 在室一覧は `punches` から「当日の、取り消されていない最後の打刻が入室の人」として求める（ビュー）。
 
@@ -190,7 +193,9 @@ kyudo-dakoku/
   - スマホを替えたときは、主将が `auth_user_id` を外す（「再登録を許可」）→ 本人が同じ学生番号で登録し直す → 再承認。
 - **RLS（行単位の権限）**
   - 承認済みの部員は、全員の名前・在室・未消化の罰とやることを読める（全員が全員分の罰を見る運用のため）。
-  - コマ表・臨時変更（連絡日時）・自分の打刻の詳細は、本人と主将・副務だけが読める。
+  - コマ表・臨時変更（連絡日時）・打刻の詳細・出欠一覧・部員名簿の行は、本人と主将・副務だけが読める。全員向けの臨時変更は登録した部員が読める。
+  - 入口QRの設定は主将だけが読める。ほかの設定と練習ルールは登録した部員が読める。
+  - ほかの部員の名前は、承認済みの部員だけが呼べるデータベース関数で返す。
   - 書き込みはすべて Edge Functions（service role）経由。表への直接の insert/update/delete は許可しない。
 - Edge Functions は毎回、呼び出した人の `members` 行を引き、**状態・承認・役職**を確認してから処理する。
 
@@ -259,7 +264,7 @@ kyudo-dakoku/
 |---|---|---|
 | P0 土台 | モノレポ（pnpm workspaces）、TypeScript strict、ESLint/Prettier、Vitest、GitHub Actions、Vercel 接続、Supabase CLI の初期化 | 空のアプリが確認用URLで開ける。CI が通る |
 | P1 業務ロジック | `legacy/Code.gs` の判定・罰計算・参加登録の可否を `packages/core` に移植し、10章のテストを書く | テストがすべて通る |
-| P2 データベース | 4章のテーブル、RLS、seed（練習ルール・罰の種類・設定。入口QRはローカル確認用の仮の値にし、現行の値は開発・本番の DB に直接入れる） | 開発用プロジェクトにマイグレーションが通る。RLS のテスト（他人のコマ表が読めないなど） |
+| P2 データベース | 4章のテーブル、RLS、初期値のマイグレーション（練習ルール・罰の種類・設定）。`seed.sql` はローカル用の仮の入口QRだけ。現行の値は開発・本番の DB に直接入れる | 開発用プロジェクトにマイグレーションが通る。RLS のテスト（他人のコマ表が読めないなど） |
 | P3 部員の機能 | 登録・承認待ち・コマ表・打刻・取り消し・在室・罰の閲覧・参加登録 | 実機（iPhone・Android）で登録→承認→打刻→在室表示が動く |
 | P4 管理の機能 | 管理タブ一式、罰の付与・割り当て・消化 | 主将・副務の操作が現行と同じ結果になる |
 | P5 自動処理 | nightly（pg_cron）、Realtime、CSV 書き出し、停止対策 | 夜に自動退室と判定が動く |

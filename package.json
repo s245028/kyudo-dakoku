@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json && pnpm --recursive run typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "test:db": "vitest run --root supabase"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
