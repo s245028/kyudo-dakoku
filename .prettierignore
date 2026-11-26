@@ -1,0 +1,15 @@
+# 参照専用・公開中の現行アプリは整形しない
+legacy/
+/index.html
+Claude outputs/
+
+# 日本語の表を崩さないよう、文書は整形しない
+*.md
+
+pnpm-lock.yaml
+**/dist/
+**/coverage/
+
+# Supabase CLI が生成したまま管理する
+supabase/config.jsonc
+supabase/.temp/

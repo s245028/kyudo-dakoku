@@ -1,0 +1,18 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.DS_Store
+
+# 秘密情報（.env.example だけは残す）
+.env
+.env.*
+!.env.example
+
+.vercel/
+
+# 手元だけの作業ファイル
+Claude outputs/
+
+# 入口QRの画像は公開しない
+assets/entrance-qr.png
