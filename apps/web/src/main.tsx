@@ -8,6 +8,7 @@ import './styles/forms.css';
 import './styles/layout.css';
 import './styles/scan.css';
 import './styles/penalties.css';
+import './styles/admin.css';
 
 // アプリ本体を端末に保存して、2回目から速く開く
 registerSW({ immediate: true });
