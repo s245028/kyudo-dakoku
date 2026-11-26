@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="道場打刻">
+<meta name="theme-color" content="#1d2b24">
+<title>道場打刻</title>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<style>
+  /*
+    VOICE: 道場の入口に置く道具。静かで、読みやすく、迷わない
+    IDEA: 道場の木札と和紙。墨色の帯に、結果だけを大きく
+    PICTURE: 打刻の結果カード（入室・時刻・判定）が主役
+    COLOUR: 墨 #1d2b24、和紙 #f4f1ea、入室の緑 #2f6b4f、罰の朱 #b3392f
+    TYPE: システムの日本語ゴシック。結果は大きく太く
+    LAYOUT: 上に今日の情報、中央に操作、下にタブ
+  */
+  :root {
+    --bg: #f4f1ea; --ink: #1d2b24; --sub: #6b746f; --card: #fff; --soft: #faf8f3;
+    --green: #2f6b4f; --green-soft: #e4efe8; --red: #b3392f; --red-soft: #f8e6e3;
+    --gray: #8a918d; --line: #dcd7cc; --gold: #8a6d00; --gold-soft: #fff7d6;
+  }
+  * { box-sizing: border-box; min-width: 0; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.5;
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top);
+    -webkit-tap-highlight-color: transparent;
+  }
+  header {
+    background: var(--ink); color: #fff; padding: 14px 18px 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  header .who { font-size: 18px; font-weight: 700; }
+  header .today { font-size: 12px; opacity: .8; margin-top: 2px; }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .pill { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,.15); white-space: nowrap; }
+  .pill.in { background: #4c9a74; }
+  .pill.role { background: transparent; border: 1px solid rgba(255,255,255,.4); }
+  main { flex: 1; overflow: auto; padding: 16px 16px 24px; }
+  .panel { display: none; max-width: 520px; margin: 0 auto; }
+  .panel.active { display: block; }
+  h2 { font-size: 17px; margin: 4px 0 12px; }
+  h3 { font-size: 15px; margin: 22px 0 10px; }
+
+  /* 今日のカード */
+  .todaycard {
+    display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center;
+    background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px;
+    border: 1px solid var(--line);
+  }
+  .todaycard .label { font-size: 12px; color: var(--sub); }
+  .todaycard .big { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .todaycard .side { text-align: right; }
+  .todaycard .side .big { color: var(--red); }
+  .todaycard .side.zero .big { color: var(--green); }
+  .todaycard a { color: inherit; text-decoration: none; }
+
+  /* QR読み取り */
+  .scanner {
+    position: relative; width: 100%; aspect-ratio: 1 / 1; max-width: 420px; margin: 0 auto;
+    background: #000; border-radius: 16px; overflow: hidden;
+  }
+  .scanner video { width: 100%; height: 100%; object-fit: cover; }
+  .scanner .frame {
+    position: absolute; inset: 18%; border: 3px solid rgba(255,255,255,.85); border-radius: 12px;
+    box-shadow: 0 0 0 999px rgba(0,0,0,.35);
+  }
+  .msg { text-align: center; color: var(--sub); margin: 14px 0; font-size: 15px; min-height: 1.4em; }
+  .result {
+    display: none; max-width: 420px; margin: 0 auto; background: var(--card); border-radius: 16px;
+    padding: 28px 20px 20px; text-align: center; border-top: 8px solid var(--green);
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .result.show { display: block; }
+  .result.out { border-top-color: var(--gray); }
+  .result.error { border-top-color: var(--red); }
+  .result .type { font-size: 44px; font-weight: 800; letter-spacing: .12em; }
+  .result .type.small { font-size: 24px; letter-spacing: 0; }
+  .result .time { font-size: 30px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .result .judge { margin-top: 12px; font-size: 16px; font-weight: 700; color: var(--green); }
+  .result .judge.late { color: var(--red); }
+  .result .note { margin-top: 10px; color: var(--sub); font-size: 14px; }
+
+  /* 共通 */
+  button {
+    font: inherit; border: 0; border-radius: 12px; padding: 14px 18px; cursor: pointer; min-height: 48px;
+    background: var(--ink); color: #fff; font-weight: 700; width: 100%; margin-top: 14px;
+  }
+  button.secondary { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  button.small { width: auto; min-height: 36px; padding: 6px 12px; margin: 0; font-size: 13px; border-radius: 10px; }
+  button.danger { background: var(--red); }
+  button:disabled { opacity: .45; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #4c9a74; outline-offset: 2px; }
+  .list { background: var(--card); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+  .list .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .list .row:last-child { border-bottom: 0; }
+  .list .empty { padding: 18px 16px; color: var(--sub); }
+  .count-head { display: flex; align-items: baseline; gap: 8px; margin: 4px 0 12px; }
+  .count-head b { font-size: 28px; font-variant-numeric: tabular-nums; }
+  .hint { color: var(--sub); font-size: 13px; line-height: 1.7; margin-top: 12px; }
+  .notice { background: var(--gold-soft); border: 1px solid #e8d98a; border-radius: 12px; padding: 14px 16px; line-height: 1.7; font-size: 14px; margin-bottom: 14px; }
+  .error { color: var(--red); font-size: 14px; min-height: 1.2em; }
+  .blocker { padding: 40px 24px; text-align: center; line-height: 1.8; }
+
+  /* フォーム */
+  .form { display: grid; gap: 14px; background: var(--card); border-radius: 14px; padding: 18px; border: 1px solid var(--line); }
+  .form label { display: grid; gap: 6px; font-weight: 600; font-size: 14px; }
+  .form input, .form select, .form textarea {
+    font: inherit; font-size: 16px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); width: 100%;
+  }
+  .form textarea { min-height: 70px; resize: vertical; }
+  .form button { margin-top: 4px; }
+  .seg { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg legend { font-weight: 600; font-size: 14px; margin-bottom: 6px; padding: 0; }
+  .seg label { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-weight: 600; }
+  .seg label:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .seg input { width: 20px; height: 20px; margin: 0; }
+
+  /* コマ表 */
+  table.koma { width: 100%; background: var(--card); border-radius: 14px; border-collapse: collapse; overflow: hidden; border: 1px solid var(--line); }
+  table.koma th, table.koma td { padding: 14px; text-align: center; border-bottom: 1px solid var(--line); }
+  table.koma tr:last-child td, table.koma tr:last-child th { border-bottom: 0; }
+  table.koma input { width: 26px; height: 26px; }
+  .profile { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; font-size: 15px; }
+  .profile dt { color: var(--sub); }
+  .profile dd { margin: 0; font-weight: 600; }
+
+  /* 罰 */
+  .mine { border-radius: 14px; padding: 16px; margin-bottom: 14px; background: var(--green-soft); color: var(--green); }
+  .mine.has { background: var(--red-soft); color: var(--red); }
+  .mine .big { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .mine .sub { font-size: 13px; color: var(--ink); margin-top: 4px; line-height: 1.6; }
+  .prow { display: grid; grid-template-columns: 3.4em 1fr auto; gap: 4px 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); align-items: center; }
+  .prow:last-child { border-bottom: 0; }
+  .prow.me { background: #fdf3f1; }
+  .prow .date { font-size: 13px; color: var(--sub); font-variant-numeric: tabular-nums; }
+  .prow .who b { font-size: 15px; }
+  .prow .who span { font-size: 12px; color: var(--sub); margin-left: 6px; }
+  .prow .why { font-size: 13px; margin-top: 2px; }
+  .prow .why .memo { color: var(--sub); }
+  .prow .num { text-align: right; }
+  .prow .num b { font-size: 20px; color: var(--red); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .prow .num small { display: block; font-size: 11px; color: var(--sub); white-space: nowrap; }
+  .prow .act { grid-column: 2 / 4; display: flex; justify-content: flex-end; }
+  .prow .paid { grid-column: 2 / 4; font-size: 12px; color: var(--green); }
+  .tasks { grid-column: 2 / 4; display: grid; gap: 6px; margin-top: 4px; }
+  .task { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font-size: 14px; }
+  .task .what::before { content: "・"; color: var(--red); font-weight: 800; margin-right: 4px; }
+  .task.todo { border-style: dashed; color: var(--sub); }
+  .task .btns { display: flex; gap: 6px; }
+  .task input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; background: #fff; }
+  .mine ul { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+  .mine li { background: rgba(255,255,255,.7); border-radius: 10px; padding: 8px 12px; color: var(--ink); font-weight: 600; font-size: 15px; }
+  .mine li::before { content: "・"; color: var(--red); margin-right: 4px; font-weight: 800; }
+  .mine li.todo { font-weight: 400; color: var(--sub); }
+  #addTasks { display: grid; gap: 8px; }
+  .officer { display: none; }
+  body.is-officer .officer { display: block; }
+
+  /* タブ */
+  nav { display: flex; background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+  nav button {
+    margin: 0; border-radius: 0; background: transparent; color: var(--sub); font-weight: 600; padding: 8px 0 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; min-height: 56px; position: relative;
+  }
+  nav button svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  nav button.active { color: var(--ink); }
+  nav button.active::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; background: var(--ink); border-radius: 0 0 3px 3px; }
+  nav .badge { position: absolute; top: 6px; left: calc(50% + 6px); background: var(--red); color: #fff; font-size: 10px; border-radius: 999px; padding: 0 6px; line-height: 16px; }
+  @media (prefers-reduced-motion: no-preference) {
+    .result.show { animation: pop .25s ease-out; }
+    @keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="who" id="who">読み込み中…</div>
+    <div class="today" id="today"></div>
+  </div>
+  <div class="pills">
+    <div class="pill role" id="rolePill" style="display:none"></div>
+    <div class="pill" id="state">—</div>
+  </div>
+</header>
+
+<main id="app">
+  <!-- 部員登録 -->
+  <section class="panel" id="panel-register">
+    <h2>部員登録（初回だけ）</h2>
+    <div class="notice" id="iosHint" style="display:none">
+      iPhoneの方へ：先にこの画面を共有ボタンから「ホーム画面に追加」し、ホーム画面のアイコンから開き直して登録してください。Safariのまま登録すると、ホーム画面のアプリでは未登録の状態になります。
+    </div>
+    <form class="form" id="regForm">
+      <label>学生番号
+        <input id="regId" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="例：S000000" required>
+      </label>
+      <label>名前
+        <input id="regName" autocomplete="name" placeholder="例：島根 太郎" required>
+      </label>
+      <fieldset class="seg">
+        <legend>性別</legend>
+        <label><input type="radio" name="regGender" value="男" required> 男</label>
+        <label><input type="radio" name="regGender" value="女"> 女</label>
+      </fieldset>
+      <label>学年
+        <select id="regGrade">
+          <option>1年</option><option>2年</option><option>3年</option><option>4年</option><option>院1年</option><option>院2年</option>
+        </select>
+      </label>
+      <div class="error" id="regError"></div>
+      <button type="submit" id="regBtn">登録する</button>
+    </form>
+    <p class="hint">登録したら、続けて授業のコマを入力します。主将が承認すると打刻できるようになります。</p>
+  </section>
+
+  <!-- 打刻 -->
+  <section class="panel active" id="panel-scan">
+    <div class="notice" id="pendingNote" style="display:none">
+      <b>主将の承認待ちです。</b><br>承認されると、ここから打刻できるようになります。先に「自分」タブで授業のコマを入力しておいてください。
+    </div>
+    <div class="todaycard" id="todayCard">
+      <div>
+        <div class="label" id="tcLabel">今日の集合</div>
+        <div class="big" id="tcTime">—</div>
+      </div>
+      <a class="side" id="tcPenalty" href="#" data-goto="penalty">
+        <div class="label">あなたの罰</div>
+        <div class="big" id="tcPenaltyNum">—</div>
+      </a>
+    </div>
+    <div class="scanner" id="scanner">
+      <video id="video" playsinline muted></video>
+      <div class="frame"></div>
+    </div>
+    <div class="result" id="result">
+      <div class="type" id="resType"></div>
+      <div class="time" id="resTime"></div>
+      <div class="judge" id="resJudge"></div>
+      <div class="note" id="resNote"></div>
+      <button class="secondary" id="undoBtn" style="display:none">取り消す</button>
+      <button id="againBtn">もう一度読み取る</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </section>
+
+  <!-- 在室 -->
+  <section class="panel" id="panel-presence">
+    <div class="count-head"><h2 style="margin:0">いま道場にいる人</h2><b id="presenceCount">0</b><span>人</span></div>
+    <div class="list" id="presenceList"></div>
+    <button class="secondary" id="reloadBtn">更新</button>
+  </section>
+
+  <!-- 罰 -->
+  <section class="panel" id="panel-penalty">
+    <div class="mine" id="mineBox">
+      <div class="big" id="mineNum">罰はありません</div>
+      <div class="sub" id="mineSub"></div>
+    </div>
+
+    <div class="officer">
+      <button class="secondary" id="addToggle" style="margin-top:0">＋ 罰をつける（副務・主将）</button>
+      <form class="form" id="addForm" style="display:none; margin-top:12px">
+        <label>部員
+          <select id="addMember" required></select>
+        </label>
+        <label>理由
+          <select id="addReason" required></select>
+        </label>
+        <label>日付
+          <input type="date" id="addDate" required>
+        </label>
+        <div>
+          <div style="font-weight:600;font-size:14px;margin-bottom:6px">やること（罰1個ごと）</div>
+          <div id="addTasks"></div>
+        </div>
+        <label>メモ（何を置きっぱなしにしたか など）
+          <textarea id="addMemo" maxlength="200" placeholder="例：弓具ケースを射場に置いたまま"></textarea>
+        </label>
+        <div class="error" id="addError"></div>
+        <button type="submit" id="addBtn">罰をつける</button>
+      </form>
+    </div>
+
+    <h3>罰がついている人（古い順）</h3>
+    <div class="list" id="penaltyList"></div>
+    <p class="hint">
+      罰1個ごとに、副務が「やること」を決めます。終わったら証拠の画像を副務に送ってください。副務が確認すると、その罰が消えます。<br>
+      残っている罰は、ついた日から1週間ごとに2倍になります。増えた分のやることも副務が決めます。
+    </p>
+  </section>
+
+  <!-- 自分 -->
+  <section class="panel" id="panel-me">
+    <h2>登録情報</h2>
+    <dl class="profile" id="profile"></dl>
+    <h3>授業のコマ（今学期）</h3>
+    <table class="koma">
+      <thead><tr><th></th><th>4コマ</th><th>5コマ</th></tr></thead>
+      <tbody id="komaBody"></tbody>
+    </table>
+    <button id="komaSave">保存</button>
+    <p class="hint">
+      授業がある曜日・コマにチェックしてください。5コマがある日は後半（19:15集合）、4コマだけの日は前半（17:30まで）、
+      どちらもない日は前半（17:00集合）で遅刻を判定します。<br>
+      休講・補講などその日だけの変更や、遅刻・欠席は、集合時間の1時間前までに主将へ連絡してください。
+    </p>
+  </section>
+</main>
+
+<nav id="nav">
+  <button class="active" data-tab="scan" aria-label="打刻">
+    <svg viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M9 9h2v2H9zM13 13h2v2h-2zM13 9h2v2M9 13v2h2"/></svg>
+    打刻
+  </button>
+  <button data-tab="presence" aria-label="在室">
+    <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.8 5.5-4.8s4.9 1.8 5.5 4.8"/><circle cx="17" cy="9" r="2.4"/><path d="M15.5 14.4c2.3-.3 4.4 1.2 5 4.1"/></svg>
+    在室
+  </button>
+  <button data-tab="penalty" aria-label="罰">
+    <svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+    罰
+    <span class="badge" id="penaltyBadge" style="display:none"></span>
+  </button>
+  <button data-tab="me" aria-label="自分">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/></svg>
+    自分
+  </button>
+</nav>
+
+<script>
+// ▼ Apps Script をウェブアプリとしてデプロイしたURLに書き換える
+const API_URL = 'https://script.google.com/macros/s/AKfycbx_9LDL62Fhepa6i4pNS34m3c-ch85_vN6BeJfSen34Cjy-px2y0oTyk-eGA1pRYLtp/exec';
+
+const KEY_STORE = 'kyudo_attendance_key';
+const KOMA_DAYS = ['月', '火', '木'];
+
+const $ = id => document.getElementById(id);
+const els = {
+  who: $('who'), today: $('today'), state: $('state'), msg: $('msg'),
+  scanner: $('scanner'), video: $('video'), result: $('result'),
+  resType: $('resType'), resTime: $('resTime'), resJudge: $('resJudge'), resNote: $('resNote'),
+  undoBtn: $('undoBtn'), againBtn: $('againBtn'),
+  presenceList: $('presenceList'), komaBody: $('komaBody'), komaSave: $('komaSave'),
+};
+const el = (tag, cls, text) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+};
+
+/* ---------- 識別キー ---------- */
+function loadKey() {
+  const fromUrl = new URLSearchParams(location.search).get('key');
+  try {
+    if (fromUrl) { localStorage.setItem(KEY_STORE, fromUrl); return fromUrl; }
+    return localStorage.getItem(KEY_STORE);
+  } catch (e) {
+    return fromUrl;
+  }
+}
+let key = loadKey();
+
+/* ---------- 通信 ---------- */
+async function api(action, data = {}) {
+  // Content-Type を付けない（text/plain）ことで、CORS の事前確認なしで送れる
+  const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action, key, ...data }) });
+  return res.json();
+}
+
+/* ---------- 状態表示 ---------- */
+let status = null;
+
+async function refreshStatus() {
+  try {
+    const r = await api('status');
+    if (!r.ok && r.code === 'unregistered') { forgetKey(); showRegister(); return; }
+    if (!r.ok) { block(r.error); return; }
+    status = r;
+    render();
+  } catch (e) {
+    els.today.textContent = '通信できませんでした';
+  }
+}
+
+function myPenalties() {
+  return (status.penalties || []).filter(p => p.studentId === status.studentId);
+}
+
+function render() {
+  document.body.classList.toggle('is-officer', !!status.officer);
+  els.who.textContent = status.name + ' さん';
+  els.today.textContent = status.today
+    ? `今日：${status.today.part}（${status.today.deadline}までに入室）`
+    : '今日は練習日ではありません';
+  els.state.textContent = !status.approved ? '承認待ち' : status.inRoom ? `在室中 ${status.since}〜` : '不在';
+  els.state.classList.toggle('in', status.approved && status.inRoom);
+  const rp = $('rolePill');
+  rp.style.display = status.officer ? '' : 'none';
+  rp.textContent = status.role;
+
+  $('pendingNote').style.display = status.approved ? 'none' : '';
+  if (!status.approved) { stopScan(); els.scanner.style.display = 'none'; els.msg.style.display = 'none'; }
+
+  // 今日のカード
+  $('tcLabel').textContent = status.today ? `今日の集合（${status.today.part}）` : '今日の練習';
+  $('tcTime').textContent = status.today ? status.today.deadline : 'なし';
+  const mine = myPenalties();
+  const total = mine.reduce((a, p) => a + p.count, 0);
+  $('tcPenaltyNum').textContent = total ? `${total}個` : 'なし';
+  $('tcPenalty').classList.toggle('zero', !total);
+  const badge = $('penaltyBadge');
+  badge.style.display = total ? '' : 'none';
+  badge.textContent = total;
+
+  renderPresence();
+  renderPenalties();
+  renderTaskSuggest();
+  renderProfile();
+  renderKoma();
+}
+
+function renderPresence() {
+  const box = els.presenceList;
+  box.replaceChildren();
+  const list = status.presence || [];
+  $('presenceCount').textContent = list.length;
+  if (!list.length) {
+    box.append(el('div', 'empty', 'いま道場にいる人はいません'));
+    return;
+  }
+  list.forEach(p => {
+    const row = el('div', 'row');
+    row.append(el('span', '', p.name), el('span', '', p.since + '〜'));
+    box.append(row);
+  });
+}
+
+/* ---------- 罰 ---------- */
+const md = ymd => { const [, m, d] = ymd.split('-'); return `${Number(m)}/${Number(d)}`; };
+
+function renderPenalties() {
+  const mine = myPenalties();
+  const total = mine.reduce((a, p) => a + p.count, 0);
+  const box = $('mineBox');
+  box.classList.toggle('has', total > 0);
+  $('mineNum').textContent = total ? `あなたの罰：残り${total}個` : 'あなたの罰はありません';
+  const sub = $('mineSub');
+  sub.replaceChildren();
+  if (total) {
+    const soon = mine.reduce((a, p) => Math.min(a, p.daysToDouble), 99);
+    const ul = el('ul');
+    mine.forEach(p => {
+      p.tasks.forEach(t => ul.append(el('li', '', t.content)));
+      for (let i = 0; i < p.unassigned; i++) ul.append(el('li', 'todo', `やることは副務が決めます（${p.reason}）`));
+    });
+    sub.append(el('div', '', `終わったら証拠の画像を副務へ。いちばん早いものは、あと${soon}日で残りが2倍になります。`), ul);
+  }
+
+  const list = $('penaltyList');
+  list.replaceChildren();
+  const items = status.penalties || [];
+  if (!items.length) list.append(el('div', 'empty', 'いま罰がついている人はいません'));
+  items.forEach(p => {
+    const row = el('div', 'prow' + (p.studentId === status.studentId ? ' me' : ''));
+    row.append(el('div', 'date', md(p.date)));
+    const who = el('div', 'who');
+    const nameLine = el('div');
+    nameLine.append(el('b', '', p.name), el('span', '', p.studentId));
+    const why = el('div', 'why', p.reason);
+    if (p.memo) why.append(el('span', 'memo', `（${p.memo}）`));
+    who.append(nameLine, why);
+    const num = el('div', 'num');
+    num.append(el('b', '', `罰${p.count}個`), el('small', '', `あと${p.daysToDouble}日で残りが2倍`));
+    row.append(who, num);
+
+    const tasks = el('div', 'tasks');
+    p.tasks.forEach(t => tasks.append(taskItem(t)));
+    for (let i = 0; i < p.unassigned; i++) tasks.append(unassignedItem(p));
+    row.append(tasks);
+    if (p.paid) row.append(el('div', 'paid', `${p.paid}個 消化済み`));
+    list.append(row);
+  });
+
+  if (status.officer) renderAddForm();
+}
+
+function taskItem(t) {
+  const box = el('div', 'task');
+  box.append(el('div', 'what', t.content));
+  if (!status.officer) return box;
+  const btns = el('div', 'btns');
+  const edit = el('button', 'small secondary', '変更');
+  const done = el('button', 'small', '消化済み');
+  edit.addEventListener('click', () => editTask(t, box));
+  done.addEventListener('click', () => completeTask(t, done));
+  btns.append(edit, done);
+  box.append(btns);
+  return box;
+}
+
+function unassignedItem(p) {
+  const box = el('div', 'task todo');
+  if (!status.officer) {
+    box.append(el('div', 'what', 'やることは副務が決めます'));
+    return box;
+  }
+  const input = el('input');
+  input.placeholder = 'やることを入力（例：的貼り3個）';
+  input.maxLength = 60;
+  input.setAttribute('list', 'taskSuggest');
+  const btn = el('button', 'small', '割り当てる');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      const r = await api('assignTask', { penaltyId: p.id, content: input.value });
+      if (!r.ok) { input.value = ''; input.placeholder = r.error; return; }
+      applyPenaltyResult(r);
+    } catch (e) {
+      input.placeholder = '通信できませんでした';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  box.append(input, btn);
+  return box;
+}
+
+function editTask(t, box) {
+  box.replaceChildren();
+  const input = el('input');
+  input.value = t.content;
+  input.maxLength = 60;
+  input.setAttribute('list', 'taskSuggest');
+  const btn = el('button', 'small', '保存');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      const r = await api('editTask', { taskId: t.id, content: input.value });
+      if (!r.ok) { input.value = r.error; return; }
+      applyPenaltyResult(r);
+    } catch (e) {
+      input.value = '通信できませんでした';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  box.append(input, btn);
+  input.focus();
+}
+
+let completeArmed = null;
+async function completeTask(t, btn) {
+  // 1回目のタップで確認、4秒以内の2回目で確定
+  if (completeArmed !== t.id) {
+    document.querySelectorAll('.task .btns button.danger').forEach(x => { x.textContent = '消化済み'; x.classList.remove('danger'); });
+    completeArmed = t.id;
+    btn.textContent = 'もう一度で確定';
+    btn.classList.add('danger');
+    setTimeout(() => {
+      if (completeArmed === t.id) { completeArmed = null; btn.textContent = '消化済み'; btn.classList.remove('danger'); }
+    }, 4000);
+    return;
+  }
+  completeArmed = null;
+  btn.disabled = true;
+  try {
+    const r = await api('completeTask', { taskId: t.id });
+    if (!r.ok) { btn.textContent = r.error; return; }
+    applyPenaltyResult(r);
+  } catch (e) {
+    btn.textContent = '通信できませんでした';
+    btn.disabled = false;
+  }
+}
+
+function applyPenaltyResult(r) {
+  status.penalties = r.penalties;
+  if (r.taskSuggestions) status.taskSuggestions = r.taskSuggestions;
+  render();
+}
+
+function renderTaskSuggest() {
+  let dl = $('taskSuggest');
+  if (!dl) { dl = el('datalist'); dl.id = 'taskSuggest'; document.body.append(dl); }
+  dl.replaceChildren();
+  (status.taskSuggestions || []).forEach(c => { const o = el('option'); o.value = c; dl.append(o); });
+}
+
+/* 罰を記録するフォーム（副務・主将） */
+function renderAddForm() {
+  const ms = $('addMember');
+  if (ms.dataset.n !== String((status.members || []).length)) {
+    ms.replaceChildren(el('option', '', '選んでください'));
+    ms.options[0].value = '';
+    (status.members || []).forEach(m => {
+      const o = el('option', '', `${m.name}（${m.id}）`);
+      o.value = m.id;
+      ms.append(o);
+    });
+    ms.dataset.n = String((status.members || []).length);
+  }
+  const rs = $('addReason');
+  if (!rs.options.length) {
+    (status.penaltyTypes || []).forEach(t => { const o = el('option', '', t.reason); o.value = t.reason; rs.append(o); });
+    renderAddTasks();
+  }
+}
+
+function renderAddTasks() {
+  const t = (status.penaltyTypes || []).find(x => x.reason === $('addReason').value);
+  const n = t ? t.base : 1;
+  const box = $('addTasks');
+  const old = Array.from(box.querySelectorAll('input')).map(i => i.value);
+  box.replaceChildren();
+  for (let i = 0; i < n; i++) {
+    const input = el('input');
+    input.className = 'addTask';
+    input.placeholder = n > 1 ? `${i + 1}個目のやること（例：道場の掃除）` : 'やること（例：的貼り3個、道場の掃除、窓のサッシの掃除）';
+    input.maxLength = 60;
+    input.required = true;
+    input.setAttribute('list', 'taskSuggest');
+    input.value = old[i] || '';
+    box.append(input);
+  }
+}
+$('addReason').addEventListener('change', renderAddTasks);
+
+$('addToggle').addEventListener('click', () => {
+  const f = $('addForm');
+  const open = f.style.display === 'none';
+  f.style.display = open ? '' : 'none';
+  $('addToggle').textContent = open ? '閉じる' : '＋ 罰をつける（副務・主将）';
+  if (open && !$('addDate').value) {
+    const d = new Date();
+    $('addDate').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+});
+
+$('addForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  $('addError').textContent = '';
+  const btn = $('addBtn');
+  btn.disabled = true;
+  try {
+    const r = await api('addPenalty', {
+      studentId: $('addMember').value, reason: $('addReason').value, date: $('addDate').value, memo: $('addMemo').value,
+      contents: Array.from(document.querySelectorAll('.addTask')).map(i => i.value),
+    });
+    if (!r.ok) { $('addError').textContent = r.error; return; }
+    $('addMemo').value = '';
+    $('addMember').value = '';
+    document.querySelectorAll('.addTask').forEach(i => { i.value = ''; });
+    btn.textContent = '記録しました';
+    applyPenaltyResult(r);
+    setTimeout(() => { btn.textContent = '罰をつける'; }, 1500);
+  } catch (err) {
+    $('addError').textContent = '記録できませんでした。通信を確認してください。';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- 自分 ---------- */
+function renderProfile() {
+  const dl = $('profile');
+  dl.replaceChildren();
+  [['名前', status.name], ['学生番号', status.studentId], ['役職', status.role], ['状態', status.approved ? '承認済み' : '承認待ち']]
+    .forEach(([k, v]) => { dl.append(el('dt', '', k), el('dd', '', v || '—')); });
+}
+
+let komaDirty = false;
+function renderKoma() {
+  if (komaDirty) return; // 編集中は上書きしない
+  const k = status.koma || {};
+  els.komaBody.replaceChildren();
+  KOMA_DAYS.forEach(day => {
+    const tr = document.createElement('tr');
+    tr.append(el('th', '', day));
+    ['4', '5'].forEach(n => {
+      const td = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.dataset.key = day + n;
+      cb.setAttribute('aria-label', `${day}曜${n}コマ`);
+      cb.checked = k[day + n] === true;
+      cb.disabled = status.komaLocked;
+      cb.addEventListener('change', () => { komaDirty = true; });
+      td.append(cb);
+      tr.append(td);
+    });
+    els.komaBody.append(tr);
+  });
+  els.komaSave.disabled = status.komaLocked;
+  els.komaSave.textContent = status.komaLocked ? '確定済み（変更は主将へ）' : (status.koma ? '保存' : '登録する');
+}
+
+els.komaSave.addEventListener('click', async () => {
+  const koma = {};
+  els.komaBody.querySelectorAll('input').forEach(cb => { koma[cb.dataset.key] = cb.checked; });
+  els.komaSave.disabled = true;
+  try {
+    const r = await api('setKoma', { koma });
+    if (!r.ok) { els.komaSave.textContent = r.error; return; }
+    komaDirty = false;
+    els.komaSave.textContent = '保存しました';
+    await new Promise(r => setTimeout(r, 1200));
+    await refreshStatus();
+  } catch (e) {
+    els.komaSave.textContent = '保存できませんでした。通信を確認してください';
+  } finally {
+    els.komaSave.disabled = status && status.komaLocked;
+  }
+});
+
+/* ---------- QR読み取り ---------- */
+let stream = null;
+let scanning = false;
+let busy = false;
+let posPromise = null;
+const canvas = document.createElement('canvas');
+const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+function getPosition() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve({});
+    navigator.geolocation.getCurrentPosition(
+      p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy }),
+      () => resolve({}),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+  });
+}
+
+async function startScan() {
+  if (scanning || busy || !key) return;
+  if (!status || !status.approved) return;
+  showScanner();
+  els.msg.textContent = '入口のQRコードを枠に合わせてください';
+  posPromise = getPosition(); // 読み取りと並行して位置を取る
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch (e) {
+    els.msg.textContent = 'カメラを使えません。カメラの利用を許可してください。';
+    return;
+  }
+  els.video.srcObject = stream;
+  await els.video.play().catch(() => {});
+  scanning = true;
+  requestAnimationFrame(tick);
+}
+
+function stopScan() {
+  scanning = false;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
+  els.video.srcObject = null;
+}
+
+function tick() {
+  if (!scanning) return;
+  const v = els.video;
+  if (v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth) {
+    const w = 480;
+    const h = Math.round(v.videoHeight * w / v.videoWidth);
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(v, 0, 0, w, h);
+    const code = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+    if (code && code.data) {
+      stopScan();
+      onQr(code.data);
+      return;
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+let lastId = null;
+let undoTimer = null;
+
+async function onQr(text) {
+  busy = true;
+  els.msg.textContent = '記録しています…';
+  const pos = await (posPromise || getPosition());
+  try {
+    const r = await api('scan', { qr: text, ...pos });
+    if (r.ok) showResult(r); else showError(r.error);
+  } catch (e) {
+    showError('通信できませんでした。電波を確認して、もう一度読み取ってください。');
+  } finally {
+    busy = false;
+    refreshStatus();
+  }
+}
+
+function showScanner() {
+  els.result.classList.remove('show');
+  els.scanner.style.display = '';
+  els.msg.style.display = '';
+}
+
+function showCard() {
+  els.scanner.style.display = 'none';
+  els.msg.style.display = 'none';
+  els.result.classList.add('show');
+}
+
+function setType(text, small) {
+  els.resType.textContent = text;
+  els.resType.classList.toggle('small', !!small);
+}
+
+function showResult(r) {
+  const isIn = r.type === '入室';
+  els.result.className = 'result' + (isIn ? '' : ' out');
+  setType(r.type);
+  els.resTime.textContent = r.time;
+  els.resJudge.textContent = r.judge || '';
+  els.resJudge.className = 'judge' + (r.late > 0 ? ' late' : '');
+  els.resNote.textContent = r.duplicate ? r.message : `${r.name} さん`;
+  showCard();
+  feedback(isIn);
+
+  clearTimeout(undoTimer);
+  if (!r.duplicate && r.id) {
+    lastId = r.id;
+    els.undoBtn.style.display = '';
+    els.undoBtn.disabled = false;
+    undoTimer = setTimeout(() => { els.undoBtn.style.display = 'none'; }, Math.max(5, (r.undoSeconds || 60) - 10) * 1000);
+  } else {
+    els.undoBtn.style.display = 'none';
+  }
+}
+
+function showError(message) {
+  els.result.className = 'result error';
+  setType('記録できません', true);
+  els.resTime.textContent = '';
+  els.resJudge.textContent = '';
+  els.resNote.textContent = message;
+  els.undoBtn.style.display = 'none';
+  showCard();
+  if (navigator.vibrate) navigator.vibrate([80, 60, 80]);
+}
+
+function feedback(isIn) {
+  if (navigator.vibrate) navigator.vibrate(120);
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.frequency.value = isIn ? 1320 : 880;
+    g.gain.value = 0.15;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + 0.15);
+  } catch (e) { /* 音が出せない環境では無視 */ }
+}
+
+els.undoBtn.addEventListener('click', async () => {
+  els.undoBtn.disabled = true;
+  try {
+    const r = await api('undo', { id: lastId });
+    if (!r.ok) { els.resNote.textContent = r.error; return; }
+    setType('取り消しました', true);
+    els.resTime.textContent = '';
+    els.resJudge.textContent = '';
+    els.resNote.textContent = '必要なら、もう一度読み取ってください';
+    els.undoBtn.style.display = 'none';
+    refreshStatus();
+  } catch (e) {
+    els.resNote.textContent = '取り消せませんでした。通信を確認してください。';
+    els.undoBtn.disabled = false;
+  }
+});
+
+els.againBtn.addEventListener('click', () => startScan());
+
+/* ---------- タブ ---------- */
+let currentTab = 'scan';
+function goTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('active', x.dataset.tab === tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  if (tab === 'scan') {
+    if (!els.result.classList.contains('show')) startScan();
+  } else {
+    stopScan();
+    refreshStatus();
+  }
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => goTab(b.dataset.tab)));
+document.querySelectorAll('[data-goto]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); goTab(a.dataset.goto); }));
+$('reloadBtn').addEventListener('click', refreshStatus);
+
+// アプリを開き直したときは、カメラをすぐ起動する
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { stopScan(); return; }
+  if (!key) return;
+  refreshStatus().then(() => { if (currentTab === 'scan') startScan(); });
+});
+
+/* ---------- 部員登録 ---------- */
+function forgetKey() {
+  key = null;
+  try { localStorage.removeItem(KEY_STORE); } catch (e) { /* 保存できない環境では無視 */ }
+}
+
+function showRegister() {
+  stopScan();
+  document.querySelector('nav').style.display = 'none';
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-register'));
+  els.who.textContent = '道場打刻';
+  els.today.textContent = 'はじめに部員登録をしてください';
+  els.state.textContent = '未登録';
+  els.state.classList.remove('in');
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  $('iosHint').style.display = ios && !navigator.standalone ? '' : 'none';
+}
+
+$('regForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('regBtn');
+  $('regError').textContent = '';
+  btn.disabled = true;
+  try {
+    const r = await api('register', {
+      studentId: $('regId').value, name: $('regName').value, grade: $('regGrade').value,
+      gender: (document.querySelector('input[name=regGender]:checked') || {}).value || '',
+    });
+    if (!r.ok) { $('regError').textContent = r.error; return; }
+    key = r.key;
+    try { localStorage.setItem(KEY_STORE, key); } catch (err) { /* 下のURLにも残す */ }
+    // ホーム画面に追加したときにもキーが残るよう、URLにも入れておく
+    try { history.replaceState(null, '', location.pathname + '?key=' + encodeURIComponent(key)); } catch (err) { /* 無視 */ }
+    document.querySelector('nav').style.display = '';
+    await refreshStatus();
+    goTab('me');
+  } catch (err) {
+    $('regError').textContent = '登録できませんでした。通信を確認してください。';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------- 起動 ---------- */
+function block(message) {
+  stopScan();
+  document.querySelector('nav').style.display = 'none';
+  els.who.textContent = '道場打刻';
+  els.today.textContent = '';
+  els.state.textContent = '未登録';
+  $('app').replaceChildren(el('div', 'blocker', message));
+}
+
+if (API_URL.includes('XXXXXXXX')) {
+  block('管理者の方へ：index.html の API_URL を、Apps Script のウェブアプリURLに書き換えてください。');
+} else if (!key) {
+  showRegister();
+} else {
+  refreshStatus().then(() => { if (currentTab === 'scan') startScan(); });
+}
+</script>
+</body>
+</html>
