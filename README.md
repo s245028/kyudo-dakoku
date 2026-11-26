@@ -9,7 +9,7 @@
 |---|---|
 | `index.html` | 現在 GitHub Pages で公開中のアプリ（切り替えが終わるまで残す） |
 | `legacy/` | 現行の Apps Script（`Code.gs`）、アプリ、手順書。参照専用 |
-| `docs/` | 改修計画 |
+| `docs/` | 改修計画、実機での確認手順（`manual-checks.md`） |
 | `apps/web/` | 新しいアプリ（Vite + React + TypeScript） |
 | `packages/core/` | 業務ロジック（純粋な TypeScript）とテスト |
 | `supabase/` | データベースの定義、テスト、Supabase CLI の設定 |
