@@ -12,7 +12,7 @@
 | `docs/` | 改修計画 |
 | `apps/web/` | 新しいアプリ（Vite + React + TypeScript） |
 | `packages/core/` | 業務ロジック（純粋な TypeScript）とテスト |
-| `supabase/` | Supabase CLI の設定、seed |
+| `supabase/` | データベースの定義、テスト、Supabase CLI の設定 |
 
 入口QRの中身と印刷用の画像は、このリポジトリに置きません。公開リポジトリなので、値が分かると道場の外から打刻できるおそれがあるためです。現行の値はスプレッドシートの設定シートにあります。
 
@@ -28,7 +28,8 @@ pnpm --filter web dev    # http://localhost:5173
 
 | コマンド | 内容 |
 |---|---|
-| `pnpm test` | すべてのテスト |
+| `pnpm test` | 業務ロジックと画面のテスト |
+| `pnpm test:db` | データベースのテスト（先に `pnpm exec supabase start`。ローカルのデータは消える） |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | 型チェック |
 | `pnpm format` | Prettier で整形 |
@@ -43,6 +44,14 @@ pnpm exec supabase stop
 ```
 
 設定ファイルは `supabase/config.jsonc` です。
+
+接続済みの開発用プロジェクトには、次のコマンドでマイグレーションを反映します。
+
+```sh
+pnpm exec supabase db push --linked
+```
+
+`supabase start` が PostgREST のイメージを取得できないときは、`supabase/.temp/rest-version`（接続時に作られるキャッシュ）を削除してから実行します。
 
 ## CI と公開
 

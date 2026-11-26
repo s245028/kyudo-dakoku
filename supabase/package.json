@@ -1,0 +1,12 @@
+{
+  "name": "@kyudo/supabase",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.119.2",
+    "postgres": "^4.1.1"
+  }
+}

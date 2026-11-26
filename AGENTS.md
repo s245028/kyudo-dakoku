@@ -45,7 +45,8 @@
 ## コマンド
 ```
 pnpm install
-pnpm test          # すべてのテスト
+pnpm test          # 業務ロジックと画面のテスト
+pnpm test:db       # データベースのテスト（ローカルの Supabase が必要）
 pnpm lint
 pnpm check         # CI と同じ確認
 pnpm --filter web dev
