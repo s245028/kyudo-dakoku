@@ -453,6 +453,10 @@
     // ログインの確認は関数の中で行う（api/index.ts）
     "api": {
       "verify_jwt": false
+    },
+    // データベースの定期実行だけが呼ぶ。合言葉を関数の中で確かめる
+    "nightly": {
+      "verify_jwt": false
     }
   },
 

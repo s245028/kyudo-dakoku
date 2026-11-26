@@ -1,5 +1,7 @@
 import { toClockTime } from '@kyudo/core';
+import { useEffect } from 'react';
 import { callFunction } from '../../lib/api.ts';
+import { watchPresence } from '../../lib/presenceChannel.ts';
 import { useRemote } from '../../lib/useRemote.ts';
 
 type Present = { member_id: string; name: string; since: string };
@@ -8,6 +10,19 @@ const loadPresence = () => callFunction<Present[]>('presence');
 
 export function PresenceTab() {
   const { data, error, reload } = useRemote(loadPresence);
+
+  // 誰かが打刻したら読み直す。画面に戻ってきたときも読み直す
+  useEffect(() => {
+    const refresh = () => {
+      if (!document.hidden) void reload();
+    };
+    document.addEventListener('visibilitychange', refresh);
+    const stopWatching = watchPresence(refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      stopWatching();
+    };
+  }, [reload]);
 
   return (
     <>

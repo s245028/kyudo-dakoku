@@ -102,6 +102,7 @@ describe('設定', () => {
     { dojoLatitude: 35 },
     { dojoLatitude: 91, dojoLongitude: 0 },
     { autoCheckoutTime: '25:00' },
+    { autoCheckoutTime: '23:45' },
   ])('%o は拒否する', (change) => {
     expect(validateSettings({ ...settings, ...change }).ok).toBe(false);
   });

@@ -54,12 +54,31 @@ pnpm exec supabase stop
 
 ```sh
 pnpm exec supabase db push --remote              # マイグレーション
-pnpm exec supabase functions deploy api --use-api --remote   # Edge Function
+pnpm exec supabase functions deploy --use-api --remote       # Edge Functions
 ```
 
 Vercel の環境変数（Production と Preview）には `VITE_SUPABASE_URL` と `VITE_SUPABASE_PUBLISHABLE_KEY` を設定します。切り替えまでは、どちらも開発用プロジェクトにつなぎます。
 
 `supabase start` が PostgREST のイメージを取得できないときは、`supabase/.temp/rest-version`（接続時に作られるキャッシュ）を削除してから実行します。
+
+## 新しいアプリの初期設定（環境ごとに1回）
+
+Supabase の管理画面の **SQL Editor** で実行します。`'…'` の中を書き換えます。値はリポジトリやチャットに残さないでください。
+
+```sql
+-- 入口QRの中身（現行の値は、スプレッドシートの設定シートの「入口QR」）
+update public.settings set value = to_jsonb('ここに入口QRの中身'::text) where key = 'entranceQr';
+
+-- 最初の主将（先にアプリから部員登録しておく）
+update public.members set approved = true, role = 'captain' where student_no = '学生番号';
+
+-- 夜の自動処理の呼び出し先
+select vault.create_secret('https://<プロジェクトID>.supabase.co/functions/v1/nightly', 'nightly_url');
+```
+
+2人目以降の承認や役職の変更は、主将がアプリの「管理」タブで行います。夜の自動処理が動いたかは、「管理」→「出欠」の下に表示されます。
+
+一時停止対策は、GitHub の **Settings → Secrets and variables → Actions → Variables** に `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` を追加すると動きます。**Actions** の「Keep Supabase awake」を **Run workflow** で実行して確認できます。
 
 ## CI と公開
 

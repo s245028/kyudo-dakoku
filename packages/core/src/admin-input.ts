@@ -17,6 +17,7 @@ import {
   type ExceptionKind,
   type PracticeRule,
 } from './practice.ts';
+import { LATEST_AUTO_CHECKOUT_TIME } from './nightly.ts';
 import { NAME_MAX_LENGTH } from './registration.ts';
 import type { Settings } from './settings.ts';
 import { invalid, type Validated } from './validation.ts';
@@ -175,6 +176,9 @@ export function validateSettings(input: Raw): Validated<EditableSettings> {
   }
   const autoCheckoutTime = text(input['autoCheckoutTime']);
   if (!isClockTime(autoCheckoutTime)) return invalid('自動退室の時刻が正しくありません。');
+  if (autoCheckoutTime > LATEST_AUTO_CHECKOUT_TIME) {
+    return invalid(`自動退室の時刻は${LATEST_AUTO_CHECKOUT_TIME}までにしてください。`);
+  }
 
   return {
     ok: true,

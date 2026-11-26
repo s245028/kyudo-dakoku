@@ -3,6 +3,7 @@ import { loadAttendance, loadRoster } from '../../lib/queries.ts';
 import { useAction } from '../../lib/useAction.ts';
 import { useRemote } from '../../lib/useRemote.ts';
 import { AttendanceRow } from './AttendanceRow.tsx';
+import { NightlyStatus } from './NightlyStatus.tsx';
 
 export function AttendanceSection({ today }: { today: string }) {
   const [date, setDate] = useState(today);
@@ -22,6 +23,7 @@ export function AttendanceSection({ today }: { today: string }) {
       </div>
       {/* 日付を変えたら読み込み直す */}
       <AttendanceList key={date} date={date} />
+      <NightlyStatus />
     </>
   );
 }

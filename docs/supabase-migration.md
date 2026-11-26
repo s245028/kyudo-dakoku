@@ -181,6 +181,7 @@ kyudo-dakoku/
 | `penalties` | id, practice_date, member_id, reason, base_count, memo, created_by(null=自動), auto_key(unique, null可), completed_on, created_at | auto_key = `auto|日付|member_id`。completed_on は残りが0になった日 |
 | `penalty_tasks` | id, penalty_id, content, assigned_at, assigned_by, done_at, done_by | done_at が入ったら消化済み（罰1個） |
 | `grade_promotions` | fiscal_year(主キー), executed_at, executed_by | 学年の繰り上げを年度ごとに1回にする |
+| `nightly_runs` | practice_date(主キー), ran_at, checked_out, judged | 夜の処理を1日1回にする。管理画面で最後の実行を確認する |
 
 - 列の定義は `supabase/migrations/`。`members.linked` は端末が結びついているか（`auth_user_id` はアプリに見せない）。
 - 残りの数・次に倍になるまでの日数は**保存せず**、`packages/core` で計算する（現行の「経過日数」「残りの数」列は表示用だった）。
@@ -253,8 +254,8 @@ kyudo-dakoku/
 
 | 項目 | 方法 |
 |---|---|
-| 毎晩の処理 | pg_cron で 22:15（日本時間。UTC 13:15）に `nightly` を呼ぶ |
-| 無料プランの一時停止対策 | 7日間使われないと止まる。長期休み対策に、GitHub Actions で週1回 API に軽くアクセスする（毎晩の pg_cron だけで防げるかは要確認） |
+| 毎晩の処理 | pg_cron が15分ごとに `nightly` を呼び、自動退室の時刻の15分後（初期値 22:15）以降の最初の回に1日1回だけ実行する。失敗した場合は次の回にやり直す。自動退室の時刻は23:30まで。日付が変わって実行できなかった日は、主将が「この日を判定し直す」で判定する。呼び出し先は Vault の `nightly_url`、合言葉は `nightly_secret`（自動生成） |
+| 無料プランの一時停止対策 | 7日間使われないと止まる。長期休み対策に、GitHub Actions で3日ごとに `ping()` を呼ぶ（Actions の変数に呼び出し先を設定する。公開リポジトリでは60日間更新がないと定期実行が止まるので注意）。毎晩の pg_cron だけで防げるかは要確認 |
 | バックアップ | 無料プランは自動バックアップなし。管理画面の CSV 書き出しに加え、週1回 GitHub Actions で主要テーブルを書き出す（保存先は未決事項） |
 | 秘密情報 | Supabase の service role キーは Edge Functions の環境変数だけに置く。アプリには anon キーだけ（RLS で守る）。リポジトリにキーを書かない。入口QRの中身も書かない |
 | 公開 | Vercel をリポジトリにつなぐ。プルリクエストごとに確認用URL、main への反映で本番 |

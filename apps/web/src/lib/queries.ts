@@ -128,6 +128,19 @@ export async function loadRules(): Promise<StoredRule[]> {
   }));
 }
 
+export type NightlyRun = { date: string; ranAt: string; checkedOut: number; judged: number };
+
+export async function loadLastNightlyRun(): Promise<NightlyRun | null> {
+  const rows = await read<NightlyRun[]>(() =>
+    supabase()
+      .from('nightly_runs')
+      .select('date:practice_date, ranAt:ran_at, checkedOut:checked_out, judged')
+      .order('practice_date', { ascending: false })
+      .limit(1),
+  );
+  return rows[0] ?? null;
+}
+
 export async function loadLastPromotionYear(): Promise<number | null> {
   const rows = await read<{ year: number }[]>(() =>
     supabase()

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Home } from '../../lib/home.ts';
 import { AttendanceSection } from './AttendanceSection.tsx';
 import { ExceptionSection } from './ExceptionSection.tsx';
+import { ExportSection } from './ExportSection.tsx';
 import { RosterSection } from './RosterSection.tsx';
 import { SettingsSection } from './SettingsSection.tsx';
 import { YearlySection } from './YearlySection.tsx';
@@ -12,6 +13,7 @@ const SECTIONS = {
   attendance: '出欠',
   settings: '設定',
   yearly: '代替わり',
+  export: '書き出し',
 } as const;
 type SectionId = keyof typeof SECTIONS;
 
@@ -39,6 +41,7 @@ export function AdminTab({ today, onHome }: { today: string; onHome: (home: Home
       {section === 'attendance' && <AttendanceSection today={today} />}
       {section === 'settings' && <SettingsSection onHome={onHome} />}
       {section === 'yearly' && <YearlySection today={today} onHome={onHome} />}
+      {section === 'export' && <ExportSection today={today} />}
     </>
   );
 }
