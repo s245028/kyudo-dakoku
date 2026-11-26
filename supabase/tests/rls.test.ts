@@ -136,7 +136,7 @@ describe('設定', () => {
 });
 
 describe('アプリから表を直接書き換えられない', () => {
-  const targets = {
+  const targets: Record<string, Record<string, unknown>> = {
     settings: { key: 'komaLocked', value: true },
     practice_rules: { weekday: 3, condition: 'all', part: 'whole', deadline: '09:00' },
     members: { approved: true },
