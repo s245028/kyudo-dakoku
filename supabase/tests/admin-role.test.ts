@@ -233,3 +233,20 @@ describe('役職が管理者の部員', () => {
     expect(await roleOf(captain.id)).toBe('admin');
   });
 });
+
+describe('男子副将・女子副将・主務・会計', () => {
+  const roles = ['men_vice_captain', 'women_vice_captain', 'chief_manager', 'treasurer'] as const;
+
+  it.each(roles)('%s を指定でき、権限は部員と同じ', async (role) => {
+    const device = await signInDevice();
+    const { id } = await insertMember(sql, { auth_user_id: device.userId });
+    await insertMember(sql);
+
+    expect(await run('admin-update-member', { memberId: id, changes: { role } })).toMatchObject({
+      ok: true,
+    });
+    const { data } = await device.client.from('members').select('id');
+    expect(data).toEqual([{ id }]);
+    expect(await run('admin-rejudge', { date: DATE }, device.userId)).toMatchObject({ ok: false });
+  });
+});
