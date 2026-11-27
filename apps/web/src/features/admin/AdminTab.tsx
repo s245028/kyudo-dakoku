@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Home } from '../../lib/home.ts';
 import { AttendanceSection } from './AttendanceSection.tsx';
 import { ExceptionSection } from './ExceptionSection.tsx';
+import { LineupSection } from '../lineup/LineupSection.tsx';
 import { ExportSection } from './ExportSection.tsx';
 import { NoticeSection } from './NoticeSection.tsx';
 import { RosterSection } from './RosterSection.tsx';
@@ -10,6 +11,7 @@ import { YearlySection } from './YearlySection.tsx';
 
 const SECTIONS = {
   notices: '連絡',
+  lineup: '立ち順',
   roster: '名簿',
   exceptions: '臨時変更',
   attendance: '出欠',
@@ -48,6 +50,7 @@ export function AdminTab({ today, viewerIsAdmin, pendingNotices, onHome }: Admin
         ))}
       </div>
       {section === 'notices' && <NoticeSection today={today} onHome={onHome} />}
+      {section === 'lineup' && <LineupSection today={today} />}
       {section === 'roster' && <RosterSection viewerIsAdmin={viewerIsAdmin} onHome={onHome} />}
       {section === 'exceptions' && <ExceptionSection today={today} />}
       {section === 'attendance' && <AttendanceSection today={today} />}

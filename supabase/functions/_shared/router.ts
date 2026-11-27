@@ -10,6 +10,7 @@ import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
 import { cancelKomaChange, submitKomaChange } from './actions/koma-requests.ts';
+import { deleteLineup, saveLineup } from './actions/lineups.ts';
 import { cancelNotice, reviewNotice, submitNotice } from './actions/notices.ts';
 import { approveMember, deleteMember, resetDevice, updateMember } from './actions/members.ts';
 import {
@@ -52,6 +53,8 @@ export const ACTIONS = {
   'admin-add-exception': addException,
   'admin-delete-exception': deleteException,
   'admin-review-notice': reviewNotice,
+  'admin-save-lineup': saveLineup,
+  'admin-delete-lineup': deleteLineup,
   'admin-rejudge': rejudge,
   'admin-set-manual': setManualJudgement,
   'admin-update-settings': updateSettings,

@@ -15,7 +15,6 @@ import {
   toPracticeDate,
   type CsvValue,
   type ExceptionKind,
-  type Gender,
   type Judgement,
   type Koma,
   type NoticeApproval,
@@ -52,28 +51,21 @@ async function memberDirectory() {
 async function members(): Promise<Table> {
   const [roster, extra] = await Promise.all([
     loadRoster(),
-    readEveryRow<{ id: string; gender: Gender; registered_at: string }>(
-      'members',
-      'id, gender, registered_at',
-      ['id'],
-    ),
+    readEveryRow<{ id: string; registered_at: string }>('members', 'id, registered_at', ['id']),
   ]);
   return {
     header: ['学生番号', '名前', '学年', '性別', '状態', '役職', '承認', '引退日', '登録日時'],
-    rows: roster.map((member) => {
-      const more = extra.find((row) => row.id === member.id);
-      return [
-        member.studentNo,
-        member.name,
-        GRADE_LABELS[member.grade],
-        more ? GENDER_LABELS[more.gender] : '',
-        STATUS_LABELS[member.status],
-        ROLE_LABELS[member.role],
-        member.approved ? '承認済み' : '承認待ち',
-        member.retiredOn,
-        dateTime(more?.registered_at ?? null),
-      ];
-    }),
+    rows: roster.map((member) => [
+      member.studentNo,
+      member.name,
+      GRADE_LABELS[member.grade],
+      GENDER_LABELS[member.gender],
+      STATUS_LABELS[member.status],
+      ROLE_LABELS[member.role],
+      member.approved ? '承認済み' : '承認待ち',
+      member.retiredOn,
+      dateTime(extra.find((row) => row.id === member.id)?.registered_at ?? null),
+    ]),
   };
 }
 

@@ -1,0 +1,193 @@
+/* 参加者と、木札を並べる立ち順の板 */
+.part-menu {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.participants {
+  display: grid;
+  gap: 6px;
+}
+
+.participants-total strong {
+  margin: 0 2px;
+  font-size: 24px;
+}
+
+.participants-names {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.participants-names div {
+  display: grid;
+  grid-template-columns: 3em 1fr;
+  gap: 8px;
+}
+
+.participants-names dt {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.participants-names dd {
+  margin: 0;
+}
+
+.lineup-tools {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+
+.lineup-tools label {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.board {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 先頭（大前）を右端にする */
+.board-targets,
+.board-row {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 3px;
+}
+
+.board-column {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.board-groups li + li {
+  margin-top: 10px;
+}
+
+.board-groups .board-label {
+  display: block;
+  margin-bottom: 3px;
+  text-align: right;
+}
+
+.board-row .tag {
+  flex: 0 1 40px;
+}
+
+.board-label {
+  color: var(--sub);
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.bench {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.bench .tag {
+  width: 34px;
+}
+
+.board .tag,
+.bench .tag {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+  height: 108px;
+  margin: 0;
+  padding: 5px 0;
+  overflow: hidden;
+  border: 1px solid #c6a875;
+  border-radius: 4px;
+  background: #f4e1bd;
+  color: #2b2115;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  writing-mode: vertical-rl;
+}
+
+.board .tag {
+  width: 100%;
+}
+
+.board-row .tag {
+  width: 40px;
+}
+
+.tag-name {
+  max-height: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag-mark {
+  flex-shrink: 0;
+  color: var(--red);
+  font-size: 11px;
+}
+
+.board .tag.tag-highlighted,
+.bench .tag.tag-highlighted {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.tag-highlighted .tag-mark {
+  color: #ffd7d2;
+}
+
+.board .tag.tag-empty {
+  justify-content: center;
+  height: 40px;
+  border-style: dashed;
+  background: transparent;
+  color: var(--sub);
+  font-size: 18px;
+  writing-mode: horizontal-tb;
+}
+
+button.lineup-add {
+  margin-top: 10px;
+}
+
+.lineup-save {
+  margin-top: 16px;
+}
+
+.lineup-card {
+  margin: 14px 0;
+}
+
+.lineup-card h3 {
+  margin: 0 0 8px;
+}
+
+.lineup-mine {
+  margin-bottom: 10px;
+  font-weight: 700;
+}
