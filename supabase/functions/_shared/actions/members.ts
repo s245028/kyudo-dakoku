@@ -98,6 +98,7 @@ async function removeMember(tx: Sql, memberId: string): Promise<void> {
   // 立ち順に残る id は、表示するときに名簿にないので出ない
   await tx`update public.lineups set updated_by = null where updated_by = ${memberId}`;
   await tx`update public.penalties set created_by = null where created_by = ${memberId}`;
+  await tx`update public.penalties set canceled_by = null where canceled_by = ${memberId}`;
   await tx`update public.penalty_tasks set assigned_by = null where assigned_by = ${memberId}`;
   await tx`update public.penalty_tasks set done_by = null where done_by = ${memberId}`;
   await tx`update public.grade_promotions set executed_by = null

@@ -59,12 +59,7 @@ async function requireActor(
 }
 
 export const requireOfficer = (tx: Sql, userId: string) =>
-  requireActor(
-    tx,
-    userId,
-    canManagePenalties,
-    'この操作ができるのは、副務・主将・管理者だけです。',
-  );
+  requireActor(tx, userId, canManagePenalties, 'この操作ができるのは、副務と管理者だけです。');
 
 export const requireCaptain = (tx: Sql, userId: string) =>
   requireActor(tx, userId, canAdminister, 'この操作ができるのは、主将と管理者だけです。');

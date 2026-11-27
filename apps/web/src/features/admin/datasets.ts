@@ -164,6 +164,8 @@ type PenaltyRow = {
   created_by: string | null;
   completed_on: string | null;
   counted_from: string | null;
+  canceled_at: string | null;
+  canceled_by: string | null;
   auto_key: string | null;
 };
 
@@ -200,6 +202,8 @@ async function penalties(today: string): Promise<Table> {
       '記録した人',
       'メモ',
       '数え始め',
+      '取り消し',
+      '取り消した人',
     ],
     rows: rows.map((row) => {
       const state = summarizePenalty({
@@ -227,6 +231,8 @@ async function penalties(today: string): Promise<Table> {
         row.auto_key ? '自動' : nameOf(row.created_by),
         row.memo,
         row.counted_from,
+        dateTime(row.canceled_at),
+        row.canceled_at ? nameOf(row.canceled_by) : '',
       ];
     }),
   };

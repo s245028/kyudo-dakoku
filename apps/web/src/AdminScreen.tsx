@@ -11,7 +11,7 @@ import { logOutAdmin } from './lib/adminAuth.ts';
 import type { AdminHome, Home } from './lib/home.ts';
 
 const ADMIN_TABS: TabId[] = ['admin', 'presence', 'penalty'];
-const VIEWER = { memberId: null, officer: true, captain: true };
+const VIEWER = { memberId: null, officer: true, admin: true };
 
 /** 管理者の画面。打刻はせず、管理・在室・罰を使う。 */
 export function AdminScreen({

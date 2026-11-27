@@ -77,7 +77,6 @@ const newPenalty = () => ({
 
 describe('権限', () => {
   const adminActions = [
-    'admin-close-penalty',
     'admin-approve',
     'admin-update-member',
     'admin-reset-device',
@@ -91,8 +90,8 @@ describe('権限', () => {
     'admin-set-manual',
     'admin-update-settings',
     'admin-save-rule',
-    'admin-delete-rule',
     'admin-save-penalty-type',
+    'admin-delete-rule',
     'change-generation',
     'promote-grades',
   ];
@@ -139,14 +138,17 @@ describe('権限', () => {
     }
   });
 
-  it.each(['add-penalty', 'assign-task', 'edit-task', 'complete-task'])(
-    '%s は部員にはできない',
+  it.each(['add-penalty', 'assign-task', 'edit-task', 'complete-task', 'cancel-penalty'])(
+    '%s は部員と主将にはできない',
     async (action) => {
       const params = { ...newPenalty(), penaltyId: ids.member, taskId: ids.member, content: 'x' };
 
-      expect(await run('member', action, params)).toMatchObject({
-        error: containing('副務・主将・管理者だけ'),
-      });
+      for (const who of ['member', 'captain'] as const) {
+        expect(await run(who, action, params)).toEqual({
+          ok: false,
+          error: 'この操作ができるのは、副務と管理者だけです。',
+        });
+      }
     },
   );
 
@@ -229,15 +231,19 @@ describe('罰の操作', () => {
     expect((await run('vice', 'edit-task', { taskId: task!.id, content: 'x' })).ok).toBe(false);
   });
 
-  it('主将が消化済みにした自動の罰は、判定し直しても変わらない', async () => {
+  it('40: 取り消した自動の罰は、判定し直してもつけ直さない', async () => {
     await must('captain', 'admin-rejudge', { date: DATE }, at('22:15'));
-    const before = await penalties();
-    await must('captain', 'admin-close-penalty', { penaltyId: before[0]!.id });
-    await sql`insert into public.exceptions (date, kind) values (${DATE}, 'day_off')`;
+    const [target] = await sql<{ id: string }[]>`
+      select id from public.penalties where member_id = ${ids.member}`;
 
-    await must('captain', 'admin-rejudge', { date: DATE }, at('22:20'));
+    await must('vice', 'cancel-penalty', { penaltyId: target!.id }, at('09:00', '2026-12-01'));
+    await must('captain', 'admin-rejudge', { date: DATE }, at('09:05', '2026-12-01'));
 
-    expect((await penalties()).map((penalty) => penalty.id)).toEqual([before[0]!.id]);
+    const rows = await sql<{ canceled: boolean; completed: string; by: string }[]>`
+      select canceled_at is not null as canceled, completed_on::text as completed,
+        canceled_by as by
+      from public.penalties where member_id = ${ids.member}`;
+    expect(rows).toEqual([{ canceled: true, completed: '2026-12-01', by: ids.vice }]);
   });
 });
 
@@ -475,5 +481,63 @@ describe('代替わりと学年の繰り上げ', () => {
 
     expect(results.map((result) => result.ok).sort()).toEqual([false, true]);
     expect(await member(ids.member)).toMatchObject({ grade: 'B3' });
+  });
+});
+
+describe('罰の権限', () => {
+  const taskOf = async () => (await tasks())[0]!.id;
+
+  it('38: 主将は罰を扱えない', async () => {
+    await must('vice', 'add-penalty', newPenalty());
+    const [penalty] = await penalties();
+    const refused = { ok: false, error: 'この操作ができるのは、副務と管理者だけです。' };
+
+    expect(await run('captain', 'add-penalty', newPenalty())).toEqual(refused);
+    expect(await run('captain', 'complete-task', { taskId: await taskOf() })).toEqual(refused);
+    expect(await run('captain', 'cancel-penalty', { penaltyId: penalty!.id })).toEqual(refused);
+  });
+
+  it('39: 副務は自分の罰を消化も取り消しもできず、ほかの副務はできる', async () => {
+    await must('vice', 'add-penalty', { ...newPenalty(), memberId: ids.vice });
+    const [penalty] = await penalties();
+    const taskId = await taskOf();
+
+    for (const [action, params] of [
+      ['complete-task', { taskId }],
+      ['cancel-penalty', { penaltyId: penalty!.id }],
+    ] as const) {
+      expect(await run('vice', action, params)).toMatchObject({
+        ok: false,
+        error: containing('ほかの副務'),
+      });
+    }
+
+    const other = await signInDevice();
+    await insertMember(sql, { role: 'vice', auth_user_id: other.userId });
+    const done = await runAction({ sql, userId: other.userId, now: at('12:00') }, 'complete-task', {
+      taskId,
+    });
+    expect(done).toMatchObject({ ok: true });
+    expect(await penalties()).toMatchObject([{ completed_on: DATE }]);
+  });
+
+  it('管理者の役職の部員は、自分の罰も消化できる', async () => {
+    await sql`update public.members set role = 'admin' where id = ${ids.vice}`;
+    await must('vice', 'add-penalty', { ...newPenalty(), memberId: ids.vice });
+
+    expect(await run('vice', 'complete-task', { taskId: await taskOf() })).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it('消化した分がある罰は取り消せない', async () => {
+    await must('vice', 'add-penalty', newPenalty());
+    const [penalty] = await penalties();
+    await must('vice', 'complete-task', { taskId: await taskOf() });
+
+    expect(await run('vice', 'cancel-penalty', { penaltyId: penalty!.id })).toMatchObject({
+      ok: false,
+      error: containing('消化した分'),
+    });
   });
 });

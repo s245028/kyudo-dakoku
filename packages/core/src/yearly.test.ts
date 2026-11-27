@@ -227,3 +227,13 @@ describe('役職と権限', () => {
     }
   });
 });
+
+describe('罰の権限', () => {
+  const as = (role: 'captain' | 'vice' | 'admin') => ({ ...aMember(), role });
+
+  it('罰を扱えるのは副務と管理者で、主将はできない', () => {
+    expect(canManagePenalties(as('captain'))).toBe(false);
+    expect(canManagePenalties(as('vice'))).toBe(true);
+    expect(canManagePenalties(as('admin'))).toBe(true);
+  });
+});

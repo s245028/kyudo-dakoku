@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { PenaltyOperations } from './operations.ts';
 
-/** やることが決まっていない罰1個。副務・主将はここで割り当てる */
+/** やることが決まっていない罰1個。副務はここで割り当てる */
 export function UnassignedTask({
   penaltyId,
   operations,

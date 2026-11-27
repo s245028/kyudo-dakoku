@@ -3,13 +3,15 @@ import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { PenaltyOperations } from './operations.ts';
 
-/** 割り当て済みのやること。副務・主将は変更と消化ができる */
+/** 割り当て済みのやること。副務は変更と消化ができる（自分の罰は消化できない） */
 export function TaskItem({
   task,
   operations,
+  completable,
 }: {
   task: PenaltyTask;
   operations: PenaltyOperations | null;
+  completable: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -55,12 +57,14 @@ export function TaskItem({
         <button type="button" className="small secondary" onClick={() => setDraft(task.content)}>
           変更
         </button>
-        <ConfirmButton
-          label="消化済み"
-          className="small"
-          disabled={sending}
-          onConfirm={() => void run('complete-task', { taskId: task.id })}
-        />
+        {completable && (
+          <ConfirmButton
+            label="消化済み"
+            className="small"
+            disabled={sending}
+            onConfirm={() => void run('complete-task', { taskId: task.id })}
+          />
+        )}
       </span>
     </div>
   );
