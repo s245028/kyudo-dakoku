@@ -1,37 +1,32 @@
-import { useState } from 'react';
 import type { Home } from '../../lib/home.ts';
+import { LineupSection } from '../lineup/LineupSection.tsx';
 import { AttendanceSection } from './AttendanceSection.tsx';
 import { ExceptionSection } from './ExceptionSection.tsx';
-import { LineupSection } from '../lineup/LineupSection.tsx';
 import { ExportSection } from './ExportSection.tsx';
 import { NoticeSection } from './NoticeSection.tsx';
 import { RosterSection } from './RosterSection.tsx';
+import { SECTIONS, type SectionId } from './sections.ts';
 import { SettingsSection } from './SettingsSection.tsx';
 import { YearlySection } from './YearlySection.tsx';
 
-const SECTIONS = {
-  notices: '連絡',
-  lineup: '立ち順',
-  roster: '名簿',
-  exceptions: '臨時変更',
-  attendance: '出欠',
-  settings: '設定',
-  yearly: '代替わり',
-  export: '書き出し',
-} as const;
-type SectionId = keyof typeof SECTIONS;
-
-type AdminTabProps = {
+export type AdminTabProps = {
   today: string;
   viewerIsAdmin: boolean;
+  /** 開いている項目。タブを移っても覚えておく */
+  section: SectionId;
+  onSection: (section: SectionId) => void;
   pendingNotices: number;
+  pendingMembers: number;
   onHome: (home: Home) => void;
 };
 
 /** 主将と管理者の管理画面 */
-export function AdminTab({ today, viewerIsAdmin, pendingNotices, onHome }: AdminTabProps) {
-  // 承認待ちがあれば、開いてすぐ連絡の一覧を出す
-  const [section, setSection] = useState<SectionId>(pendingNotices > 0 ? 'notices' : 'roster');
+export function AdminTab(props: AdminTabProps) {
+  const { today, viewerIsAdmin, section, onSection, onHome } = props;
+  const counts: Partial<Record<SectionId, number>> = {
+    notices: props.pendingNotices,
+    roster: props.pendingMembers,
+  };
 
   return (
     <>
@@ -42,15 +37,19 @@ export function AdminTab({ today, viewerIsAdmin, pendingNotices, onHome }: Admin
             type="button"
             className={id === section ? 'small' : 'small secondary'}
             aria-pressed={id === section}
-            onClick={() => setSection(id)}
+            onClick={() => onSection(id)}
           >
             {SECTIONS[id]}
-            {id === 'notices' && pendingNotices > 0 && ` ${pendingNotices}`}
+            {!!counts[id] && (
+              <span className="section-badge" aria-label={`承認待ち${counts[id]}件`}>
+                {counts[id]}
+              </span>
+            )}
           </button>
         ))}
       </div>
       {section === 'notices' && <NoticeSection today={today} onHome={onHome} />}
-      {section === 'lineup' && <LineupSection today={today} />}
+      {section === 'lineup' && <LineupSection />}
       {section === 'roster' && <RosterSection viewerIsAdmin={viewerIsAdmin} onHome={onHome} />}
       {section === 'exceptions' && <ExceptionSection today={today} />}
       {section === 'attendance' && <AttendanceSection today={today} />}

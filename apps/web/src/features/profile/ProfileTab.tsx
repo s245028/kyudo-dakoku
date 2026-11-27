@@ -38,7 +38,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
         <NotificationCard
           description={
             canAdminister(member)
-              ? '出欠の連絡やコマ変更の申請が届いたときと、自分の分が承認・却下されたときに知らせます。'
+              ? '出欠の連絡、コマ変更の申請、新しい部員の登録が届いたときと、自分の分が承認・却下されたときに知らせます。'
               : '出欠の連絡やコマ変更の申請が、承認・却下されたときに知らせます。'
           }
         />

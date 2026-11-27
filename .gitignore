@@ -13,6 +13,7 @@ coverage/
 
 # 手元だけの作業ファイル
 Claude outputs/
+.playwright-cli/
 
 # 入口QRの画像は公開しない
 assets/entrance-qr.png

@@ -1,4 +1,4 @@
-import { lineupColumnName, PART_LABELS, type LineupFormat, type Part } from '@kyudo/core';
+import { describePosition, PART_LABELS, type LineupFormat, type Part } from '@kyudo/core';
 import { useEffect } from 'react';
 import { callFunction } from '../../lib/api.ts';
 import { useRemote } from '../../lib/useRemote.ts';
@@ -28,17 +28,16 @@ export function PublishedLineups({ memberId, active }: { memberId: string; activ
   }, [active, reload]);
 
   return data?.map((lineup) => {
-    const column = lineup.groups.findIndex((group) => group.some(({ id }) => id === memberId));
-    const position = lineup.groups[column]?.findIndex(({ id }) => id === memberId) ?? -1;
+    const position = describePosition(
+      lineup.format,
+      lineup.groups.map((group) => group.map(({ id }) => id)),
+      memberId,
+    );
 
     return (
       <section className="card lineup-card" key={lineup.part}>
         <h3>今日の立ち順（{PART_LABELS[lineup.part]}）</h3>
-        {column >= 0 && (
-          <p className="lineup-mine">
-            あなたは {lineupColumnName(lineup.format, column)}の{position + 1}番目
-          </p>
-        )}
+        {position && <p className="lineup-mine">あなたは {position}</p>}
         <LineupBoard format={lineup.format} columns={lineup.groups} highlighted={memberId} />
       </section>
     );

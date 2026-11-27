@@ -39,6 +39,7 @@
 
 .lineup-tools {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
@@ -59,11 +60,30 @@
 }
 
 /* 先頭（大前）を右端にする */
-.board-targets,
-.board-row {
+.board-targets {
   display: flex;
   flex-direction: row-reverse;
   gap: 3px;
+}
+
+/* 立ちは8つの位置を同じ幅で並べる */
+.board-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 3px;
+  direction: rtl;
+}
+
+.board-row.board-row-wide {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+}
+
+.board-position {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  direction: ltr;
 }
 
 .board-column {
@@ -78,14 +98,13 @@
   margin-top: 10px;
 }
 
-.board-groups .board-label {
+.board-group-name {
   display: block;
   margin-bottom: 3px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
   text-align: right;
-}
-
-.board-row .tag {
-  flex: 0 1 40px;
 }
 
 .board-label {
@@ -107,7 +126,8 @@
 }
 
 .board .tag,
-.bench .tag {
+.bench .tag,
+.tag-ghost {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -131,10 +151,6 @@
 
 .board .tag {
   width: 100%;
-}
-
-.board-row .tag {
-  width: 40px;
 }
 
 .tag-name {
@@ -175,8 +191,64 @@ button.lineup-add {
   margin-top: 10px;
 }
 
-.lineup-save {
-  margin-top: 16px;
+.lineup-saved {
+  margin-bottom: 6px;
+}
+
+button.lineup-discard {
+  display: block;
+  margin-top: 14px;
+}
+
+/* 板が長くても、いつでも保存できるように下に固定する */
+.lineup-bar {
+  position: sticky;
+  bottom: -24px;
+  margin: 14px -16px 0;
+  padding: 10px 16px;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+
+.lineup-bar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lineup-conflict {
+  margin: 0 0 10px;
+}
+
+.lineup-bar .form-error {
+  margin-bottom: 8px;
+}
+
+.lineup-bar .form-error:empty {
+  display: none;
+}
+
+.lineup-publish {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lineup-status {
+  flex: 1;
+  white-space: nowrap;
+  color: var(--sub);
+  font-size: 13px;
+  text-align: right;
+}
+
+.lineup-status-dirty {
+  color: var(--red);
+  font-weight: 700;
 }
 
 .lineup-card {
@@ -190,4 +262,69 @@ button.lineup-add {
 .lineup-mine {
   margin-bottom: 10px;
   font-weight: 700;
+}
+
+/* ドラッグする札は、長押しで文字が選ばれないようにする */
+.tag-draggable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.board .tag.tag-dragging,
+.bench .tag.tag-dragging {
+  opacity: 0.3;
+}
+
+.board .tag.tag-over,
+.bench .tag.tag-over,
+.board .tag.tag-drop-on,
+.bench .tag.tag-drop-on {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* 間に入る場所を線で示す。的割りは上下、立ちは右が先 */
+.board-targets .tag.tag-drop-before {
+  box-shadow: 0 -5px 0 var(--accent);
+}
+
+.board-targets .tag.tag-drop-after {
+  box-shadow: 0 5px 0 var(--accent);
+}
+
+.board-groups .tag.tag-drop-before {
+  box-shadow: 5px 0 0 var(--accent);
+}
+
+.board-groups .tag.tag-drop-after {
+  box-shadow: -5px 0 0 var(--accent);
+}
+
+/* 指やマウスについて動く札 */
+.tag-ghost {
+  width: 40px;
+  box-shadow: 0 6px 16px rgb(0 0 0 / 30%);
+  cursor: grabbing;
+}
+
+.bench-area {
+  margin: 0 -6px;
+  padding: 0 6px 6px;
+  border-radius: 10px;
+}
+
+.bench-over {
+  background: var(--soft);
+  outline: 2px dashed var(--accent);
+}
+
+.bench-guide {
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.bench {
+  min-height: 44px;
 }

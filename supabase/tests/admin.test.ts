@@ -84,8 +84,6 @@ describe('権限', () => {
     'admin-add-exception',
     'admin-delete-exception',
     'admin-review-notice',
-    'admin-save-lineup',
-    'admin-delete-lineup',
     'admin-rejudge',
     'admin-set-manual',
     'admin-update-settings',

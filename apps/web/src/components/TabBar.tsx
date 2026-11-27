@@ -4,13 +4,13 @@ type TabBarProps = {
   current: TabId;
   tabs: readonly TabId[];
   penaltyCount: number;
-  /** 承認を待っている連絡の数 */
-  noticeCount: number;
+  /** 承認を待っている連絡と部員の数 */
+  officerCount: number;
   onSelect: (tab: TabId) => void;
 };
 
-export function TabBar({ current, tabs, penaltyCount, noticeCount, onSelect }: TabBarProps) {
-  const badges: Partial<Record<TabId, number>> = { penalty: penaltyCount, admin: noticeCount };
+export function TabBar({ current, tabs, penaltyCount, officerCount, onSelect }: TabBarProps) {
+  const badges: Partial<Record<TabId, number>> = { penalty: penaltyCount, admin: officerCount };
 
   return (
     <nav className="tabbar">

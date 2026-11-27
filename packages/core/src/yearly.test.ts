@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { adminOnlyRefusal, canAdminister, canManagePenalties, ROLES } from './member.ts';
+import {
+  adminOnlyRefusal,
+  canAdminister,
+  canEditLineups,
+  canManagePenalties,
+  officerArea,
+  ROLES,
+} from './member.ts';
 import { validateRegistration } from './registration.ts';
 import { aMember, MONDAY } from './testing.ts';
 import {
@@ -235,5 +242,26 @@ describe('罰の権限', () => {
     expect(canManagePenalties(as('captain'))).toBe(false);
     expect(canManagePenalties(as('vice'))).toBe(true);
     expect(canManagePenalties(as('admin'))).toBe(true);
+  });
+});
+
+describe('役職タブ', () => {
+  const area = (role: Parameters<typeof officerArea>[0]['role'], approved = true) =>
+    officerArea({ ...aMember({ approved }), role });
+
+  it('役職ごとに出すものが違う', () => {
+    expect([area('captain'), area('admin')]).toEqual(['admin', 'admin']);
+    expect([area('men_vice_captain'), area('women_vice_captain'), area('chief_manager')]).toEqual([
+      'lineup',
+      'lineup',
+      'lineup',
+    ]);
+    expect(area('vice')).toBe('notices');
+    expect([area('member'), area('treasurer'), area('captain', false)]).toEqual([null, null, null]);
+  });
+
+  it('立ち順を作れるのは4役と管理者', () => {
+    expect(canEditLineups({ ...aMember(), role: 'chief_manager' })).toBe(true);
+    expect(canEditLineups({ ...aMember(), role: 'vice' })).toBe(false);
   });
 });
