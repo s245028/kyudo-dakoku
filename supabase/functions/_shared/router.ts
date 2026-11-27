@@ -16,7 +16,7 @@ import { approveMember, deleteMember, resetDevice, updateMember } from './action
 import {
   addPenalty,
   assignTask,
-  closePenalty,
+  cancelPenalty,
   completeTask,
   editTask,
 } from './actions/penalties.ts';
@@ -43,13 +43,13 @@ export const ACTIONS = {
   'push-config': pushConfig,
   'push-subscribe': pushSubscribe,
   'push-unsubscribe': pushUnsubscribe,
-  // 副務・主将
+  // 副務と管理者
   'add-penalty': addPenalty,
   'assign-task': assignTask,
   'edit-task': editTask,
   'complete-task': completeTask,
+  'cancel-penalty': cancelPenalty,
   // 主将
-  'admin-close-penalty': closePenalty,
   'admin-approve': approveMember,
   'admin-update-member': updateMember,
   'admin-reset-device': resetDevice,

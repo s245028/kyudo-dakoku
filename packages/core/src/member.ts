@@ -81,9 +81,9 @@ export function canAdminister(member: WithRole): boolean {
   return isApprovedMember(member) && (member.role === 'captain' || member.role === 'admin');
 }
 
-/** 罰をつける・割り当てる・消化できるか。 */
+/** 罰をつける・割り当てる・消化する・取り消すことができるか。主将はできない。 */
 export function canManagePenalties(member: WithRole): boolean {
-  return canAdminister(member) || (isApprovedMember(member) && member.role === 'vice');
+  return isApprovedMember(member) && (member.role === 'vice' || member.role === 'admin');
 }
 
 /** 管理できる人が1人は残るか。いなくなると、アプリから誰も管理できなくなる。 */

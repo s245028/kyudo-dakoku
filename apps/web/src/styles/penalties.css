@@ -154,3 +154,8 @@
 .add-penalty {
   margin-top: 12px;
 }
+
+.penalty-own {
+  color: var(--sub);
+  font-size: 13px;
+}

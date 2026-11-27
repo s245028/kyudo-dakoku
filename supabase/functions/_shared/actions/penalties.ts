@@ -1,14 +1,16 @@
-// 罰の操作（副務・主将）
+// 罰の操作（副務と管理者）
 import {
+  cancelRefusal,
   cleanTaskContent,
+  ownPenaltyRefusal,
   summarizePenalty,
   toPracticeDate,
   validateNewPenalty,
   type PenaltyTask,
 } from '../../../../packages/core/src/index.ts';
-import { requireCaptain, requireOfficer, type RequestContext } from '../context.ts';
+import { requireOfficer, type Actor, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
-import { AppError } from '../errors.ts';
+import { AppError, refuseIf } from '../errors.ts';
 import { stringParam, uuidParam, type Params } from '../params.ts';
 import { homeSnapshot, loadPenaltyTypes, loadSettings } from '../store.ts';
 
@@ -23,9 +25,16 @@ function contentParam(params: Params): string {
 /** 罰1件をロックして、今日時点の状態と一緒に返す。 */
 async function lockPenalty(tx: Sql, penaltyId: string, today: string) {
   const [penalty] = await tx<
-    { date: string; countedFrom: string | null; baseCount: number; completed: boolean }[]
+    {
+      memberId: string;
+      date: string;
+      countedFrom: string | null;
+      baseCount: number;
+      completed: boolean;
+    }[]
   >`
-    select practice_date::text as date, counted_from::text as "countedFrom",
+    select member_id as "memberId", practice_date::text as date,
+      counted_from::text as "countedFrom",
       base_count as "baseCount", completed_on is not null as completed
     from public.penalties where id = ${penaltyId} for update`;
   if (!penalty) throw new AppError(NOT_FOUND);
@@ -41,7 +50,11 @@ async function lockPenalty(tx: Sql, penaltyId: string, today: string) {
     today,
     doublingDays: penaltyDoublingDays,
   });
-  return { ...state, completed: penalty.completed };
+  return { ...state, memberId: penalty.memberId, completed: penalty.completed };
+}
+
+function refuseOwnPenalty(actor: Actor, ownerId: string) {
+  refuseIf(ownPenaltyRefusal({ actorId: actor.id, actorIsAdmin: actor.isAdmin, ownerId }));
 }
 
 async function respond({ sql, userId, now }: RequestContext) {
@@ -138,7 +151,8 @@ export async function completeTask(context: RequestContext, params: Params) {
       select penalty_id as "penaltyId" from public.penalty_tasks where id = ${taskId}`;
     if (!task) throw new AppError('やることが見つかりません。画面を開き直してください。');
     // 同じ罰のやることを同時に消しても残りが合うよう、先に罰をロックする
-    await lockPenalty(tx, task.penaltyId, today);
+    const penalty = await lockPenalty(tx, task.penaltyId, today);
+    refuseOwnPenalty(officer, penalty.memberId);
 
     const [done] = await tx`update public.penalty_tasks
       set done_at = ${now}, done_by = ${officer.id}
@@ -154,17 +168,20 @@ export async function completeTask(context: RequestContext, params: Params) {
   return respond(context);
 }
 
-/** 主将が、罰をまとめて消化済みにする（現行の罰一覧の「消化済み」チェックにあたる）。 */
-export async function closePenalty(context: RequestContext, params: Params) {
+/** つけ間違いの罰を取り消す。記録は残り、同じ日の自動の罰はつけ直さない。 */
+export async function cancelPenalty(context: RequestContext, params: Params) {
   const { sql, userId, now } = context;
   const penaltyId = uuidParam(params, 'penaltyId');
+  const today = toPracticeDate(now);
 
   await inTransaction(sql, async (tx) => {
-    await requireCaptain(tx, userId);
-    const [closed] = await tx`update public.penalties
-      set completed_on = ${toPracticeDate(now)}
-      where id = ${penaltyId} and completed_on is null returning id`;
-    if (!closed) throw new AppError(NOT_FOUND);
+    const officer = await requireOfficer(tx, userId);
+    const penalty = await lockPenalty(tx, penaltyId, today);
+    refuseOwnPenalty(officer, penalty.memberId);
+    refuseIf(cancelRefusal(penalty));
+    await tx`update public.penalties
+      set completed_on = ${today}, canceled_at = ${now}, canceled_by = ${officer.id}
+      where id = ${penaltyId}`;
   });
   return respond(context);
 }

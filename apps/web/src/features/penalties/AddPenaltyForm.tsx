@@ -10,7 +10,7 @@ type AddPenaltyFormProps = {
   operations: PenaltyOperations;
 };
 
-/** 私物の出しっぱなしなど、副務・主将がつける罰 */
+/** 私物の出しっぱなしなど、副務がつける罰 */
 export function AddPenaltyForm({ members, types, today, operations }: AddPenaltyFormProps) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState('');

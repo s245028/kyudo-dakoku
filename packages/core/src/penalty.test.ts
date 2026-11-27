@@ -8,6 +8,8 @@ import {
   taskSuggestions,
   unassignedCount,
   validateNewPenalty,
+  cancelRefusal,
+  ownPenaltyRefusal,
 } from './penalty.ts';
 
 const GIVEN = '2026-12-28';
@@ -124,5 +126,23 @@ describe('罰をつけるときの入力', () => {
     [{ contents: ['a', 'b'] }, '罰1個ぶんの「やること」をすべて入力してください。'],
   ])('%o は拒否する', (change, message) => {
     expect(validateNewPenalty({ ...input, ...change })).toEqual({ ok: false, message });
+  });
+});
+
+describe('自分の罰と取り消し', () => {
+  const refusal = (actorId: string | null, actorIsAdmin = false) =>
+    ownPenaltyRefusal({ actorId, actorIsAdmin, ownerId: 'm1' });
+
+  it('自分の罰は、管理者でなければ消化も取り消しもできない', () => {
+    expect(refusal('m1')).toContain('ほかの副務');
+    expect(refusal('m2')).toBeNull();
+    expect(refusal('m1', true)).toBeNull();
+    expect(refusal(null, true)).toBeNull();
+  });
+
+  it('取り消せるのは、まだ1個も消化していない罰だけ', () => {
+    expect(cancelRefusal({ completed: false, paid: 0 })).toBeNull();
+    expect(cancelRefusal({ completed: false, paid: 1 })).not.toBeNull();
+    expect(cancelRefusal({ completed: true, paid: 0 })).not.toBeNull();
   });
 });

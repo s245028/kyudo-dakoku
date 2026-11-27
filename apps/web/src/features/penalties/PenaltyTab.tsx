@@ -1,4 +1,4 @@
-import { taskSuggestions } from '@kyudo/core';
+import { ownPenaltyRefusal, taskSuggestions } from '@kyudo/core';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { callFunction } from '../../lib/api.ts';
 import { countPenalties, type CountedPenalty, type Home, type Penalty } from '../../lib/home.ts';
@@ -14,7 +14,7 @@ import { UnassignedTask } from './UnassignedTask.tsx';
 
 const loadBoard = () => callFunction<Penalty[]>('penalty_board');
 
-/** 副務・主将が罰を扱うときに使う一覧 */
+/** 副務と管理者が罰を扱うときに使う一覧 */
 const loadOfficerData = async () => {
   const [members, types, contents] = await Promise.all([
     loadRoster(),
@@ -32,7 +32,7 @@ const loadOfficerData = async () => {
 const loadNothing = () => Promise.resolve(null);
 
 /** 罰の画面を見ている人。管理者は部員ではないので `memberId` が null */
-export type PenaltyViewer = { memberId: string | null; officer: boolean; captain: boolean };
+export type PenaltyViewer = { memberId: string | null; officer: boolean; admin: boolean };
 
 type PenaltyTabProps = {
   viewer: PenaltyViewer;
@@ -44,7 +44,7 @@ type PenaltyTabProps = {
 };
 
 export function PenaltyTab({ viewer, mine, today, doublingDays, onHome }: PenaltyTabProps) {
-  const { officer, captain } = viewer;
+  const { officer, admin } = viewer;
   const board = useRemote(loadBoard);
   const officerData = useRemote(officer ? loadOfficerData : loadNothing);
   const action = useAction();
@@ -86,30 +86,41 @@ export function PenaltyTab({ viewer, mine, today, doublingDays, onHome }: Penalt
       <ul className="list">
         {!everyone && !board.error && <li className="empty">読み込み中…</li>}
         {everyone?.length === 0 && <li className="empty">いま罰がついている人はいません</li>}
-        {everyone?.map((penalty) => (
-          <PenaltyRow
-            key={penalty.id}
-            penalty={penalty}
-            mine={penalty.memberId === viewer.memberId}
-          >
-            {penalty.openTasks.map((task) => (
-              <TaskItem key={task.id} task={task} operations={operations} />
-            ))}
-            {Array.from({ length: penalty.unassigned }, (_, index) => (
-              <UnassignedTask key={index} penaltyId={penalty.id} operations={operations} />
-            ))}
-            {captain && operations && (
-              <ConfirmButton
-                label="この罰をまるごと消化済みにする"
-                className="small secondary"
-                disabled={operations.sending}
-                onConfirm={() =>
-                  void operations.run('admin-close-penalty', { penaltyId: penalty.id })
-                }
-              />
-            )}
-          </PenaltyRow>
-        ))}
+        {everyone?.map((penalty) => {
+          const refusal = ownPenaltyRefusal({
+            actorId: viewer.memberId,
+            actorIsAdmin: admin,
+            ownerId: penalty.memberId,
+          });
+          return (
+            <PenaltyRow
+              key={penalty.id}
+              penalty={penalty}
+              mine={penalty.memberId === viewer.memberId}
+            >
+              {penalty.openTasks.map((task) => (
+                <TaskItem
+                  key={task.id}
+                  task={task}
+                  operations={operations}
+                  completable={refusal === null}
+                />
+              ))}
+              {Array.from({ length: penalty.unassigned }, (_, index) => (
+                <UnassignedTask key={index} penaltyId={penalty.id} operations={operations} />
+              ))}
+              {operations && refusal && <p className="penalty-own">{refusal}</p>}
+              {operations && !refusal && penalty.paid === 0 && (
+                <ConfirmButton
+                  label="つけ間違いを取り消す"
+                  className="small secondary"
+                  disabled={operations.sending}
+                  onConfirm={() => void operations.run('cancel-penalty', { penaltyId: penalty.id })}
+                />
+              )}
+            </PenaltyRow>
+          );
+        })}
       </ul>
       <p className="hint">
         罰1個ごとに、副務が「やること」を決めます。終わったら証拠の画像を副務に送ってください。副務が確認すると、その罰が消えます。

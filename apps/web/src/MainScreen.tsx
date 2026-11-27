@@ -80,7 +80,11 @@ export function MainScreen(props: MainScreenProps) {
         {tab === 'presence' && <PresenceTab />}
         {tab === 'penalty' && (
           <PenaltyTab
-            viewer={{ memberId: member.id, officer: canManagePenalties(member), captain }}
+            viewer={{
+              memberId: member.id,
+              officer: canManagePenalties(member),
+              admin: member.role === 'admin',
+            }}
             mine={view.penalties}
             today={view.today}
             doublingDays={home.settings.penaltyDoublingDays}

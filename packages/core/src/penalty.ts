@@ -145,6 +145,28 @@ export function summarizePenalty(input: {
   return { ...count, openTasks, unassigned: unassignedCount(count.remaining, openTasks.length) };
 }
 
+/**
+ * 自分の罰は、消化も取り消しもできない（ほかの副務に依頼する）。管理者は除く。
+ * できない理由を返す。できるなら null。
+ */
+export function ownPenaltyRefusal(input: {
+  /** 操作する人。管理者ログインは部員ではないので null */
+  actorId: string | null;
+  actorIsAdmin: boolean;
+  ownerId: string;
+}): string | null {
+  const { actorId, actorIsAdmin, ownerId } = input;
+  if (actorIsAdmin || actorId !== ownerId) return null;
+  return '自分の罰の消化と取り消しはできません。ほかの副務に依頼してください。';
+}
+
+/** つけ間違いとして取り消せるのは、まだ1個も消化していない罰だけ。 */
+export function cancelRefusal(penalty: { completed: boolean; paid: number }): string | null {
+  if (penalty.paid > 0) return '消化した分がある罰は取り消せません。';
+  if (penalty.completed) return 'この罰は、もう残っていません。画面を開き直してください。';
+  return null;
+}
+
 export function cleanTaskContent(value: string): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, TASK_CONTENT_MAX_LENGTH);
 }
@@ -162,7 +184,7 @@ export type NewPenalty = {
   contents: string[];
 };
 
-/** 副務・主将が罰をつけるときの入力を確かめる。基本の数ぶんの「やること」が必須。 */
+/** 副務が罰をつけるときの入力を確かめる。基本の数ぶんの「やること」が必須。 */
 export function validateNewPenalty(input: {
   reason: string;
   date: string;
