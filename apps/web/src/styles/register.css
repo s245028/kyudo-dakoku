@@ -3,7 +3,7 @@
   display: block;
   margin: 14px 0;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius);
   background: var(--ink);
   color: #fff;
   font-weight: 700;
@@ -27,14 +27,6 @@
   margin: 0 0 10px;
 }
 
-.transfer-card {
-  margin: 14px 0;
-}
-
-.transfer-card h3 {
-  margin: 0 0 4px;
-}
-
 .transfer-code {
   margin: 12px 0 4px;
   font-size: 40px;
@@ -42,4 +34,36 @@
   letter-spacing: 0.2em;
   text-align: center;
   font-variant-numeric: tabular-nums;
+}
+
+/* 承認までの手順 */
+.signup-steps {
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.signup-steps ol {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.signup-steps li {
+  color: var(--sub);
+}
+
+.signup-steps li.step-done {
+  color: var(--green);
+}
+
+.signup-steps li.step-current {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.signup-steps p {
+  font-size: 14px;
 }

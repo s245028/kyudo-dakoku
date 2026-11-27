@@ -11,7 +11,7 @@ export function TransferCard() {
   const issue = () => action.run<Issued>('create-transfer-code', {}, setIssued);
 
   return (
-    <section className="card transfer-card">
+    <section className="section transfer-card">
       <h3>別の端末・ブラウザに引き継ぐ</h3>
       <p className="sub">
         機種を変えるときや、ホーム画面のアプリに移るときに使います。引き継ぐと、この画面は未登録に戻ります。
@@ -22,7 +22,7 @@ export function TransferCard() {
           <p className="sub">
             {toClockTime(new Date(issued.expiresAt))}
             まで（{TRANSFER_TTL_MINUTES}
-            分間）、1回だけ使えます。移し先でアプリを開き、「登録済みの人はこちら」に学生番号とこの番号を入力してください。番号は他の人に教えないでください。
+            分間）、1回だけ使えます。移し先でアプリを開き、「登録済みの人（引き継ぎ番号で入る）」に学生番号とこの番号を入力してください。番号は他の人に教えないでください。
           </p>
         </>
       )}

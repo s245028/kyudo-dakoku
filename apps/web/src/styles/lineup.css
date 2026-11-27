@@ -251,17 +251,44 @@ button.lineup-discard {
   font-weight: 700;
 }
 
-.lineup-card {
-  margin: 14px 0;
+/* 板の中の列も li なので、区分の行だけに当てる */
+.lineup-today > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.lineup-card h3 {
-  margin: 0 0 8px;
+.lineup-today > ul > li + li {
+  margin-top: 14px;
+}
+
+.lineup-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.lineup-today .board {
+  margin-top: 10px;
 }
 
 .lineup-mine {
-  margin-bottom: 10px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.lineup-mine span {
+  display: block;
+  color: var(--sub);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.lineup-mine-none {
+  color: var(--sub);
+  font-size: 15px;
+  font-weight: 400;
 }
 
 /* ドラッグする札は、長押しで文字が選ばれないようにする */

@@ -3,6 +3,7 @@ import type { Home, HomeData } from '../../lib/home.ts';
 import { AdminLogin } from '../register/AdminLogin.tsx';
 import { KomaForm } from './KomaForm.tsx';
 import { NotificationCard } from './NotificationCard.tsx';
+import { SignupSteps } from './SignupSteps.tsx';
 import { TransferCard } from './TransferCard.tsx';
 
 export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Home) => void }) {
@@ -17,6 +18,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
 
   return (
     <>
+      {!member.approved && <SignupSteps komaSaved={home.koma !== null} />}
       <h2>登録情報</h2>
       <dl className="card profile">
         {rows.map(([label, value]) => (

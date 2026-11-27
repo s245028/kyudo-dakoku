@@ -75,7 +75,7 @@ export function KomaForm({
         </tbody>
       </table>
       <button type="button" disabled={locked || sending} onClick={() => void save()}>
-        {locked ? '確定済み（変更は主将へ）' : saved ? '保存' : '登録する'}
+        {locked ? '確定済み（変更は主将へ）' : 'コマ表を保存'}
       </button>
       <p className="form-message" role="status">
         {message}

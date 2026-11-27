@@ -31,7 +31,7 @@ export function TransferClaim({ onTransferred }: { onTransferred: (home: Home) =
         aria-expanded={open}
         onClick={() => setOpen(!open)}
       >
-        登録済みの人はこちら
+        登録済みの人（引き継ぎ番号で入る）
       </button>
       {open && (
         <form className="form" onSubmit={(event) => void submit(event)}>
