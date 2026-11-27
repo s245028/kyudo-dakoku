@@ -36,6 +36,19 @@ describe('api', () => {
     });
   });
 
+  it('通知の鍵を、Edge Function の中で作れる', async () => {
+    const device = await signInDevice();
+    const input = { studentNo: 'E0002', name: '通知 花子', gender: 'female', grade: 'B2' };
+    await call({ action: 'register', ...input }, device.accessToken);
+
+    const result = await call({ action: 'push-config' }, device.accessToken);
+
+    expect(result).toMatchObject({
+      status: 200,
+      body: { ok: true, publicKey: expect.stringMatching(/^[\w-]{80,}$/) as unknown },
+    });
+  });
+
   it.each([undefined, 'invalid.token.value', 'publishable'])(
     'ログインしていなければ拒否する: %s',
     async (kind) => {

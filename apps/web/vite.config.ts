@@ -19,7 +19,11 @@ export default defineConfig({
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,png}'] },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,png}'],
+        // 通知を表示する処理を足す
+        importScripts: ['push-sw.js'],
+      },
     }),
   ],
 });

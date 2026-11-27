@@ -32,6 +32,10 @@ export default defineConfig(
     languageOptions: { globals: globals.browser },
   },
   {
+    files: ['apps/web/public/*.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     files: ['packages/core/**/*.ts'],
     rules: {
       'no-restricted-imports': [

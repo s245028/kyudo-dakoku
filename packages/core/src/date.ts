@@ -75,6 +75,18 @@ export function weekdayOf(date: PracticeDate): number {
   return new Date(toUtcMidnight(date)).getUTCDay();
 }
 
+export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+
+/** `12/1` */
+export function shortDate(date: PracticeDate): string {
+  return `${Number(date.slice(5, 7))}/${Number(date.slice(8, 10))}`;
+}
+
+/** `12/1（火）` */
+export function dateWithWeekday(date: PracticeDate): string {
+  return `${shortDate(date)}（${WEEKDAY_LABELS[weekdayOf(date)]}）`;
+}
+
 /** 4月に始まる年度。 */
 export function fiscalYearOf(date: PracticeDate): number {
   const year = Number(date.slice(0, 4));

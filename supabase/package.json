@@ -7,6 +7,8 @@
   },
   "devDependencies": {
     "@supabase/supabase-js": "2.119.2",
-    "postgres": "^3.4.9"
+    "@types/web-push": "3.6.4",
+    "postgres": "^3.4.9",
+    "web-push": "3.6.7"
   }
 }

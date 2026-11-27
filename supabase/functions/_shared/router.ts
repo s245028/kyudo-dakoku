@@ -20,6 +20,7 @@ import {
   completeTask,
   editTask,
 } from './actions/penalties.ts';
+import { pushConfig, pushSubscribe, pushUnsubscribe } from './actions/push.ts';
 import { register } from './actions/register.ts';
 import { scan, undoScan } from './actions/scan.ts';
 import { changeGeneration, promoteGrades } from './actions/yearly.ts';
@@ -39,6 +40,9 @@ export const ACTIONS = {
   'cancel-notice': cancelNotice,
   'submit-koma-change': submitKomaChange,
   'cancel-koma-change': cancelKomaChange,
+  'push-config': pushConfig,
+  'push-subscribe': pushSubscribe,
+  'push-unsubscribe': pushUnsubscribe,
   // 副務・主将
   'add-penalty': addPenalty,
   'assign-task': assignTask,
