@@ -47,7 +47,8 @@ export function ExceptionSection({ today }: { today: string }) {
       <p className="hint">
         当日の分は夜の判定に反映されます。過去の日を変えたときは「出欠」でその日を判定し直してください。
       </p>
-      <h3>{HISTORY_DAYS}日前からの臨時変更</h3>
+      <h3>登録済みの臨時変更</h3>
+      <p className="hint">{HISTORY_DAYS}日前の分から、先の予定まで表示します。</p>
       <ul className="list">
         {!data && !error && <li className="empty">読み込み中…</li>}
         {data?.exceptions.length === 0 && <li className="empty">ありません</li>}
