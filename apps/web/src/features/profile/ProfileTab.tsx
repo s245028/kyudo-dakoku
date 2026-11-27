@@ -1,5 +1,6 @@
 import { GRADE_LABELS, ROLE_LABELS, STATUS_LABELS } from '@kyudo/core';
 import type { Home, HomeData } from '../../lib/home.ts';
+import { AdminLogin } from '../register/AdminLogin.tsx';
 import { KomaForm } from './KomaForm.tsx';
 
 export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Home) => void }) {
@@ -31,6 +32,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
         休講・補講などその日だけの変更や、遅刻・欠席は、集合時間の{home.settings.noticeLeadMinutes}
         分前までに主将へ連絡してください。
       </p>
+      <AdminLogin />
     </>
   );
 }

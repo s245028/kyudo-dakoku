@@ -11,8 +11,8 @@ export type Sql = ReturnType<typeof connect>;
 /** 部員とその記録を消して、初期値は残す。 */
 export async function clearRecords(sql: Sql) {
   await sql`truncate public.members, public.exceptions, public.punches, public.attendance,
-    public.penalties, public.penalty_tasks, public.grade_promotions, public.nightly_runs
-    restart identity cascade`;
+    public.penalties, public.penalty_tasks, public.grade_promotions, public.nightly_runs,
+    public.admins restart identity cascade`;
 }
 
 export function anonymousClient() {

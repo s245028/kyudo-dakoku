@@ -1,13 +1,17 @@
 // 名簿の操作（主将）
 import { toPracticeDate, validateMemberUpdate } from '../../../../packages/core/src/index.ts';
-import { requireCaptain, type RequestContext } from '../context.ts';
+import { requireCaptain, type Actor, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { objectParam, uuidParam, type Params } from '../params.ts';
 import { homeSnapshot, lockRoster, type MemberRow } from '../store.ts';
 
-/** アプリから管理できる主将が残らない変更は、取りやめる。 */
-export async function ensureCaptainRemains(tx: Sql): Promise<void> {
+/**
+ * アプリから管理できる主将が残らない変更は、取りやめる。
+ * 管理者は自分で直せるので対象外（唯一の主将の再登録を許可する場合など）。
+ */
+export async function ensureCaptainRemains(tx: Sql, actor: Actor): Promise<void> {
+  if (actor.id === null) return;
   const [captain] = await tx`select 1 from public.members
     where role = 'captain' and approved and status in ('active', 'retired')
       and auth_user_id is not null
@@ -28,11 +32,11 @@ async function changeMember(
 
   await inTransaction(sql, async (tx) => {
     const roster = await lockRoster(tx);
-    await requireCaptain(tx, userId);
+    const actor = await requireCaptain(tx, userId);
     const target = roster.find((member) => member.id === memberId);
     if (!target) throw new AppError('部員が見つかりません。画面を開き直してください。');
     await change(tx, target);
-    await ensureCaptainRemains(tx);
+    await ensureCaptainRemains(tx, actor);
   });
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
 }

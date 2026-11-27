@@ -98,3 +98,9 @@ small.sub {
 .list + .form {
   margin-top: 12px;
 }
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}

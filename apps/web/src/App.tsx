@@ -1,8 +1,11 @@
 import { isEnrolled, STATUS_LABELS } from '@kyudo/core';
 import { useState, type ReactNode } from 'react';
 import { Header } from './components/Header.tsx';
+import { AdminScreen } from './AdminScreen.tsx';
 import { RegisterScreen } from './features/register/RegisterScreen.tsx';
-import type { Home } from './lib/home.ts';
+import { logOutAdmin } from './lib/adminAuth.ts';
+import { isAdminMode } from './lib/adminMode.ts';
+import { isAdminHome, type Home } from './lib/home.ts';
 import { useHome } from './lib/useHome.ts';
 import { useNow } from './lib/useNow.ts';
 import { MainScreen } from './MainScreen.tsx';
@@ -18,6 +21,8 @@ export function App() {
     apply(next);
   }
 
+  const adminMode = isAdminMode();
+
   if (!home) {
     return (
       <Blocker subtitle="">
@@ -27,6 +32,16 @@ export function App() {
             もう一度読み込む
           </button>
         )}
+        {error && adminMode && <LogOutButton />}
+      </Blocker>
+    );
+  }
+  if (isAdminHome(home)) return <AdminScreen home={home} now={now} onHome={apply} />;
+  if (adminMode) {
+    return (
+      <Blocker subtitle="">
+        <p>このアカウントは管理者として登録されていません。</p>
+        <LogOutButton />
       </Blocker>
     );
   }
@@ -63,6 +78,14 @@ export function App() {
       onHome={apply}
       onRefresh={() => void refresh()}
     />
+  );
+}
+
+function LogOutButton() {
+  return (
+    <button type="button" className="secondary" onClick={() => void logOutAdmin()}>
+      管理者をログアウトする
+    </button>
   );
 }
 

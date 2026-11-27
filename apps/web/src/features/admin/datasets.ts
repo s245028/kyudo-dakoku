@@ -42,7 +42,8 @@ async function memberDirectory() {
       const member = id === null ? undefined : byId.get(id);
       return [member?.studentNo ?? '', member?.name ?? ''];
     },
-    nameOf: (id: string | null) => (id === null ? '自動' : (byId.get(id)?.name ?? '')),
+    /** 記録した人。部員の記録がなければ管理者 */
+    nameOf: (id: string | null) => (id === null ? '管理者' : (byId.get(id)?.name ?? '')),
   };
 }
 
@@ -168,6 +169,7 @@ type PenaltyRow = {
   memo: string;
   created_by: string | null;
   completed_on: string | null;
+  auto_key: string | null;
 };
 
 type TaskRow = {
@@ -225,7 +227,7 @@ async function penalties(today: string): Promise<Table> {
         row.completed_on ? 0 : state.remaining,
         state.paid,
         row.completed_on,
-        nameOf(row.created_by),
+        row.auto_key ? '自動' : nameOf(row.created_by),
         row.memo,
       ];
     }),
@@ -260,7 +262,7 @@ async function tasks(): Promise<Table> {
         dateTime(row.assigned_at),
         nameOf(row.assigned_by),
         dateTime(row.done_at),
-        row.done_by ? nameOf(row.done_by) : '',
+        row.done_at ? nameOf(row.done_by) : '',
       ];
     }),
   };

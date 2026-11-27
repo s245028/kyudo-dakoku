@@ -1,5 +1,5 @@
 import { toPracticeDate, validateRegistration } from '../../../../packages/core/src/index.ts';
-import type { RequestContext } from '../context.ts';
+import { isAdmin, type RequestContext } from '../context.ts';
 import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { stringParam, type Params } from '../params.ts';
@@ -20,6 +20,9 @@ export async function register({ sql, userId, now }: RequestContext, params: Par
   const { studentNo, name, gender, grade } = input.value;
 
   await inTransaction(sql, async (tx) => {
+    if (await isAdmin(tx, userId)) {
+      throw new AppError('管理者のログイン中は部員登録できません。');
+    }
     const [mine] = await tx`select 1 from public.members where auth_user_id = ${userId}`;
     if (mine) throw new AppError('この端末はすでに登録されています。画面を開き直してください。');
 

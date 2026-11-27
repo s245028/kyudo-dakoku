@@ -76,7 +76,24 @@ update public.members set approved = true, role = 'captain' where student_no = '
 select vault.create_secret('https://<プロジェクトID>.supabase.co/functions/v1/nightly', 'nightly_url');
 ```
 
-2人目以降の承認や役職の変更は、主将がアプリの「管理」タブで行います。夜の自動処理が動いたかは、「管理」→「出欠」の下に表示されます。
+2人目以降の承認や役職の変更は、主将がアプリの「管理」タブで行います。
+
+### 開発用の管理者（本番では作らない）
+
+部員ではないログインで、管理画面・在室・罰を使えます。
+
+1. Supabase の **Authentication → Users → Add user → Create new user** で、メールアドレスと推測されにくい長いパスワードを入れ、**Auto Confirm User** をオンにして作ります。
+2. SQL Editor で、そのアカウントを管理者にします。
+
+```sql
+insert into public.admins (auth_user_id)
+select id from auth.users where email = 'メールアドレス';
+```
+
+3. アプリの部員登録画面か「自分」タブの下にある **管理者ログイン** から入ります。戻るときは **ログアウト** を押します。
+
+権限を外すときは `delete from public.admins;` を実行します。
+夜の自動処理が動いたかは、「管理」→「出欠」の下に表示されます。
 
 一時停止対策は、GitHub の **Settings → Secrets and variables → Actions → Variables** に `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` を追加すると動きます。**Actions** の「Keep Supabase awake」を **Run workflow** で実行して確認できます。
 
