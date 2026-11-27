@@ -58,8 +58,15 @@ export type HomeData = {
   penalties: Penalty[];
 };
 
+/** 管理者（部員ではないログイン）に返る内容 */
+export type AdminHome = { member: null; isAdmin: true; settings: HomeData['settings'] };
+
 /** 登録していない端末は member が null */
-export type Home = HomeData | { member: null };
+export type Home = HomeData | AdminHome | { member: null };
+
+export function isAdminHome(home: Home): home is AdminHome {
+  return 'isAdmin' in home;
+}
 
 export type CountedPenalty = Penalty & PenaltyState;
 

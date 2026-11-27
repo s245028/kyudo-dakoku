@@ -2,6 +2,7 @@ import { GENDER_LABELS, GENDERS, GRADE_LABELS, GRADES } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
 import { callAction, messageOf } from '../../lib/api.ts';
 import type { Home } from '../../lib/home.ts';
+import { AdminLogin } from './AdminLogin.tsx';
 
 /** iPhone の Safari で開いている（ホーム画面のアプリではない） */
 function isIosBrowser(): boolean {
@@ -80,6 +81,7 @@ export function RegisterScreen({ onRegistered }: { onRegistered: (home: Home) =>
       <p className="hint">
         登録したら、続けて授業のコマを入力します。主将が承認すると打刻できるようになります。
       </p>
+      <AdminLogin />
     </>
   );
 }

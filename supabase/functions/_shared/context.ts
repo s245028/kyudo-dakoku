@@ -25,21 +25,33 @@ export async function requireEnrolledMember(tx: Sql, userId: string): Promise<Me
   return member;
 }
 
+/**
+ * 管理の操作をする人。`id` は部員の id で、管理者（部員ではないログイン）は null。
+ * 記録した人の列には、この `id` をそのまま入れる。
+ */
+export type Actor = { id: string | null };
+
+export async function isAdmin(tx: Sql, userId: string): Promise<boolean> {
+  const [admin] = await tx`select 1 from public.admins where auth_user_id = ${userId}`;
+  return admin !== undefined;
+}
+
 // 管理の操作は、自分の行をロックせずに確かめる。複数の部員をロックする操作は
 // id の順にロックするので、先に自分の行をロックすると行き詰まることがある。
-
-export async function requireOfficer(tx: Sql, userId: string): Promise<MemberRow> {
+async function requireActor(
+  tx: Sql,
+  userId: string,
+  allows: (member: MemberRow) => boolean,
+  refusal: string,
+): Promise<Actor> {
+  if (await isAdmin(tx, userId)) return { id: null };
   const member = await findMemberByDevice(tx, userId);
-  if (!member || !canManagePenalties(member)) {
-    throw new AppError('この操作ができるのは副務と主将だけです。');
-  }
-  return member;
+  if (!member || !allows(member)) throw new AppError(refusal);
+  return { id: member.id };
 }
 
-export async function requireCaptain(tx: Sql, userId: string): Promise<MemberRow> {
-  const member = await findMemberByDevice(tx, userId);
-  if (!member || !canAdminister(member)) {
-    throw new AppError('この操作ができるのは主将だけです。');
-  }
-  return member;
-}
+export const requireOfficer = (tx: Sql, userId: string) =>
+  requireActor(tx, userId, canManagePenalties, 'この操作ができるのは副務と主将だけです。');
+
+export const requireCaptain = (tx: Sql, userId: string) =>
+  requireActor(tx, userId, canAdminister, 'この操作ができるのは主将だけです。');

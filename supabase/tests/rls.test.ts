@@ -148,6 +148,7 @@ describe('アプリから表を直接書き換えられない', () => {
     penalties: { completed_on: DATE },
     penalty_tasks: { content: 'x' },
     grade_promotions: { fiscal_year: 2026 },
+    admins: { auth_user_id: '00000000-0000-0000-0000-000000000000' },
   };
 
   it.each(Object.entries(targets))('%s は主将でも書き換えられない', async (table, values) => {

@@ -33,7 +33,7 @@ export async function changeGeneration({ sql, userId, now }: RequestContext, par
 
   const retired = await inTransaction(sql, async (tx) => {
     const members = await lockRoster(tx);
-    await requireCaptain(tx, userId);
+    const actor = await requireCaptain(tx, userId);
     const plan = planGenerationChange({
       members,
       retiringGrade,
@@ -43,7 +43,7 @@ export async function changeGeneration({ sql, userId, now }: RequestContext, par
     });
     if (!plan.ok) throw new AppError(plan.message);
     await saveRoster(tx, plan.value.updated);
-    await ensureCaptainRemains(tx);
+    await ensureCaptainRemains(tx, actor);
     // 引退した人を、今日の出欠に反映する
     await judgeDate(tx, { date: today, now, memberIds: null });
     return plan.value.retiringIds.length;
@@ -56,7 +56,7 @@ export async function promoteGrades({ sql, userId, now }: RequestContext) {
 
   const result = await inTransaction(sql, async (tx) => {
     const members = await lockRoster(tx);
-    const captain = await requireCaptain(tx, userId);
+    const actor = await requireCaptain(tx, userId);
     const [last] = await tx<{ year: number | null }[]>`
       select max(fiscal_year) as year from public.grade_promotions`;
     const plan = planGradePromotion({ members, today, lastFiscalYear: last?.year ?? null });
@@ -65,10 +65,10 @@ export async function promoteGrades({ sql, userId, now }: RequestContext) {
     await tx`insert into public.grade_promotions ${tx({
       fiscal_year: plan.value.fiscalYear,
       executed_at: now,
-      executed_by: captain.id,
+      executed_by: actor.id,
     })}`;
     await saveRoster(tx, plan.value.updated);
-    await ensureCaptainRemains(tx);
+    await ensureCaptainRemains(tx, actor);
     return {
       updated: plan.value.updated.length,
       graduated: plan.value.graduatingIds.length,

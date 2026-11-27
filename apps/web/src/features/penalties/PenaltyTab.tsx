@@ -1,13 +1,7 @@
-import { canAdminister, canManagePenalties, taskSuggestions } from '@kyudo/core';
+import { taskSuggestions } from '@kyudo/core';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { callFunction } from '../../lib/api.ts';
-import {
-  countPenalties,
-  type Home,
-  type HomeData,
-  type HomeView,
-  type Penalty,
-} from '../../lib/home.ts';
+import { countPenalties, type CountedPenalty, type Home, type Penalty } from '../../lib/home.ts';
 import { loadPenaltyTypes, loadRecentTaskContents, loadRoster } from '../../lib/queries.ts';
 import { useAction } from '../../lib/useAction.ts';
 import { useRemote } from '../../lib/useRemote.ts';
@@ -37,20 +31,24 @@ const loadOfficerData = async () => {
 };
 const loadNothing = () => Promise.resolve(null);
 
+/** 罰の画面を見ている人。管理者は部員ではないので `memberId` が null */
+export type PenaltyViewer = { memberId: string | null; officer: boolean; captain: boolean };
+
 type PenaltyTabProps = {
-  home: HomeData;
-  view: HomeView;
+  viewer: PenaltyViewer;
+  /** 自分の罰。部員でなければ null */
+  mine: CountedPenalty[] | null;
+  today: string;
+  doublingDays: number;
   onHome: (home: Home) => void;
 };
 
-export function PenaltyTab({ home, view, onHome }: PenaltyTabProps) {
-  const officer = canManagePenalties(home.member);
-  const captain = canAdminister(home.member);
+export function PenaltyTab({ viewer, mine, today, doublingDays, onHome }: PenaltyTabProps) {
+  const { officer, captain } = viewer;
   const board = useRemote(loadBoard);
   const officerData = useRemote(officer ? loadOfficerData : loadNothing);
   const action = useAction();
-  const everyone =
-    board.data && countPenalties(board.data, view.today, home.settings.penaltyDoublingDays);
+  const everyone = board.data && countPenalties(board.data, today, doublingDays);
 
   const operations: PenaltyOperations | null = officer
     ? {
@@ -65,7 +63,7 @@ export function PenaltyTab({ home, view, onHome }: PenaltyTabProps) {
 
   return (
     <>
-      <MyPenalties penalties={view.penalties} />
+      {mine && <MyPenalties penalties={mine} />}
       <p className="form-error" role="alert">
         {action.error || board.error || officerData.error}
       </p>
@@ -74,7 +72,7 @@ export function PenaltyTab({ home, view, onHome }: PenaltyTabProps) {
           <AddPenaltyForm
             members={officerData.data.members}
             types={officerData.data.types}
-            today={view.today}
+            today={today}
             operations={operations}
           />
           <datalist id="task-suggestions">
@@ -89,7 +87,11 @@ export function PenaltyTab({ home, view, onHome }: PenaltyTabProps) {
         {!everyone && !board.error && <li className="empty">読み込み中…</li>}
         {everyone?.length === 0 && <li className="empty">いま罰がついている人はいません</li>}
         {everyone?.map((penalty) => (
-          <PenaltyRow key={penalty.id} penalty={penalty} mine={penalty.memberId === home.member.id}>
+          <PenaltyRow
+            key={penalty.id}
+            penalty={penalty}
+            mine={penalty.memberId === viewer.memberId}
+          >
             {penalty.openTasks.map((task) => (
               <TaskItem key={task.id} task={task} operations={operations} />
             ))}
@@ -112,7 +114,7 @@ export function PenaltyTab({ home, view, onHome }: PenaltyTabProps) {
       <p className="hint">
         罰1個ごとに、副務が「やること」を決めます。終わったら証拠の画像を副務に送ってください。副務が確認すると、その罰が消えます。
         <br />
-        残っている罰は、ついた日から{home.settings.penaltyDoublingDays}
+        残っている罰は、ついた日から{doublingDays}
         日ごとに2倍になります。増えた分のやることも副務が決めます。
       </p>
     </>
