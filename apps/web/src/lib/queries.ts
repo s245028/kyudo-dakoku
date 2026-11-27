@@ -61,7 +61,7 @@ export type StoredRule = PracticeRule & { id: string };
 
 type Reply = { data: unknown; error: unknown };
 
-export async function read<T>(query: () => PromiseLike<Reply>): Promise<T> {
+async function read<T>(query: () => PromiseLike<Reply>): Promise<T> {
   await ensureSession();
   const { data, error } = await query();
   if (error) throw new ApiError(OFFLINE_MESSAGE);

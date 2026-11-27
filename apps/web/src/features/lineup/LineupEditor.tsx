@@ -1,23 +1,32 @@
 import {
   arrangeLineup,
+  GROUP_SIZES,
+  groupSizeOf,
+  isLineupStale,
+  MAX_GROUP_SIZE,
   LINEUP_FORMAT_LABELS,
   LINEUP_FORMATS,
   lineupWarnings,
   MAX_GROUPS,
-  moveInLineup,
-  swapInLineup,
+  toClockTime,
+  type GroupSize,
   type Lineup,
   type LineupFormat,
-  type LineupGroups,
   type Part,
   type Participant,
   type Person,
 } from '@kyudo/core';
 import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
+import { readLineupDraft, writeLineupDraft, type LineupDraft } from '../../lib/lineupDraft.ts';
+import type { SavedLineup } from '../../lib/lineupQueries.ts';
 import { useAction } from '../../lib/useAction.ts';
-import { LineupBoard, type Tag } from './LineupBoard.tsx';
+import { LineupCanvas } from './LineupCanvas.tsx';
+import type { Tag } from './TagFace.tsx';
 import { Options } from '../admin/Options.tsx';
+
+/** 戻せる操作の数 */
+const HISTORY_LIMIT = 30;
 
 type LineupEditorProps = {
   date: string;
@@ -26,30 +35,58 @@ type LineupEditorProps = {
   participants: Participant[];
   /** 名簿。参加者でなくなった人の名前を出すのに使う */
   members: readonly Person[];
-  saved: Lineup | null;
+  saved: SavedLineup | null;
   defaultFormat: LineupFormat;
+  /** 保存した内容を読み直す */
   onSaved: () => unknown;
 };
 
-/** 区分1つぶんの立ち順を作る。札を押してから、入れ替える札か移す先を押す。 */
+/** 区分1つぶんの立ち順を作る。 */
 export function LineupEditor(props: LineupEditorProps) {
   const { date, part, participants, members, saved, defaultFormat, onSaved } = props;
-  /** 保存していない編集。なければ、保存した内容を出す */
-  const [edited, setEdited] = useState<Lineup | null>(null);
-  const draft = edited ?? saved;
+  /** 保存していない編集。端末に残すので、ほかの画面を見ても消えない */
+  const [edited, setEdited] = useState<LineupDraft | null>(() => readLineupDraft(date, part));
+  const draft: Lineup | null = edited?.lineup ?? saved;
   const dirty = edited !== null;
-  const [format, setFormat] = useState<LineupFormat>(saved?.format ?? defaultFormat);
-  const [selected, setSelected] = useState<string | null>(null);
+  const savedAt = saved?.updatedAt ?? null;
+  /** 編集を始めたあとに、ほかの人が保存か削除をした */
+  const stale = edited !== null && isLineupStale(edited.base, savedAt);
+  const [format, setFormat] = useState<LineupFormat>(draft?.format ?? defaultFormat);
+  const [groupSize, setGroupSize] = useState<GroupSize>(
+    () => edited?.groupSize ?? groupSizeOf(draft?.groups ?? []),
+  );
+  /** 9人の立ちがある板は、選んでいる人数にかかわらず9人まで直せる */
+  const editingSize =
+    draft && groupSizeOf(draft.groups) === MAX_GROUP_SIZE ? MAX_GROUP_SIZE : groupSize;
+
+  function chooseGroupSize(size: GroupSize) {
+    setGroupSize(size);
+    if (edited) keep({ ...edited, groupSize: size });
+  }
   const action = useAction();
 
-  const edit = (next: Lineup) => {
+  const keep = (next: LineupDraft | null) => {
     setEdited(next);
-    setSelected(null);
+    writeLineupDraft(date, part, next);
   };
+  const edit = (next: Lineup) =>
+    keep({
+      lineup: next,
+      base: edited ? edited.base : savedAt,
+      groupSize,
+      history: [...(edited?.history ?? []), edited?.lineup ?? null].slice(-HISTORY_LIMIT),
+    });
+  /** 直前の操作の前に戻す。最初の操作より前は、保存した内容になる */
+  function undo() {
+    if (!edited) return;
+    const history = edited.history ?? [];
+    const previous = history.at(-1);
+    keep(previous ? { ...edited, lineup: previous, history: history.slice(0, -1) } : null);
+  }
   const arrange = () =>
     edit({
       format,
-      groups: arrangeLineup(format, participants),
+      groups: arrangeLineup(format, participants, groupSize),
       published: draft?.published ?? false,
     });
 
@@ -73,35 +110,39 @@ export function LineupEditor(props: LineupEditorProps) {
       )
     : [];
 
-  function pick(id: string) {
-    if (!draft || selected === null) return setSelected(id);
-    if (selected === id) return setSelected(null);
-    // どちらも板にない場合は、選び直すだけ
-    if (!placed.has(selected) && !placed.has(id)) return setSelected(id);
-    edit({ ...draft, groups: swapInLineup(draft.groups, selected, id) });
-  }
-
-  const move = (column: number | null) => {
-    if (!draft || selected === null) return;
-    edit({ ...draft, groups: moveInLineup(draft.format, draft.groups, selected, column) });
-  };
-
   async function save() {
-    if (!draft) return;
-    const groups: LineupGroups =
-      draft.format === 'groups' ? draft.groups.filter((group) => group.length > 0) : draft.groups;
-    await action.run('admin-save-lineup', { date, part, ...draft, groups }, async () => {
-      await onSaved();
-      setEdited(null);
-    });
+    if (!edited) return;
+    const { format: kind, groups, published } = edited.lineup;
+    const ok = await action.run(
+      'admin-save-lineup',
+      {
+        date,
+        part,
+        format: kind,
+        groups: kind === 'groups' ? groups.filter((group) => group.length > 0) : groups,
+        published,
+        baseUpdatedAt: edited.base,
+      },
+      async () => {
+        await onSaved();
+        keep(null);
+      },
+    );
+    // ほかの人が先に保存した場合に、その内容を出せるように読み直す
+    if (!ok) await onSaved();
   }
 
-  const remove = () =>
-    action.run('admin-delete-lineup', { date, part }, async () => {
-      await onSaved();
-      setEdited(null);
-      setSelected(null);
-    });
+  async function remove() {
+    const ok = await action.run(
+      'admin-delete-lineup',
+      { date, part, baseUpdatedAt: savedAt },
+      async () => {
+        await onSaved();
+        keep(null);
+      },
+    );
+    if (!ok) await onSaved();
+  }
 
   return (
     <>
@@ -115,6 +156,21 @@ export function LineupEditor(props: LineupEditorProps) {
             <Options values={LINEUP_FORMATS} labels={LINEUP_FORMAT_LABELS} />
           </select>
         </label>
+        {(format === 'groups' || draft?.format === 'groups') && (
+          <label>
+            1立ちの人数
+            <select
+              value={groupSize}
+              onChange={(event) => chooseGroupSize(Number(event.target.value) as GroupSize)}
+            >
+              {GROUP_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}人まで
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {draft ? (
           <ConfirmButton label="自動で並べ直す" className="small secondary" onConfirm={arrange} />
         ) : (
@@ -124,85 +180,110 @@ export function LineupEditor(props: LineupEditorProps) {
         )}
       </div>
 
+      {saved && (
+        <p className="sub lineup-saved">
+          最後の保存：{saved.updatedBy ?? '管理者'} {toClockTime(new Date(saved.updatedAt))}（
+          {saved.published ? '公開中' : '非公開'}）
+        </p>
+      )}
+
       {draft && (
         <>
-          <p className="hint">右端が先頭です。札を押してから、入れ替える札か「＋」を押します。</p>
-          <LineupBoard
-            format={draft.format}
-            columns={draft.groups.map((group) => group.map(tagOf))}
-            highlighted={selected}
-            onTag={pick}
-            {...(selected !== null && { onColumn: move })}
-          />
-          {draft.format === 'groups' && draft.groups.length < MAX_GROUPS && (
-            <button
-              type="button"
-              className="small secondary lineup-add"
-              onClick={() => edit({ ...draft, groups: [...draft.groups, []] })}
-            >
-              立ちを増やす
-            </button>
-          )}
-          {warnings.map((warning) => (
-            <p className="form-error" key={warning}>
-              {warning}
-            </p>
-          ))}
-
-          <h3>入れていない人（{bench.length}人）</h3>
-          <div className="bench">
-            {bench.map((tag) => (
+          <p className="hint">
+            右端が先頭です。札は長押ししてドラッグします。札の中央に置くと入れ替わり、札と札の境目に置くと間に入ります。押してから、入れ替える札か「＋」を押しても直せます。
+          </p>
+          <LineupCanvas
+            draft={draft}
+            groupSize={editingSize}
+            bench={bench}
+            tagOf={tagOf}
+            onChange={(groups) => edit({ ...draft, groups })}
+          >
+            {draft.format === 'groups' && draft.groups.length < MAX_GROUPS && (
               <button
-                key={tag.id}
                 type="button"
-                className={tag.id === selected ? 'tag tag-highlighted' : 'tag'}
-                aria-pressed={tag.id === selected}
-                onClick={() => pick(tag.id)}
+                className="small secondary lineup-add"
+                onClick={() => edit({ ...draft, groups: [...draft.groups, []] })}
               >
-                <span className="tag-name">{tag.name}</span>
-                {tag.mark && <span className="tag-mark">{tag.mark}</span>}
-              </button>
-            ))}
-            {selected !== null && placed.has(selected) && (
-              <button type="button" className="small secondary" onClick={() => move(null)}>
-                選んだ札を外す
+                立ちを増やす
               </button>
             )}
+            {warnings.map((warning) => (
+              <p className="form-error" key={warning}>
+                {warning}
+              </p>
+            ))}
+          </LineupCanvas>
+          {dirty && (
+            <ConfirmButton
+              label="保存していない変更を捨てる"
+              className="small secondary lineup-discard"
+              onConfirm={() => keep(null)}
+            />
+          )}
+          {saved && !dirty && (
+            <ConfirmButton
+              label="この立ち順を削除する"
+              className="small secondary lineup-discard"
+              disabled={action.sending}
+              onConfirm={() => void remove()}
+            />
+          )}
+        </>
+      )}
+      <div className="lineup-bar" hidden={!draft && !stale && !action.error}>
+        {stale && edited && (
+          <div className="notice lineup-conflict" role="alert">
+            <p>ほかの人が{saved ? '保存' : '削除'}しました。このまま保存すると上書きになります。</p>
+            <div className="notice-actions">
+              <button type="button" className="small" onClick={() => keep(null)}>
+                相手の内容を表示する
+              </button>
+              <button
+                type="button"
+                className="small secondary"
+                onClick={() => keep({ ...edited, base: savedAt })}
+              >
+                自分の内容を残す
+              </button>
+            </div>
           </div>
-
-          <div className="form lineup-save">
-            <label className="check">
+        )}
+        <p className="form-error" role="alert">
+          {!stale && action.error}
+        </p>
+        {draft && (
+          <div className="lineup-bar-row">
+            <label className="lineup-publish">
               <input
                 type="checkbox"
                 checked={draft.published}
                 onChange={(event) => edit({ ...draft, published: event.target.checked })}
               />
-              部員に公開する
+              公開
             </label>
-            <p className="sub" role="status">
-              {dirty
-                ? '保存していません'
-                : draft.published
-                  ? '保存済み（公開中）'
-                  : '保存済み（非公開）'}
-            </p>
-            <button type="button" disabled={action.sending || !dirty} onClick={() => void save()}>
+            <span className={dirty ? 'lineup-status lineup-status-dirty' : 'lineup-status'}>
+              {dirty ? '未保存' : '保存済み'}
+            </span>
+            <button
+              type="button"
+              className="small secondary"
+              disabled={action.sending || !dirty}
+              onClick={undo}
+            >
+              戻す
+            </button>
+            <button
+              type="button"
+              className="small"
+              disabled={action.sending || !dirty || stale}
+              onClick={() => void save()}
+            >
               保存する
             </button>
-            {saved && (
-              <ConfirmButton
-                label="この立ち順を削除する"
-                className="secondary"
-                disabled={action.sending}
-                onConfirm={() => void remove()}
-              />
-            )}
           </div>
-        </>
-      )}
-      <p className="form-error" role="alert">
-        {action.error}
-      </p>
+        )}
+      </div>
     </>
   );
 }

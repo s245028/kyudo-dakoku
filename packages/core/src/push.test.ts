@@ -1,15 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { receivedMessage, reviewedMessage, validatePushSubscription } from './push.ts';
+import {
+  receivedMessage,
+  registrationMessage,
+  reviewedMessage,
+  validatePushSubscription,
+} from './push.ts';
 import { MONDAY } from './testing.ts';
 
 describe('通知の文面', () => {
   it('届いた通知は、名前と日付と種類だけ', () => {
     expect(
       receivedMessage({ name: '島根 太郎', date: MONDAY, subject: 'absent', overdue: false }),
-    ).toEqual({ title: '欠席の連絡が届きました', body: '島根 太郎さん・11/30（月）' });
+    ).toEqual({
+      title: '欠席の連絡が届きました',
+      body: '島根 太郎さん・11/30（月）',
+      open: 'notices',
+    });
     expect(
       receivedMessage({ name: 'a', date: MONDAY, subject: 'late', overdue: true }).body,
     ).toContain('締め切り後');
+  });
+
+  it('登録の通知は名簿を、本人への通知は打刻の画面を開く', () => {
+    expect(registrationMessage('a').open).toBe('members');
+    expect(reviewedMessage({ date: MONDAY, subject: 'late', approval: 'approved' }).open).toBe(
+      'scan',
+    );
   });
 
   it('本人には承認か却下を知らせる', () => {

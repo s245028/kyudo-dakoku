@@ -2,7 +2,11 @@
 import { dateWithWeekday, type PracticeDate } from './date.ts';
 import { invalid, type Validated } from './validation.ts';
 
-export type PushMessage = { title: string; body: string };
+/** 通知を押したときに開く画面 */
+export const OPEN_TARGETS = ['notices', 'members', 'scan'] as const;
+export type OpenTarget = (typeof OPEN_TARGETS)[number];
+
+export type PushMessage = { title: string; body: string; open: OpenTarget };
 
 /** 通知の対象。欠席・遅刻の連絡か、コマ変更の申請 */
 export type PushSubject = 'absent' | 'late' | 'koma';
@@ -25,6 +29,16 @@ export function receivedMessage(input: {
   return {
     title: `${SUBJECT_LABELS[subject]}が届きました`,
     body: `${name}さん・${dateWithWeekday(date)}${overdue ? '（締め切り後）' : ''}`,
+    open: 'notices',
+  };
+}
+
+/** 主将と管理者に、承認を待つ部員の登録を知らせる */
+export function registrationMessage(name: string): PushMessage {
+  return {
+    title: '新しい部員の登録が届きました',
+    body: `${name}さん・承認してください`,
+    open: 'members',
   };
 }
 
@@ -39,6 +53,7 @@ export function reviewedMessage(input: {
   return {
     title: `${SUBJECT_LABELS[subject]}が${result}されました`,
     body: `${dateWithWeekday(date)}の分です。アプリで確認してください。`,
+    open: 'scan',
   };
 }
 

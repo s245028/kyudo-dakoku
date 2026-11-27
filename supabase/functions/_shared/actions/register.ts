@@ -1,15 +1,21 @@
-import { toPracticeDate, validateRegistration } from '../../../../packages/core/src/index.ts';
+import {
+  registrationMessage,
+  toPracticeDate,
+  validateRegistration,
+} from '../../../../packages/core/src/index.ts';
 import { isAdmin, type RequestContext } from '../context.ts';
 import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { stringParam, type Params } from '../params.ts';
+import { notifyManagers } from '../push.ts';
 import { homeSnapshot } from '../store.ts';
 
 const ALREADY_USED =
   'この学生番号はすでに登録されています。登録済みの画面を開けるときは「登録済みの人はこちら」から引き継いでください。開けないときは、主将に連絡してください。';
 
 /** アプリからの部員登録。主将が承認するまで打刻はできない。 */
-export async function register({ sql, userId, now }: RequestContext, params: Params) {
+export async function register(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const input = validateRegistration({
     studentNo: stringParam(params, 'studentNo'),
     name: stringParam(params, 'name'),
@@ -46,5 +52,6 @@ export async function register({ sql, userId, now }: RequestContext, params: Par
       where student_no = ${studentNo} and auth_user_id is null returning id`;
     if (!taken) throw new AppError(ALREADY_USED);
   });
+  await notifyManagers(context, registrationMessage(name));
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
 }

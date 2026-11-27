@@ -1,5 +1,6 @@
 import {
   canAdminister,
+  canEditLineups,
   canManagePenalties,
   isEnrolled,
   STATUS_LABELS,
@@ -63,3 +64,11 @@ export const requireOfficer = (tx: Sql, userId: string) =>
 
 export const requireCaptain = (tx: Sql, userId: string) =>
   requireActor(tx, userId, canAdminister, 'この操作ができるのは、主将と管理者だけです。');
+
+export const requireLineupEditor = (tx: Sql, userId: string) =>
+  requireActor(
+    tx,
+    userId,
+    canEditLineups,
+    '立ち順を作れるのは、主将・男子副将・女子副将・主務・管理者だけです。',
+  );

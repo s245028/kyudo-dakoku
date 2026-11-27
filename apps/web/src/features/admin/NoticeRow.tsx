@@ -43,9 +43,10 @@ type NoticeRowProps = {
   name: string;
   sending: boolean;
   run: RunAction;
+  readOnly: boolean;
 };
 
-export function NoticeRow({ notice, rules, name, sending, run }: NoticeRowProps) {
+export function NoticeRow({ notice, rules, name, sending, run, readOnly }: NoticeRowProps) {
   const [rejecting, setRejecting] = useState(false);
   const { approval } = notice;
   const review = (decision: 'approved' | 'rejected', rejectionReason = '') =>
@@ -77,7 +78,7 @@ export function NoticeRow({ notice, rules, name, sending, run }: NoticeRowProps)
       </p>
       {notice.memo && <p className="notice-reason">{notice.memo}</p>}
       {notice.rejectionReason && <p className="sub">却下の理由：{notice.rejectionReason}</p>}
-      {approval && !rejecting && (
+      {!readOnly && approval && !rejecting && (
         <div className="notice-actions">
           {approval !== 'approved' && (
             <button

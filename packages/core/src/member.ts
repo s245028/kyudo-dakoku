@@ -76,9 +76,34 @@ export function isApprovedMember(member: Pick<Member, 'status' | 'approved'>): b
 
 type WithRole = Pick<Member, 'status' | 'approved'> & { role: Role };
 
+/** 部の中心の4役。立ち順を作れ、立ち順では互いに別の列にする */
+export const LEADER_ROLES: readonly Role[] = [
+  'captain',
+  'men_vice_captain',
+  'women_vice_captain',
+  'chief_manager',
+];
+
 /** 承認・名簿・臨時変更・判定・設定などを操作できるか。 */
 export function canAdminister(member: WithRole): boolean {
   return isApprovedMember(member) && (member.role === 'captain' || member.role === 'admin');
+}
+
+/** 立ち順を作れるか。4役と管理者。 */
+export function canEditLineups(member: WithRole): boolean {
+  return canAdminister(member) || (isApprovedMember(member) && LEADER_ROLES.includes(member.role));
+}
+
+/**
+ * 「役職」タブに出すもの。`admin` は管理のすべて、`lineup` は立ち順、
+ * `notices` は出欠の連絡の一覧（見るだけ）。なければ null。
+ */
+export type OfficerArea = 'admin' | 'lineup' | 'notices';
+
+export function officerArea(member: WithRole): OfficerArea | null {
+  if (canAdminister(member)) return 'admin';
+  if (canEditLineups(member)) return 'lineup';
+  return isApprovedMember(member) && member.role === 'vice' ? 'notices' : null;
 }
 
 /** 罰をつける・割り当てる・消化する・取り消すことができるか。主将はできない。 */

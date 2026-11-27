@@ -1,21 +1,21 @@
 import {
-  canAdminister,
   canManagePenalties,
+  officerArea,
   PART_LABELS,
   ROLE_LABELS,
   toClockTime,
 } from '@kyudo/core';
-import { useState } from 'react';
 import { Header } from './components/Header.tsx';
 import { TabBar } from './components/TabBar.tsx';
 import type { TabId } from './components/tabs.ts';
-import { LazyAdminTab } from './features/admin/LazyAdminTab.tsx';
+import { LazyOfficerTab } from './features/officer/LazyOfficerTab.tsx';
 import { PenaltyTab } from './features/penalties/PenaltyTab.tsx';
 import { PresenceTab } from './features/presence/PresenceTab.tsx';
 import { ProfileTab } from './features/profile/ProfileTab.tsx';
 import { ScanTab } from './features/scan/ScanTab.tsx';
 import { currentBrowser } from './lib/browser.ts';
 import { describeHome, totalRemaining, type Home, type HomeData } from './lib/home.ts';
+import { useOfficerNavigation } from './lib/useOfficerNavigation.ts';
 
 type MainScreenProps = {
   home: HomeData;
@@ -27,19 +27,23 @@ type MainScreenProps = {
 };
 
 const MEMBER_TABS: TabId[] = ['scan', 'presence', 'penalty', 'me'];
-const CAPTAIN_TABS: TabId[] = [...MEMBER_TABS, 'admin'];
+const OFFICER_TABS: TabId[] = [...MEMBER_TABS, 'admin'];
 
 export function MainScreen(props: MainScreenProps) {
   const { home, now, error, onHome, onRefresh } = props;
-  const [selected, setTab] = useState<TabId>(props.initialTab);
   const view = describeHome(home, now);
   const { member } = home;
-  const captain = canAdminister(member);
-  // 管理画面を開いたまま主将でなくなったら、打刻の画面を出す
-  const tab = selected === 'admin' && !captain ? 'scan' : selected;
+  const area = officerArea(member);
+  const pending = {
+    notices: area === 'admin' ? (home.pendingNotices ?? 0) : 0,
+    members: area === 'admin' ? (home.pendingMembers ?? 0) : 0,
+  };
+  const navigation = useOfficerNavigation(props.initialTab, pending);
+  // 役職の画面を開いたまま役職がなくなったら、打刻の画面を出す
+  const tab = navigation.tab === 'admin' && !area ? 'scan' : navigation.tab;
 
   function select(next: TabId) {
-    setTab(next);
+    navigation.select(next);
     onRefresh();
   }
 
@@ -98,20 +102,28 @@ export function MainScreen(props: MainScreenProps) {
           />
         )}
         {tab === 'me' && <ProfileTab home={home} onHome={onHome} />}
-        {tab === 'admin' && (
-          <LazyAdminTab
+        {tab === 'admin' && area && (
+          <LazyOfficerTab
+            area={area}
             today={view.today}
             viewerIsAdmin={member.role === 'admin'}
-            pendingNotices={home.pendingNotices ?? 0}
+            section={navigation.section}
+            // 項目を切り替えるたびに、承認待ちの数を読み直す
+            onSection={(section) => {
+              navigation.setSection(section);
+              onRefresh();
+            }}
+            pendingNotices={pending.notices}
+            pendingMembers={pending.members}
             onHome={onHome}
           />
         )}
       </main>
       <TabBar
         current={tab}
-        tabs={captain ? CAPTAIN_TABS : MEMBER_TABS}
+        tabs={area ? OFFICER_TABS : MEMBER_TABS}
         penaltyCount={totalRemaining(view.penalties)}
-        noticeCount={captain ? (home.pendingNotices ?? 0) : 0}
+        officerCount={pending.notices + pending.members}
         onSelect={select}
       />
     </>

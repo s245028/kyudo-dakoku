@@ -119,10 +119,35 @@ describe('送る通知', () => {
     expect(sent).toEqual([
       {
         endpoint: endpointOf('captain'),
-        message: { title: '欠席の連絡が届きました', body: 'memberさん・11/30（月）' },
+        message: {
+          title: '欠席の連絡が届きました',
+          body: 'memberさん・11/30（月）',
+          open: 'notices',
+        },
       },
     ]);
     expect(JSON.stringify(sent)).not.toContain('ないしょ');
+  });
+
+  it('新しい部員の登録は、主将に届く', async () => {
+    const device = await signInDevice();
+    await runAction({ sql, userId: device.userId, now: NOW, sendPush: capture }, 'register', {
+      studentNo: 'N000001',
+      name: '新入 部員',
+      gender: 'female',
+      grade: 'B1',
+    });
+
+    expect(sent).toEqual([
+      {
+        endpoint: endpointOf('captain'),
+        message: {
+          title: '新しい部員の登録が届きました',
+          body: '新入 部員さん・承認してください',
+          open: 'members',
+        },
+      },
+    ]);
   });
 
   it('主将が自分で出した連絡は、自分には届かない', async () => {

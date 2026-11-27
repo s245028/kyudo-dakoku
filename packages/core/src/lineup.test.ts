@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   arrangeLineup,
+  canInsertBeside,
+  describePosition,
+  dropInLineup,
+  groupPositionName,
+  groupSizeOf,
+  isLineupStale,
   lineupColumnName,
   lineupWarnings,
   moveInLineup,
@@ -102,7 +108,7 @@ describe('参加者', () => {
   });
 });
 
-describe('的ごとに並べる', () => {
+describe('的割りで並べる', () => {
   it('9的に均等に配り、学年の上の人を前にする', () => {
     const people = [...many(18), entry('senior', { grade: 'B4' })];
     const groups = arrangeLineup('targets', people);
@@ -229,10 +235,11 @@ describe('保存する内容', () => {
   const check = (format: string, groups: unknown) =>
     validateLineup({ part: 'first', format, groups });
 
-  it('的ごとは9列、立ちは空の列を除いて8人まで', () => {
+  it('的割りは9列、立ちは空の列を除いて8人まで', () => {
     expect(check('targets', [[id(1)]]).ok).toBe(false);
     expect(check('groups', [[id(1)], []])).toMatchObject({ value: { groups: [[id(1)]] } });
-    expect(check('groups', [Array.from({ length: 9 }, (_, n) => id(n))]).ok).toBe(false);
+    expect(check('groups', [Array.from({ length: 9 }, (_, n) => id(n))]).ok).toBe(true);
+    expect(check('groups', [Array.from({ length: 10 }, (_, n) => id(n))]).ok).toBe(false);
   });
 
   it('同じ人の重複、空、形の違うものは拒否する', () => {
@@ -240,5 +247,134 @@ describe('保存する内容', () => {
     expect(check('groups', [[]]).ok).toBe(false);
     expect(check('groups', [['x']]).ok).toBe(false);
     expect(check('groups', 'x').ok).toBe(false);
+  });
+});
+
+describe('ほかの人の保存', () => {
+  const time = '2026-11-30T03:00:00.000Z';
+
+  it('編集のもとにした内容が最新なら、保存できる', () => {
+    expect(isLineupStale(null, null)).toBe(false);
+    expect(isLineupStale('2026-11-30T03:00:00+00:00', time)).toBe(false);
+  });
+
+  it('あとから保存や削除があれば、古い', () => {
+    expect(isLineupStale(null, time)).toBe(true);
+    expect(isLineupStale(time, null)).toBe(true);
+    expect(isLineupStale(time, '2026-11-30T03:00:01.000Z')).toBe(true);
+  });
+});
+
+describe('札を落とす', () => {
+  const groups = [['a', 'b'], ['c']];
+  const drop = (id: string, target: Parameters<typeof dropInLineup>[3]) =>
+    dropInLineup('targets', groups, id, target);
+
+  it('札の上に落とすと入れ替わる', () => {
+    expect(drop('a', { type: 'tag', memberId: 'c' })).toEqual([['c', 'b'], ['a']]);
+    expect(drop('x', { type: 'tag', memberId: 'b' })).toEqual([['a', 'x'], ['c']]);
+  });
+
+  it('列に落とすと最後に移り、置き場に落とすと外れる', () => {
+    expect(drop('a', { type: 'column', index: 1 })).toEqual([['b'], ['c', 'a']]);
+    expect(drop('a', { type: 'bench' })).toEqual([['b'], ['c']]);
+  });
+
+  it('変わらないときは、同じ並びを返す', () => {
+    expect(drop('a', { type: 'tag', memberId: 'a' })).toBe(groups);
+    expect(drop('x', { type: 'bench' })).toBe(groups);
+    expect(drop('x', { type: 'tag', memberId: 'y' })).toBe(groups);
+  });
+});
+
+describe('立ちの位置の名前と、自分の場所', () => {
+  const names = (size: number) =>
+    Array.from({ length: size }, (_, index) => groupPositionName(index, size));
+
+  it('何人でも、先頭が大前で最後の2人が落前と落', () => {
+    expect(names(8)).toEqual(['大前', '2的', '3的', '4的', '5的', '6的', '落前', '落']);
+    expect(names(6)).toEqual(['大前', '2的', '3的', '4的', '落前', '落']);
+    expect(names(3)).toEqual(['大前', '落前', '落']);
+    expect(names(2)).toEqual(['大前', '落']);
+    expect(names(1)).toEqual(['大前']);
+  });
+
+  it('的割りは的の名前だけ、立ちは何立ち目の何番目か', () => {
+    const groups = [['a'], ['b', 'c']];
+
+    expect(describePosition('targets', groups, 'a')).toBe('大前');
+    expect(describePosition('targets', groups, 'c')).toBe('2的');
+    expect(describePosition('groups', groups, 'c')).toBe('2立ち目の2番目');
+    expect(describePosition('groups', groups, 'x')).toBeNull();
+  });
+});
+
+describe('札の間に落とす', () => {
+  const groups = [['a', 'b', 'c'], ['d']];
+  const insert = (id: string, beside: string, side: 'before' | 'after') =>
+    dropInLineup('targets', groups, id, { type: 'tag', memberId: beside, side });
+
+  it('間に入れて、後ろをずらす', () => {
+    expect(insert('c', 'a', 'before')).toEqual([['c', 'a', 'b'], ['d']]);
+    expect(insert('a', 'b', 'after')).toEqual([['b', 'a', 'c'], ['d']]);
+    expect(insert('d', 'b', 'before')).toEqual([['a', 'd', 'b', 'c'], []]);
+    expect(insert('x', 'c', 'after')).toEqual([['a', 'b', 'c', 'x'], ['d']]);
+  });
+
+  it('並びが変わらない場所なら、同じ並びを返す', () => {
+    expect(insert('a', 'b', 'before')).toBe(groups);
+    expect(insert('c', 'b', 'after')).toBe(groups);
+    expect(insert('a', 'a', 'after')).toBe(groups);
+  });
+
+  it('8人の立ちにほかから入れるときと、置き場の札の前後は、入れ替える', () => {
+    const full = [['1', '2', '3', '4', '5', '6', '7', '8'], ['9']];
+    const target = { type: 'tag', memberId: '1', side: 'before' } as const;
+
+    expect(canInsertBeside('groups', full, '9', '1')).toBe(false);
+    expect(dropInLineup('groups', full, '9', target)).toEqual([
+      ['9', '2', '3', '4', '5', '6', '7', '8'],
+      ['1'],
+    ]);
+    expect(canInsertBeside('groups', full, '8', '1')).toBe(true);
+    expect(insert('a', 'x', 'before')).toEqual([['x', 'b', 'c'], ['d']]);
+  });
+});
+
+describe('9的の立ち', () => {
+  const sizes = (count: number, groupSize: 8 | 9) =>
+    arrangeLineup('groups', many(count), groupSize).map((group) => group.length);
+
+  it('9人までを選ぶと、少ない立ち数で並べる', () => {
+    expect(sizes(17, 8)).toEqual([6, 6, 5]);
+    expect(sizes(17, 9)).toEqual([9, 8]);
+    expect(sizes(18, 9)).toEqual([9, 9]);
+    expect(sizes(19, 9)).toEqual([7, 6, 6]);
+  });
+
+  it('9人の呼び方は、大前・2的〜7的・落前・落', () => {
+    expect(Array.from({ length: 9 }, (_, index) => groupPositionName(index, 9))).toEqual([
+      '大前',
+      '2的',
+      '3的',
+      '4的',
+      '5的',
+      '6的',
+      '7的',
+      '落前',
+      '落',
+    ]);
+  });
+
+  it('手で9人目を足せるのは、9人までを選んだとき', () => {
+    const full = [['1', '2', '3', '4', '5', '6', '7', '8'], ['9']];
+    const column = { type: 'column', index: 0 } as const;
+    const before = { type: 'tag', memberId: '1', side: 'before' } as const;
+
+    expect(dropInLineup('groups', full, '9', column)).toEqual(full);
+    expect(dropInLineup('groups', full, '9', column, 9)[0]).toHaveLength(9);
+    expect(dropInLineup('groups', full, '9', before, 9)[0]![0]).toBe('9');
+    expect(groupSizeOf(full)).toBe(8);
+    expect(groupSizeOf(dropInLineup('groups', full, '9', column, 9))).toBe(9);
   });
 });

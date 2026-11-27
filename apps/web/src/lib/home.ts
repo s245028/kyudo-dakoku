@@ -62,6 +62,8 @@ export type HomeData = {
   penalties: Penalty[];
   /** 承認を待っている連絡の数。主将と管理者以外は 0 */
   pendingNotices?: number;
+  /** 承認を待っている部員の数。主将と管理者以外は 0 */
+  pendingMembers?: number;
 };
 
 /** 管理者（部員ではないログイン）に返る内容 */
@@ -70,6 +72,7 @@ export type AdminHome = {
   isAdmin: true;
   settings: HomeData['settings'];
   pendingNotices?: number;
+  pendingMembers?: number;
 };
 
 /** 登録していない端末は member が null */

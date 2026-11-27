@@ -36,7 +36,9 @@ export function App() {
       </Blocker>
     );
   }
-  if (isAdminHome(home)) return <AdminScreen home={home} now={now} onHome={apply} />;
+  if (isAdminHome(home)) {
+    return <AdminScreen home={home} now={now} onHome={apply} onRefresh={() => void refresh()} />;
+  }
   if (adminMode) {
     return (
       <Blocker subtitle="">

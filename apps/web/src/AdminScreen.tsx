@@ -1,14 +1,14 @@
 import { toPracticeDate } from '@kyudo/core';
-import { useState } from 'react';
 import { Header } from './components/Header.tsx';
 import { TabBar } from './components/TabBar.tsx';
 import type { TabId } from './components/tabs.ts';
-import { LazyAdminTab } from './features/admin/LazyAdminTab.tsx';
+import { LazyOfficerTab } from './features/officer/LazyOfficerTab.tsx';
 import { PenaltyTab } from './features/penalties/PenaltyTab.tsx';
 import { PresenceTab } from './features/presence/PresenceTab.tsx';
 import { NotificationCard } from './features/profile/NotificationCard.tsx';
 import { logOutAdmin } from './lib/adminAuth.ts';
 import type { AdminHome, Home } from './lib/home.ts';
+import { useOfficerNavigation } from './lib/useOfficerNavigation.ts';
 
 const ADMIN_TABS: TabId[] = ['admin', 'presence', 'penalty'];
 const VIEWER = { memberId: null, officer: true, admin: true };
@@ -18,12 +18,15 @@ export function AdminScreen({
   home,
   now,
   onHome,
+  onRefresh,
 }: {
   home: AdminHome;
   now: Date;
   onHome: (home: Home) => void;
+  onRefresh: () => void;
 }) {
-  const [tab, setTab] = useState<TabId>('admin');
+  const pending = { notices: home.pendingNotices ?? 0, members: home.pendingMembers ?? 0 };
+  const { tab, section, setSection, select } = useOfficerNavigation('admin', pending);
   const today = toPracticeDate(now);
 
   return (
@@ -37,13 +40,20 @@ export function AdminScreen({
         </div>
         {tab === 'admin' && (
           <>
-            <LazyAdminTab
+            <LazyOfficerTab
+              area="admin"
               today={today}
               viewerIsAdmin
-              pendingNotices={home.pendingNotices ?? 0}
+              section={section}
+              onSection={(next) => {
+                setSection(next);
+                onRefresh();
+              }}
+              pendingNotices={pending.notices}
+              pendingMembers={pending.members}
               onHome={onHome}
             />
-            <NotificationCard description="出欠の連絡やコマ変更の申請が届いたときに知らせます。" />
+            <NotificationCard description="出欠の連絡、コマ変更の申請、新しい部員の登録が届いたときに知らせます。" />
           </>
         )}
         {tab === 'presence' && <PresenceTab />}
@@ -61,8 +71,8 @@ export function AdminScreen({
         current={tab}
         tabs={ADMIN_TABS}
         penaltyCount={0}
-        noticeCount={home.pendingNotices ?? 0}
-        onSelect={setTab}
+        officerCount={pending.notices + pending.members}
+        onSelect={select}
       />
     </>
   );

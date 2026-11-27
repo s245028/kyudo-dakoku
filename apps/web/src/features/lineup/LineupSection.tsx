@@ -6,7 +6,7 @@ import {
   weekdayOf,
   type Part,
 } from '@kyudo/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { dateWithWeekday } from '../../lib/format.ts';
 import { loadLineupDay } from '../../lib/lineupQueries.ts';
 import { watchPresence } from '../../lib/presenceChannel.ts';
@@ -17,16 +17,25 @@ import { ParticipantSummary } from './ParticipantSummary.tsx';
 const SATURDAY = 6;
 
 /** 今日の参加者の確認と、立ち順づくり */
-export function LineupSection({ today }: { today: string }) {
-  const load = useCallback(() => loadLineupDay(today), [today]);
-  const { data, error, reload } = useRemote(load);
+export function LineupSection() {
+  const { data, error, reload } = useRemote(loadLineupDay);
   const [chosen, setChosen] = useState<Part | null>(null);
 
-  // 打刻があったら、参加者の在室と遅刻を読み直す
-  useEffect(() => watchPresence(() => void reload()), [reload]);
+  // 打刻があったときと、アプリに戻ったときに読み直す（ほかの人の保存にも気づける）
+  useEffect(() => {
+    const refresh = () => {
+      if (!document.hidden) void reload();
+    };
+    document.addEventListener('visibilitychange', refresh);
+    const stopWatching = watchPresence(refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      stopWatching();
+    };
+  }, [reload]);
 
-  const participants = data ? listParticipants({ date: today, ...data }) : [];
-  const scheduled = data ? practiceParts(today, data.rules, data.exceptions) : [];
+  const participants = data ? listParticipants(data) : [];
+  const scheduled = data ? practiceParts(data.date, data.rules, data.exceptions) : [];
   const parts = PARTS.filter(
     (part) =>
       scheduled.includes(part) ||
@@ -47,7 +56,7 @@ export function LineupSection({ today }: { today: string }) {
       <p className="form-error" role="alert">
         {error}
       </p>
-      <h3>{dateWithWeekday(today)}の参加者</h3>
+      <h3>{data ? dateWithWeekday(data.date) : '今日'}の参加者</h3>
       {!data && !error && <p className="empty">読み込み中…</p>}
       {data && parts.length === 0 && <p className="empty">今日は練習日ではありません</p>}
       {parts.length > 1 && (
@@ -73,12 +82,12 @@ export function LineupSection({ today }: { today: string }) {
             <div key={part} hidden={part !== current}>
               <ParticipantSummary participants={inPart} />
               <LineupEditor
-                date={today}
+                date={data.date}
                 part={part}
                 participants={inPart}
                 members={data.members}
                 saved={data.lineups.find((lineup) => lineup.part === part) ?? null}
-                defaultFormat={weekdayOf(today) === SATURDAY ? 'groups' : 'targets'}
+                defaultFormat={weekdayOf(data.date) === SATURDAY ? 'groups' : 'targets'}
                 onSaved={reload}
               />
             </div>
