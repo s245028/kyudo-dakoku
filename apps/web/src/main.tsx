@@ -12,6 +12,7 @@ import './styles/lineup.css';
 import './styles/register.css';
 import './styles/penalties.css';
 import './styles/admin.css';
+import './styles/stats.css';
 
 // アプリ本体を端末に保存して、2回目から速く開く
 registerSW({ immediate: true });

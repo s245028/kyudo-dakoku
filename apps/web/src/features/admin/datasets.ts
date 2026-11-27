@@ -23,6 +23,7 @@ import {
 } from '@kyudo/core';
 import { readEveryRow } from '../../lib/exportQueries.ts';
 import { APPROVAL_LABELS } from '../../lib/noticeLabels.ts';
+import { loadPenaltyRows, loadTaskRows, toPenaltyRecord } from '../../lib/penaltyQueries.ts';
 import { loadRoster, loadSettings, type RosterEntry } from '../../lib/queries.ts';
 
 export type Table = { header: string[]; rows: CsvValue[][] };
@@ -154,34 +155,6 @@ async function punches(): Promise<Table> {
   };
 }
 
-type PenaltyRow = {
-  id: string;
-  practice_date: string;
-  member_id: string;
-  reason: string;
-  base_count: number;
-  memo: string;
-  created_by: string | null;
-  completed_on: string | null;
-  counted_from: string | null;
-  canceled_at: string | null;
-  canceled_by: string | null;
-  auto_key: string | null;
-};
-
-type TaskRow = {
-  id: string;
-  penalty_id: string;
-  content: string;
-  assigned_at: string;
-  assigned_by: string | null;
-  done_at: string | null;
-  done_by: string | null;
-};
-
-const loadPenaltyRows = () => readEveryRow<PenaltyRow>('penalties', '*', ['practice_date', 'id']);
-const loadTaskRows = () => readEveryRow<TaskRow>('penalty_tasks', '*', ['assigned_at', 'id']);
-
 async function penalties(today: string): Promise<Table> {
   const [{ who, nameOf }, rows, tasks, settings] = await Promise.all([
     memberDirectory(),
@@ -207,16 +180,7 @@ async function penalties(today: string): Promise<Table> {
     ],
     rows: rows.map((row) => {
       const state = summarizePenalty({
-        date: row.practice_date,
-        countedFrom: row.counted_from,
-        baseCount: row.base_count,
-        tasks: tasks
-          .filter((task) => task.penalty_id === row.id)
-          .map((task) => ({
-            id: task.id,
-            content: task.content,
-            completedOn: task.done_at ? toPracticeDate(new Date(task.done_at)) : null,
-          })),
+        ...toPenaltyRecord(row, tasks),
         today,
         doublingDays: settings.penaltyDoublingDays,
       });

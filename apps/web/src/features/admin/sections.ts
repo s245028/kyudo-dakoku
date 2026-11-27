@@ -5,6 +5,7 @@ export const SECTIONS = {
   roster: '名簿',
   exceptions: '臨時変更',
   attendance: '出欠',
+  stats: '集計',
   settings: '設定',
   yearly: '代替わり',
   export: '書き出し',
