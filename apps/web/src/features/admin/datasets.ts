@@ -42,8 +42,8 @@ async function memberDirectory() {
       const member = id === null ? undefined : byId.get(id);
       return [member?.studentNo ?? '', member?.name ?? ''];
     },
-    /** 記録した人。部員の記録がなければ管理者 */
-    nameOf: (id: string | null) => (id === null ? '管理者' : (byId.get(id)?.name ?? '')),
+    /** 記録した人。空なのは、管理者ログインか、削除した部員の記録 */
+    nameOf: (id: string | null) => (id === null ? '管理者・削除済み' : (byId.get(id)?.name ?? '')),
   };
 }
 

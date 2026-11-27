@@ -57,6 +57,25 @@ describe('describeHome', () => {
 
   it('保存した内容を翌日に表示しても、前の日の打刻で在室にしない', () => {
     expect(describeHome(home, at('2026-12-01')).inRoomSince).toBeNull();
+    expect(describeHome(home, at('2026-12-01')).todayPunches).toEqual([]);
+  });
+
+  it('今日の入退室を古い順に返し、取り消した打刻は含めない', () => {
+    const punched: HomeData = {
+      ...home,
+      punches: [
+        { id: 3, at: '2026-11-30T09:00:00Z', kind: 'in', canceledAt: null },
+        { id: 1, at: '2026-11-30T07:50:00Z', kind: 'in', canceledAt: null },
+        { id: 2, at: '2026-11-30T08:30:00Z', kind: 'out', canceledAt: null },
+        { id: 4, at: '2026-11-30T09:10:00Z', kind: 'out', canceledAt: '2026-11-30T09:10:30Z' },
+      ],
+    };
+
+    expect(describeHome(punched, at(MONDAY, '19:00')).todayPunches).toEqual([
+      { at: at(MONDAY, '16:50'), kind: 'in' },
+      { at: at(MONDAY, '17:30'), kind: 'out' },
+      { at: at(MONDAY, '18:00'), kind: 'in' },
+    ]);
   });
 
   it('引退した人は、参加を登録した日だけ予定を出す', () => {

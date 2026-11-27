@@ -7,6 +7,7 @@ import { currentPosition, type ScanPosition } from './position.ts';
 import { ResultCard } from './ResultCard.tsx';
 import type { ScanOutcome, ScanResponse } from './scanResult.ts';
 import { TodayCard } from './TodayCard.tsx';
+import { TodayPunches } from './TodayPunches.tsx';
 import { useQrScanner } from './useQrScanner.ts';
 
 type ScanTabProps = {
@@ -77,6 +78,8 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
 
   const cameraError = useQrScanner(videoRef, scanning, (qr) => void send(qr));
   const showCamera = approved && (phase.type === 'scanning' || phase.type === 'sending');
+  /** 次に読み取ると記録されるもの */
+  const next = view.inRoomSince ? '退室' : '入室';
 
   return (
     <>
@@ -88,6 +91,7 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
         </p>
       )}
       <TodayCard view={view} onShowPenalties={onShowPenalties} />
+      {showCamera && <p className="scanner-heading">{next}の読み取り</p>}
       <div className="scanner" hidden={!showCamera}>
         <video ref={videoRef} playsInline muted />
         <div className="scanner-frame" />
@@ -105,16 +109,25 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
         </button>
       )}
       {phase.type !== 'scanning' && phase.type !== 'sending' && (
-        <ResultCard
-          outcome={phase}
-          memberName={home.member.name}
-          onAgain={() => setPhase({ type: 'scanning' })}
-          onUndone={(next) => {
-            setPhase({ type: 'undone' });
-            onHome(next);
-          }}
-        />
+        <>
+          <ResultCard
+            outcome={phase}
+            memberName={home.member.name}
+            onUndone={(updated) => {
+              setPhase({ type: 'undone' });
+              onHome(updated);
+            }}
+          />
+          <button
+            type="button"
+            className="next-scan"
+            onClick={() => setPhase({ type: 'scanning' })}
+          >
+            {phase.type === 'failed' ? 'もう一度読み取る' : `${next}する（QRを読む）`}
+          </button>
+        </>
       )}
+      {approved && <TodayPunches punches={view.todayPunches} />}
       {view.retired && (
         <JoinCard
           days={view.joinDays}

@@ -81,7 +81,7 @@ describe('権限', () => {
     'admin-approve',
     'admin-update-member',
     'admin-reset-device',
-    'admin-delete-pending',
+    'admin-delete-member',
     'admin-add-exception',
     'admin-delete-exception',
     'admin-rejudge',
@@ -278,13 +278,51 @@ describe('名簿の操作', () => {
     expect(await member(ids.member)).toMatchObject({ linked: false, approved: true });
   });
 
-  it('削除できるのは、承認していない記録のない人だけ', async () => {
+  it('記録のない登録は、そのまま削除できる', async () => {
     const { id } = await insertMember(sql, { approved: false });
     await sql`insert into public.koma (member_id) values (${id})`;
 
-    expect((await run('captain', 'admin-delete-pending', { memberId: ids.member })).ok).toBe(false);
-    await must('captain', 'admin-delete-pending', { memberId: id });
+    await must('captain', 'admin-delete-member', { memberId: id });
+
     expect(await member(id)).toBeUndefined();
+  });
+
+  it('記録がある人は、指定がなければ削除しない', async () => {
+    await must('vice', 'add-penalty', newPenalty());
+
+    const result = await run('captain', 'admin-delete-member', { memberId: ids.member });
+
+    expect(result).toMatchObject({ error: containing('記録がある人') });
+    expect(await member(ids.member)).toBeDefined();
+  });
+
+  it('記録ごと削除する。本人が記録した他人の記録は残る', async () => {
+    await must('captain', 'admin-rejudge', { date: DATE }, at('22:15'));
+    await sql`insert into public.punches (member_id, punched_at, kind, via)
+      values (${ids.vice}, ${at('16:00')}, 'in', 'app')`;
+    await must('vice', 'add-penalty', newPenalty());
+    await must('captain', 'admin-add-exception', { date: DATE, memberId: ids.vice, kind: 'koma4' });
+
+    await must('captain', 'admin-delete-member', { memberId: ids.vice, deleteRecords: true });
+
+    expect(await member(ids.vice)).toBeUndefined();
+    for (const table of ['punches', 'attendance', 'exceptions', 'penalties']) {
+      const [row] = await sql`select count(*)::int as n from ${sql(table)}
+        where member_id = ${ids.vice}`;
+      expect(row?.['n']).toBe(0);
+    }
+    expect(
+      await sql`select created_by from public.penalties where reason = '私物の出しっぱなし'`,
+    ).toEqual([{ created_by: null }]);
+    expect(await tasks()).toMatchObject([{ content: '道場の掃除' }]);
+  });
+
+  it('自分は削除できない', async () => {
+    const params = { memberId: ids.captain, deleteRecords: true };
+
+    expect(await run('captain', 'admin-delete-member', params)).toMatchObject({
+      error: '自分は削除できません。',
+    });
   });
 });
 

@@ -120,6 +120,8 @@ export function describeHome(home: HomeData, now: Date) {
     /** 今日判定される場合の予定。判定されなければ null */
     plan: judged ? plan : null,
     inRoomSince: last?.kind === 'in' ? last.at : null,
+    /** 今日の入退室（取り消した打刻は含めない）。古い順 */
+    todayPunches: punches.map(({ at, kind }) => ({ at, kind })),
     penalties: countPenalties(home.penalties, today, home.settings.penaltyDoublingDays),
     joinDays: retired
       ? upcomingJoinDays({

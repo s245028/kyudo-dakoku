@@ -11,11 +11,10 @@ const UNDO_MIN_VISIBLE_SECONDS = 5;
 type ResultCardProps = {
   outcome: ScanOutcome;
   memberName: string;
-  onAgain: () => void;
   onUndone: (home: Home) => void;
 };
 
-export function ResultCard({ outcome, memberName, onAgain, onUndone }: ResultCardProps) {
+export function ResultCard({ outcome, memberName, onUndone }: ResultCardProps) {
   return (
     <div className={`result result-${toneOf(outcome)}`} role="status">
       {outcome.type === 'recorded' && (
@@ -24,7 +23,7 @@ export function ResultCard({ outcome, memberName, onAgain, onUndone }: ResultCar
       {outcome.type === 'undone' && (
         <>
           <p className="result-type result-type-small">取り消しました</p>
-          <p className="result-note">必要なら、もう一度読み取ってください</p>
+          <p className="result-note">今の打刻はなかったことになりました</p>
         </>
       )}
       {outcome.type === 'failed' && (
@@ -33,9 +32,6 @@ export function ResultCard({ outcome, memberName, onAgain, onUndone }: ResultCar
           <p className="result-note">{outcome.message}</p>
         </>
       )}
-      <button type="button" onClick={onAgain}>
-        もう一度読み取る
-      </button>
     </div>
   );
 }
@@ -59,7 +55,9 @@ function Recorded({
       <p className="result-type">{PUNCH_LABELS[scan.kind]}</p>
       <p className="result-time">{scan.time}</p>
       {scan.duplicate ? (
-        <p className="result-note">直前に記録済みのため、今回の読み取りは無視しました</p>
+        <p className="result-note">
+          直前に記録済みのため、今回の読み取りは無視しました。少し時間をあけて読み取ってください。
+        </p>
       ) : (
         <>
           <p className={scan.lateMinutes > 0 ? 'result-judge result-judge-late' : 'result-judge'}>

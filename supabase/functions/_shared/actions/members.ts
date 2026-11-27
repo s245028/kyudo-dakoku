@@ -8,7 +8,7 @@ import {
 import { requireCaptain, type Actor, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
 import { AppError, refuseIf } from '../errors.ts';
-import { objectParam, uuidParam, type Params } from '../params.ts';
+import { booleanParam, objectParam, uuidParam, type Params } from '../params.ts';
 import { homeSnapshot, lockRoster, type MemberRow } from '../store.ts';
 
 /**
@@ -30,7 +30,7 @@ export async function ensureManagerRemains(tx: Sql, actor: Actor): Promise<void>
 async function changeMember(
   context: RequestContext,
   params: Params,
-  change: (tx: Sql, target: MemberRow) => Promise<void>,
+  change: (tx: Sql, target: MemberRow, actor: Actor) => Promise<void>,
 ) {
   const { sql, userId, now } = context;
   const memberId = uuidParam(params, 'memberId');
@@ -42,7 +42,7 @@ async function changeMember(
     if (!target) throw new AppError('部員が見つかりません。画面を開き直してください。');
     const nextRole = ROLES.find((role) => role === objectParam(params, 'changes')['role']);
     refuseIf(adminOnlyRefusal({ actorIsAdmin: actor.isAdmin, targetRole: target.role, nextRole }));
-    await change(tx, target);
+    await change(tx, target, actor);
     await ensureManagerRemains(tx, actor);
   });
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
@@ -73,18 +73,44 @@ export const resetDevice = (context: RequestContext, params: Params) =>
     await tx`update public.members set auth_user_id = null where id = ${target.id}`;
   });
 
-/** 間違った登録の削除。承認していない、記録が何もない人だけ。 */
-export const deletePendingMember = (context: RequestContext, params: Params) =>
-  changeMember(context, params, async (tx, target) => {
-    const [record] = await tx`
-      select 1 from public.punches where member_id = ${target.id}
-      union all select 1 from public.attendance where member_id = ${target.id}
-      union all select 1 from public.penalties where member_id = ${target.id}
-      union all select 1 from public.exceptions where member_id = ${target.id}
-      limit 1`;
-    if (target.approved || record) {
-      throw new AppError('削除できるのは、承認していない記録のない人だけです。');
+/** その部員の記録（打刻・出欠・罰・臨時変更）があるか。コマ表だけなら記録とみなさない。 */
+async function hasRecords(tx: Sql, memberId: string): Promise<boolean> {
+  const [record] = await tx`
+    select 1 from public.punches where member_id = ${memberId}
+    union all select 1 from public.attendance where member_id = ${memberId}
+    union all select 1 from public.penalties where member_id = ${memberId}
+    union all select 1 from public.exceptions where member_id = ${memberId}
+    limit 1`;
+  return record !== undefined;
+}
+
+/** その部員を消す。本人の記録はすべて消し、本人が記録した他人の記録は残して記録者を空にする。 */
+async function removeMember(tx: Sql, memberId: string): Promise<void> {
+  await tx`delete from public.punches where member_id = ${memberId}`;
+  await tx`delete from public.attendance where member_id = ${memberId}`;
+  // やることは罰と一緒に消える
+  await tx`delete from public.penalties where member_id = ${memberId}`;
+  await tx`delete from public.exceptions where member_id = ${memberId}`;
+  await tx`delete from public.koma where member_id = ${memberId}`;
+
+  await tx`update public.exceptions set created_by = null where created_by = ${memberId}`;
+  await tx`update public.penalties set created_by = null where created_by = ${memberId}`;
+  await tx`update public.penalty_tasks set assigned_by = null where assigned_by = ${memberId}`;
+  await tx`update public.penalty_tasks set done_by = null where done_by = ${memberId}`;
+  await tx`update public.grade_promotions set executed_by = null
+    where executed_by = ${memberId}`;
+  await tx`delete from public.members where id = ${memberId}`;
+}
+
+/**
+ * 部員を削除する。元に戻せない。退部した人の記録を残すには、状態を「休部・退部」にする。
+ * 記録がある人は、`deleteRecords` を指定したときだけ削除する（承認待ちの一覧からの誤操作を防ぐ）。
+ */
+export const deleteMember = (context: RequestContext, params: Params) =>
+  changeMember(context, params, async (tx, target, actor) => {
+    if (target.id === actor.id) throw new AppError('自分は削除できません。');
+    if (!booleanParam(params, 'deleteRecords') && (await hasRecords(tx, target.id))) {
+      throw new AppError('記録がある人です。承認してから、部員名簿で削除してください。');
     }
-    await tx`delete from public.koma where member_id = ${target.id}`;
-    await tx`delete from public.members where id = ${target.id}`;
+    await removeMember(tx, target.id);
   });
