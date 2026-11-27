@@ -1,7 +1,7 @@
 import { adminOnlyRefusal, GRADE_LABELS } from '@kyudo/core';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 export function PendingMember({
   member,

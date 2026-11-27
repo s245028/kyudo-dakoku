@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 /** 部員の削除。元に戻せないので、確認のチェックを入れてから2回押す */
 export function DeleteMember({

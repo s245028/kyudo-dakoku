@@ -94,6 +94,7 @@ async function removeMember(tx: Sql, memberId: string): Promise<void> {
   await tx`delete from public.koma where member_id = ${memberId}`;
 
   await tx`update public.exceptions set created_by = null where created_by = ${memberId}`;
+  await tx`update public.exceptions set reviewed_by = null where reviewed_by = ${memberId}`;
   await tx`update public.penalties set created_by = null where created_by = ${memberId}`;
   await tx`update public.penalty_tasks set assigned_by = null where assigned_by = ${memberId}`;
   await tx`update public.penalty_tasks set done_by = null where done_by = ${memberId}`;

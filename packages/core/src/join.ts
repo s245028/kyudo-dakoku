@@ -90,9 +90,7 @@ export function decideJoin(
   }
   if (!day.joined) return { ok: true, change: 'none' };
   if (!day.canCancel) {
-    return refuse(
-      '取り消しの締め切りを過ぎました。来られない場合は主将に欠席の連絡をしてください。',
-    );
+    return refuse('取り消しの締め切りを過ぎました。来られない場合は欠席の連絡を送ってください。');
   }
   return { ok: true, change: 'remove' };
 }

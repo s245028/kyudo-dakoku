@@ -10,7 +10,7 @@ import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { WEEKDAY_LABELS } from '../../lib/format.ts';
 import type { StoredRule } from '../../lib/queries.ts';
 import { Options } from './Options.tsx';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 type RulesFormProps = { rules: StoredRule[]; sending: boolean; run: RunAction };
 

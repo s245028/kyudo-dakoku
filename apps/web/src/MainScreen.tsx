@@ -92,6 +92,7 @@ export function MainScreen(props: MainScreenProps) {
           <LazyAdminTab
             today={view.today}
             viewerIsAdmin={member.role === 'admin'}
+            pendingNotices={home.pendingNotices ?? 0}
             onHome={onHome}
           />
         )}
@@ -100,6 +101,7 @@ export function MainScreen(props: MainScreenProps) {
         current={tab}
         tabs={captain ? CAPTAIN_TABS : MEMBER_TABS}
         penaltyCount={totalRemaining(view.penalties)}
+        noticeCount={captain ? (home.pendingNotices ?? 0) : 0}
         onSelect={select}
       />
     </>

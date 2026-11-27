@@ -1,6 +1,6 @@
 import type { EditableSettings } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 const NUMBER_FIELDS = [
   ['noticeLeadMinutes', '連絡の締め切り（集合の何分前）'],

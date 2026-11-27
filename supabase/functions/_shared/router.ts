@@ -9,6 +9,7 @@ import {
 import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions/configuration.ts';
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
+import { cancelNotice, reviewNotice, submitNotice } from './actions/notices.ts';
 import { approveMember, deleteMember, resetDevice, updateMember } from './actions/members.ts';
 import {
   addPenalty,
@@ -32,6 +33,8 @@ export const ACTIONS = {
   'undo-scan': undoScan,
   join,
   unjoin,
+  'submit-notice': submitNotice,
+  'cancel-notice': cancelNotice,
   // 副務・主将
   'add-penalty': addPenalty,
   'assign-task': assignTask,
@@ -45,6 +48,7 @@ export const ACTIONS = {
   'admin-delete-member': deleteMember,
   'admin-add-exception': addException,
   'admin-delete-exception': deleteException,
+  'admin-review-notice': reviewNotice,
   'admin-rejudge': rejudge,
   'admin-set-manual': setManualJudgement,
   'admin-update-settings': updateSettings,

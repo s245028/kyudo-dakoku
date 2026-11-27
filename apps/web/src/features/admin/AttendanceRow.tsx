@@ -2,7 +2,7 @@ import { JUDGEMENT_LABELS, MANUAL_JUDGEMENTS, toClockTime } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
 import type { AttendanceEntry } from '../../lib/queries.ts';
 import { Options } from './Options.tsx';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 type AttendanceRowProps = {
   entry: AttendanceEntry & { name: string };

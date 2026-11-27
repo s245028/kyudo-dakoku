@@ -91,7 +91,9 @@ export async function loadExceptions(
   to: PracticeDate = from,
 ): Promise<PracticeException[]> {
   return sql<PracticeException[]>`
-    select date::text, member_id as "memberId", kind, memo, contacted_at as "contactedAt"
+    select date::text, member_id as "memberId", kind, memo, contacted_at as "contactedAt",
+      approval, rejection_reason as "rejectionReason",
+      coalesce(created_by = member_id, false) as "selfSubmitted"
     from public.exceptions where date between ${from} and ${to}
     order by date, created_at, id`;
 }

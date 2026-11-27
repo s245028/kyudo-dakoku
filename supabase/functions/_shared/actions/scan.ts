@@ -70,6 +70,7 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
 
     let entry: ReturnType<typeof describeFirstEntry> = null;
     let penaltyAdded = false;
+    let penaltyPending = false;
     if (decision.firstInToday) {
       const plan = resolvePracticePlan({
         date,
@@ -85,6 +86,10 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
         const [penalty] = await tx`
           select 1 from public.penalties where auto_key = ${autoPenaltyKey(date, member.id)}`;
         penaltyAdded = penalty !== undefined;
+        const [pending] = await tx`select 1 from public.attendance
+          where practice_date = ${date} and member_id = ${member.id}
+            and final_result = 'late_pending'`;
+        penaltyPending = pending !== undefined;
       }
     }
     return {
@@ -95,6 +100,7 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
       message: entry?.message ?? '',
       lateMinutes: entry?.lateMinutes ?? 0,
       penaltyAdded,
+      penaltyPending,
       undoSeconds: settings.undoSeconds,
     };
   });

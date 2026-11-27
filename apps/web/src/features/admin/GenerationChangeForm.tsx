@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
 import { Options } from './Options.tsx';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 type GenerationChangeFormProps = {
   members: RosterEntry[];

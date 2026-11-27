@@ -130,16 +130,17 @@ export type PenaltyState = PenaltyCount & {
   unassigned: number;
 };
 
-/** 罰1件の、今日時点の状態。 */
+/** 罰1件の、今日時点の状態。`countedFrom` があれば、倍になる日数はその日から数える。 */
 export function summarizePenalty(input: {
   date: PracticeDate;
+  countedFrom?: PracticeDate | null;
   baseCount: number;
   tasks: readonly PenaltyTask[];
   today: PracticeDate;
   doublingDays: number;
 }): PenaltyState {
   const completedOn = input.tasks.flatMap((task) => task.completedOn ?? []);
-  const count = countPenalty({ ...input, completedOn });
+  const count = countPenalty({ ...input, date: input.countedFrom ?? input.date, completedOn });
   const openTasks = input.tasks.filter((task) => task.completedOn === null);
   return { ...count, openTasks, unassigned: unassignedCount(count.remaining, openTasks.length) };
 }

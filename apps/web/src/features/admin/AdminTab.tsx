@@ -3,11 +3,13 @@ import type { Home } from '../../lib/home.ts';
 import { AttendanceSection } from './AttendanceSection.tsx';
 import { ExceptionSection } from './ExceptionSection.tsx';
 import { ExportSection } from './ExportSection.tsx';
+import { NoticeSection } from './NoticeSection.tsx';
 import { RosterSection } from './RosterSection.tsx';
 import { SettingsSection } from './SettingsSection.tsx';
 import { YearlySection } from './YearlySection.tsx';
 
 const SECTIONS = {
+  notices: '連絡',
   roster: '名簿',
   exceptions: '臨時変更',
   attendance: '出欠',
@@ -20,12 +22,14 @@ type SectionId = keyof typeof SECTIONS;
 type AdminTabProps = {
   today: string;
   viewerIsAdmin: boolean;
+  pendingNotices: number;
   onHome: (home: Home) => void;
 };
 
 /** 主将と管理者の管理画面 */
-export function AdminTab({ today, viewerIsAdmin, onHome }: AdminTabProps) {
-  const [section, setSection] = useState<SectionId>('roster');
+export function AdminTab({ today, viewerIsAdmin, pendingNotices, onHome }: AdminTabProps) {
+  // 承認待ちがあれば、開いてすぐ連絡の一覧を出す
+  const [section, setSection] = useState<SectionId>(pendingNotices > 0 ? 'notices' : 'roster');
 
   return (
     <>
@@ -39,9 +43,11 @@ export function AdminTab({ today, viewerIsAdmin, onHome }: AdminTabProps) {
             onClick={() => setSection(id)}
           >
             {SECTIONS[id]}
+            {id === 'notices' && pendingNotices > 0 && ` ${pendingNotices}`}
           </button>
         ))}
       </div>
+      {section === 'notices' && <NoticeSection today={today} onHome={onHome} />}
       {section === 'roster' && <RosterSection viewerIsAdmin={viewerIsAdmin} onHome={onHome} />}
       {section === 'exceptions' && <ExceptionSection today={today} />}
       {section === 'attendance' && <AttendanceSection today={today} />}

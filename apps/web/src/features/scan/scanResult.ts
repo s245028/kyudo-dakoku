@@ -10,6 +10,8 @@ export type ScanResponse =
       message: string;
       lateMinutes: number;
       penaltyAdded: boolean;
+      /** 遅刻の連絡が承認待ちで、罰を保留している */
+      penaltyPending: boolean;
       undoSeconds: number;
     };
 

@@ -2,6 +2,7 @@ import { addDays, EXCEPTION_LABELS, toClockTime, toPracticeDate } from '@kyudo/c
 import { useCallback } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { dateWithWeekday, shortDate } from '../../lib/format.ts';
+import { APPROVAL_LABELS } from '../../lib/noticeLabels.ts';
 import { loadExceptionsSince, loadRoster } from '../../lib/queries.ts';
 import { useAction } from '../../lib/useAction.ts';
 import { useRemote } from '../../lib/useRemote.ts';
@@ -60,6 +61,7 @@ export function ExceptionSection({ today }: { today: string }) {
                 {nameOf(exception.memberId)}
                 {exception.contactedAt && `・${contactText(exception.contactedAt)}`}
                 {exception.memo && `・${exception.memo}`}
+                {exception.approval && `・${APPROVAL_LABELS[exception.approval]}`}
               </small>
             </span>
             <ConfirmButton

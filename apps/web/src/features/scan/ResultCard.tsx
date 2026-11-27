@@ -63,6 +63,7 @@ function Recorded({
           <p className={scan.lateMinutes > 0 ? 'result-judge result-judge-late' : 'result-judge'}>
             {scan.message}
             {scan.penaltyAdded && '　罰がつきました（罰タブで確認）'}
+            {scan.penaltyPending && '　遅刻の連絡は承認待ちです'}
           </p>
           <p className="result-note">{memberName} さん</p>
           <UndoButton punchId={scan.id} undoSeconds={scan.undoSeconds} onUndone={onUndone} />

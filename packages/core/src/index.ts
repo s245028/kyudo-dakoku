@@ -6,6 +6,7 @@ export * from './join.ts';
 export * from './location.ts';
 export * from './member.ts';
 export * from './nightly.ts';
+export * from './notice.ts';
 export * from './penalty.ts';
 export * from './penalty-sync.ts';
 export * from './practice.ts';

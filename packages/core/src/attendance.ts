@@ -23,7 +23,14 @@ export const MANUAL_JUDGEMENTS = [
   'absent_notice_overdue',
   'exempt',
 ] as const;
-export const JUDGEMENTS = [...MANUAL_JUDGEMENTS, 'not_arrived', 'unregistered'] as const;
+export const JUDGEMENTS = [
+  ...MANUAL_JUDGEMENTS,
+  // 連絡の承認を待っている間は、罰をつけない
+  'late_pending',
+  'absent_pending',
+  'not_arrived',
+  'unregistered',
+] as const;
 export type ManualJudgement = (typeof MANUAL_JUDGEMENTS)[number];
 export type Judgement = (typeof JUDGEMENTS)[number];
 
@@ -36,6 +43,8 @@ export const JUDGEMENT_LABELS: Record<Judgement, string> = {
   absent_notified: '欠席（連絡済）',
   absent_notice_overdue: '欠席（連絡遅れ）',
   exempt: '対象外',
+  late_pending: '遅刻（承認待ち）',
+  absent_pending: '欠席（承認待ち）',
   not_arrived: '未到着',
   unregistered: '参加（登録なし）',
 };
@@ -74,14 +83,27 @@ export function noticeDeadlineOf(
   return new Date(toInstant(date, deadline).getTime() - leadMinutes * 60_000);
 }
 
-/** 連絡が締め切り内か。連絡日時は分の単位で比べ、未入力なら締め切り内として備考に残す。 */
-function isNoticeOnTime(notice: Notice, limit: Date, notes: string[]): boolean {
+/** 締め切りに間に合うか。分の単位で比べる。 */
+export function isWithinNoticeLimit(instant: Date, limit: Date): boolean {
+  return Math.floor(instant.getTime() / 60_000) * 60_000 <= limit.getTime();
+}
+
+/**
+ * 連絡がある場合の判定。締め切り後なら連絡遅れ、締め切り内で承認待ちなら保留。
+ * 連絡日時が未入力なら締め切り内として備考に残す。
+ */
+function judgeNotice(
+  notice: Notice,
+  limit: Date,
+  notes: string[],
+  kind: 'late' | 'absent',
+): Judgement {
   if (notice.contactedAt === null) {
     notes.push('連絡日時が未入力（締め切り内として扱った）');
-    return true;
+  } else if (!isWithinNoticeLimit(notice.contactedAt, limit)) {
+    return `${kind}_notice_overdue`;
   }
-  const contactedMinute = Math.floor(notice.contactedAt.getTime() / 60_000) * 60_000;
-  return contactedMinute <= limit.getTime();
+  return notice.approval === 'pending' ? `${kind}_pending` : `${kind}_notified`;
 }
 
 /** その日の自動退室の時刻を過ぎて、来ていない人の欠席が確定したか。 */
@@ -118,10 +140,7 @@ function decideResult(input: {
     if (late === 0) return done('present');
     const notice = plan.lateNotice ?? plan.absentNotice;
     if (!notice) return done('late', late);
-    return done(
-      isNoticeOnTime(notice, limit, notes) ? 'late_notified' : 'late_notice_overdue',
-      late,
-    );
+    return done(judgeNotice(notice, limit, notes, 'late'), late);
   }
 
   const settled = isAbsenceSettled(date, now, settings.autoCheckoutTime);
@@ -129,7 +148,7 @@ function decideResult(input: {
   if (!notice) return done(settled ? 'absent_unexcused' : 'not_arrived');
   // 遅刻の連絡だけなら、欠席が確定するまで到着を待つ
   if (!plan.absentNotice && !settled) return done('not_arrived');
-  return done(isNoticeOnTime(notice, limit, notes) ? 'absent_notified' : 'absent_notice_overdue');
+  return done(judgeNotice(notice, limit, notes, 'absent'));
 }
 
 /** 入室から退室までの合計。当日の入室中は、今までの時間を足す。 */
@@ -161,6 +180,8 @@ export type JudgementInput = {
   /** その日の打刻。他人の分が混ざっていてもよい */
   punches: readonly Punch[];
   settings: JudgementSettings;
+  /** 記録済みの区分と集合時刻。過去の日を、今のコマ表で変えずに判定し直すときに渡す */
+  recorded?: Pick<PracticePlan, 'part' | 'deadline'> | null;
 };
 
 /**
@@ -171,8 +192,9 @@ export function judgeAttendance(input: JudgementInput): AttendanceRecord | null 
   const { date, now, member, settings } = input;
   if (!isApprovedMember(member)) return null;
 
-  const plan = resolvePracticePlan({ ...input, memberId: member.id });
-  if (!plan) return null;
+  const resolved = resolvePracticePlan({ ...input, memberId: member.id });
+  if (!resolved) return null;
+  const plan = { ...resolved, ...input.recorded };
 
   const mine = validPunches(input.punches).filter(
     (punch) => punch.memberId === member.id && toPracticeDate(punch.at) === date,

@@ -1,6 +1,6 @@
 import type { PenaltyType } from '@kyudo/core';
 import type { FormEvent } from 'react';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 type PenaltyTypesFormProps = { types: PenaltyType[]; sending: boolean; run: RunAction };
 
