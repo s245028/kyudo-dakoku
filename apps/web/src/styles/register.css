@@ -1,0 +1,45 @@
+/* 登録できないブラウザの案内と、引き継ぎ */
+.button-link {
+  display: block;
+  margin: 14px 0;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.steps {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+  padding-left: 36px;
+  font-weight: 600;
+}
+
+.transfer-claim {
+  margin-bottom: 18px;
+}
+
+.transfer-claim button.secondary {
+  margin: 0 0 10px;
+}
+
+.transfer-card {
+  margin: 14px 0;
+}
+
+.transfer-card h3 {
+  margin: 0 0 4px;
+}
+
+.transfer-code {
+  margin: 12px 0 4px;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

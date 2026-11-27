@@ -71,6 +71,7 @@ export const updateMember = (context: RequestContext, params: Params) =>
 export const resetDevice = (context: RequestContext, params: Params) =>
   changeMember(context, params, async (tx, target) => {
     await tx`update public.members set auth_user_id = null where id = ${target.id}`;
+    await tx`delete from public.device_transfers where member_id = ${target.id}`;
   });
 
 /** その部員の記録（打刻・出欠・罰・臨時変更）があるか。コマ表だけなら記録とみなさない。 */

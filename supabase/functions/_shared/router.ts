@@ -23,6 +23,7 @@ import {
 import { pushConfig, pushSubscribe, pushUnsubscribe } from './actions/push.ts';
 import { register } from './actions/register.ts';
 import { scan, undoScan } from './actions/scan.ts';
+import { claimTransfer, createTransferCode } from './actions/transfer.ts';
 import { changeGeneration, promoteGrades } from './actions/yearly.ts';
 import type { Params } from './params.ts';
 
@@ -31,6 +32,8 @@ type Action = (context: RequestContext, params: Params) => Promise<object>;
 /** アプリからの書き込みの一覧。名前はアプリ側の呼び出しと合わせる */
 export const ACTIONS = {
   register,
+  'create-transfer-code': createTransferCode,
+  'claim-transfer': claimTransfer,
   'set-koma': setKoma,
   scan,
   'undo-scan': undoScan,

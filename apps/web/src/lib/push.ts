@@ -1,5 +1,6 @@
 // この端末で通知を受け取る設定
 import { ApiError, callAction } from './api.ts';
+import { currentBrowser } from './browser.ts';
 
 /**
  * - `unsupported`：この端末やブラウザでは使えない
@@ -7,14 +8,6 @@ import { ApiError, callAction } from './api.ts';
  * - `blocked`：端末の設定で通知を許可していない
  */
 export type PushStatus = 'unsupported' | 'needs-install' | 'blocked' | 'off' | 'on';
-
-function isIosBrowserTab(): boolean {
-  const ios =
-    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    // iPad は Mac と名乗る
-    (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
-  return ios && !matchMedia('(display-mode: standalone)').matches;
-}
 
 async function registration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
@@ -31,7 +24,7 @@ const send = (subscription: PushSubscription) =>
 
 /** 今の状態を調べる。受け取る設定なら、サーバーの届け先もこの端末のログインに合わせる。 */
 export async function pushStatus(): Promise<PushStatus> {
-  if (isIosBrowserTab()) return 'needs-install';
+  if (currentBrowser() === 'ios-browser') return 'needs-install';
   const worker = await registration();
   if (!worker || !('Notification' in window)) return 'unsupported';
   if (Notification.permission === 'denied') return 'blocked';

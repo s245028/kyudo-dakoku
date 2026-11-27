@@ -3,6 +3,7 @@ import type { Home, HomeData } from '../../lib/home.ts';
 import { AdminLogin } from '../register/AdminLogin.tsx';
 import { KomaForm } from './KomaForm.tsx';
 import { NotificationCard } from './NotificationCard.tsx';
+import { TransferCard } from './TransferCard.tsx';
 
 export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Home) => void }) {
   const { member } = home;
@@ -42,6 +43,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
           }
         />
       )}
+      <TransferCard />
       <AdminLogin />
     </>
   );

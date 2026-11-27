@@ -2,17 +2,24 @@ import { GENDER_LABELS, GENDERS, GRADE_LABELS, GRADES } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
 import { callAction, messageOf } from '../../lib/api.ts';
 import type { Home } from '../../lib/home.ts';
+import { currentBrowser } from '../../lib/browser.ts';
 import { AdminLogin } from './AdminLogin.tsx';
+import { EmbeddedBrowserGuide } from './EmbeddedBrowserGuide.tsx';
+import { InstallGuide } from './InstallGuide.tsx';
+import { TransferClaim } from './TransferClaim.tsx';
 
-/** iPhone の Safari で開いている（ホーム画面のアプリではない） */
-function isIosBrowser(): boolean {
-  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
-  return ios && !window.matchMedia('(display-mode: standalone)').matches;
-}
+type RegisterScreenProps = {
+  onRegistered: (home: Home) => void;
+  /** 引き継ぎ番号で入った */
+  onTransferred: (home: Home) => void;
+};
 
-export function RegisterScreen({ onRegistered }: { onRegistered: (home: Home) => void }) {
+export function RegisterScreen({ onRegistered, onTransferred }: RegisterScreenProps) {
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [browser] = useState(currentBrowser);
+  /** iPhone のブラウザで、案内を読んだうえで登録する */
+  const [continued, setContinued] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -28,14 +35,22 @@ export function RegisterScreen({ onRegistered }: { onRegistered: (home: Home) =>
     }
   }
 
+  if (browser === 'line' || browser === 'in-app') {
+    return <EmbeddedBrowserGuide line={browser === 'line'} />;
+  }
+  if (browser === 'ios-browser' && !continued) {
+    return (
+      <>
+        <InstallGuide onContinue={() => setContinued(true)} />
+        <AdminLogin />
+      </>
+    );
+  }
+
   return (
     <>
+      <TransferClaim onTransferred={onTransferred} />
       <h2>部員登録（初回だけ）</h2>
-      {isIosBrowser() && (
-        <p className="notice">
-          iPhoneの方へ：先にこの画面を共有ボタンから「ホーム画面に追加」し、ホーム画面のアイコンから開き直して登録してください。Safariのまま登録すると、ホーム画面のアプリでは未登録の状態になります。
-        </p>
-      )}
       <form className="form" onSubmit={(event) => void submit(event)}>
         <label>
           学生番号

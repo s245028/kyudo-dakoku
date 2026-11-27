@@ -14,6 +14,7 @@ import { PenaltyTab } from './features/penalties/PenaltyTab.tsx';
 import { PresenceTab } from './features/presence/PresenceTab.tsx';
 import { ProfileTab } from './features/profile/ProfileTab.tsx';
 import { ScanTab } from './features/scan/ScanTab.tsx';
+import { currentBrowser } from './lib/browser.ts';
 import { describeHome, totalRemaining, type Home, type HomeData } from './lib/home.ts';
 
 type MainScreenProps = {
@@ -65,6 +66,11 @@ export function MainScreen(props: MainScreenProps) {
         {error && (
           <p className="notice" role="alert">
             {error}
+          </p>
+        )}
+        {currentBrowser() === 'line' && (
+          <p className="notice">
+            LINEの中で開いています。このままだと、ホーム画面のアプリやいつものブラウザでは未登録になります。「自分」タブの引き継ぎ番号で移してください。
           </p>
         )}
         {/* 打刻タブは、結果の表示を残すために隠すだけにする */}
