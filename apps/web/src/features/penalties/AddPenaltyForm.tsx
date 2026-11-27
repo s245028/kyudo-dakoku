@@ -39,7 +39,7 @@ export function AddPenaltyForm({ members, types, today, operations }: AddPenalty
   return (
     <>
       <button type="button" className="secondary" onClick={() => setOpen(!open)}>
-        {open ? '閉じる' : '＋ 罰をつける（副務・主将）'}
+        {open ? '閉じる' : '＋ 罰をつける'}
       </button>
       {open && (
         <form className="form add-penalty" onSubmit={(event) => void submit(event)}>

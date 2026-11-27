@@ -127,7 +127,7 @@ describe('権限', () => {
     for (const who of ['vice', 'member'] as const) {
       expect(await run(who, action, valid())).toEqual({
         ok: false,
-        error: 'この操作ができるのは主将だけです。',
+        error: 'この操作ができるのは、主将と管理者だけです。',
       });
     }
   });
@@ -138,7 +138,7 @@ describe('権限', () => {
       const params = { ...newPenalty(), penaltyId: ids.member, taskId: ids.member, content: 'x' };
 
       expect(await run('member', action, params)).toMatchObject({
-        error: containing('副務と主将だけ'),
+        error: containing('副務・主将・管理者だけ'),
       });
     },
   );

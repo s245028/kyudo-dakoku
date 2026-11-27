@@ -13,7 +13,7 @@ import { AppError } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
 import { stringParam, type Params } from '../params.ts';
 import { homeSnapshot, lockRoster } from '../store.ts';
-import { ensureCaptainRemains } from './members.ts';
+import { ensureManagerRemains } from './members.ts';
 
 async function saveRoster(tx: Sql, members: readonly RosterMember[]) {
   for (const member of members) {
@@ -43,7 +43,7 @@ export async function changeGeneration({ sql, userId, now }: RequestContext, par
     });
     if (!plan.ok) throw new AppError(plan.message);
     await saveRoster(tx, plan.value.updated);
-    await ensureCaptainRemains(tx, actor);
+    await ensureManagerRemains(tx, actor);
     // 引退した人を、今日の出欠に反映する
     await judgeDate(tx, { date: today, now, memberIds: null });
     return plan.value.retiringIds.length;
@@ -68,7 +68,7 @@ export async function promoteGrades({ sql, userId, now }: RequestContext) {
       executed_by: actor.id,
     })}`;
     await saveRoster(tx, plan.value.updated);
-    await ensureCaptainRemains(tx, actor);
+    await ensureManagerRemains(tx, actor);
     return {
       updated: plan.value.updated.length,
       graduated: plan.value.graduatingIds.length,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAdminister, canManagePenalties } from './member.ts';
+import { adminOnlyRefusal, canAdminister, canManagePenalties } from './member.ts';
 import { validateRegistration } from './registration.ts';
 import { aMember, MONDAY } from './testing.ts';
 import {
@@ -73,6 +73,29 @@ describe('代替わり', () => {
   });
 });
 
+describe('管理者がいる場合の代替わり', () => {
+  const run = (captainNos: string[]) =>
+    planGenerationChange({
+      members: [...members, roster('dev', 'B3', { role: 'admin' })],
+      retiringGrade: 'B3',
+      captainNos,
+      viceNos: [],
+      today: MONDAY,
+    });
+
+  it('管理者は引退しても役職が残り、主将の指定がなくても実行できる', () => {
+    const result = run([]);
+
+    expect(result.ok && result.value.updated).toContainEqual(
+      expect.objectContaining({ id: 'dev', status: 'retired', role: 'admin' }),
+    );
+  });
+
+  it('管理者を新しい主将に指定することはできない', () => {
+    expect(run(['DEV'])).toMatchObject({ ok: false });
+  });
+});
+
 describe('学年の繰り上げ（受け入れテスト26）', () => {
   const promote = (today: string, lastFiscalYear: number | null) =>
     planGradePromotion({
@@ -123,7 +146,25 @@ describe('権限', () => {
     role,
   });
 
-  it('管理は主将だけ、罰の操作は主将と副務', () => {
+  it('管理者は主将と同じ操作ができる', () => {
+    expect([canAdminister(as('admin')), canManagePenalties(as('admin'))]).toEqual([true, true]);
+    expect(canAdminister(as('admin', false))).toBe(false);
+  });
+
+  it('管理者の付け外しと、管理者の変更は管理者だけ', () => {
+    const refusal = (
+      actorIsAdmin: boolean,
+      targetRole: RosterMember['role'],
+      nextRole?: RosterMember['role'],
+    ) => adminOnlyRefusal({ actorIsAdmin, targetRole, nextRole });
+
+    expect(refusal(false, 'admin')).not.toBeNull();
+    expect(refusal(false, 'member', 'admin')).not.toBeNull();
+    expect(refusal(false, 'vice', 'member')).toBeNull();
+    expect(refusal(true, 'admin', 'member')).toBeNull();
+  });
+
+  it('部員の役職のうち、管理は主将、罰の操作は主将と副務', () => {
     expect([canAdminister(as('captain')), canAdminister(as('vice'))]).toEqual([true, false]);
     expect([canManagePenalties(as('vice')), canManagePenalties(as('member'))]).toEqual([
       true,

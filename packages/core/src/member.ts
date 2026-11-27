@@ -3,7 +3,8 @@ import type { PracticeDate } from './date.ts';
 export const MEMBER_STATUSES = ['active', 'retired', 'suspended', 'graduated'] as const;
 export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
-export const ROLES = ['member', 'captain', 'vice'] as const;
+/** `admin`（管理者）は、役員ではなくアプリを管理する人。付け外しは管理者だけができる */
+export const ROLES = ['member', 'captain', 'vice', 'admin'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const GRADES = ['B1', 'B2', 'B3', 'B4', 'M1', 'M2'] as const;
@@ -23,6 +24,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   member: '部員',
   captain: '主将',
   vice: '副務',
+  admin: '管理者',
 };
 
 export const GRADE_LABELS: Record<Grade, string> = {
@@ -56,21 +58,35 @@ export function isApprovedMember(member: Pick<Member, 'status' | 'approved'>): b
   return member.approved && isEnrolled(member.status);
 }
 
-/** 管理できる主将が1人は残るか。いなくなると、アプリから誰も管理できなくなる。 */
-export function hasActingCaptain(
-  members: readonly (Pick<Member, 'status' | 'approved'> & { role: Role })[],
-): boolean {
-  return members.some((member) => member.role === 'captain' && isApprovedMember(member));
+type WithRole = Pick<Member, 'status' | 'approved'> & { role: Role };
+
+/** 承認・名簿・臨時変更・判定・設定などを操作できるか。 */
+export function canAdminister(member: WithRole): boolean {
+  return isApprovedMember(member) && (member.role === 'captain' || member.role === 'admin');
 }
 
 /** 罰をつける・割り当てる・消化できるか。 */
-export function canManagePenalties(member: Pick<Member, 'status' | 'approved'> & { role: Role }) {
-  return isApprovedMember(member) && (member.role === 'captain' || member.role === 'vice');
+export function canManagePenalties(member: WithRole): boolean {
+  return canAdminister(member) || (isApprovedMember(member) && member.role === 'vice');
 }
 
-/** 承認・名簿・臨時変更・判定・設定などを操作できるか。 */
-export function canAdminister(member: Pick<Member, 'status' | 'approved'> & { role: Role }) {
-  return isApprovedMember(member) && member.role === 'captain';
+/** 管理できる人が1人は残るか。いなくなると、アプリから誰も管理できなくなる。 */
+export function hasActingManager(members: readonly WithRole[]): boolean {
+  return members.some(canAdminister);
+}
+
+/**
+ * 管理者の役職を付け外しすることと、管理者の部員を変えることは、管理者だけができる。
+ * できない理由を返す。できるなら null。
+ */
+export function adminOnlyRefusal(input: {
+  actorIsAdmin: boolean;
+  targetRole: Role;
+  nextRole?: Role | undefined;
+}): string | null {
+  const { actorIsAdmin, targetRole, nextRole } = input;
+  if (actorIsAdmin || (targetRole !== 'admin' && nextRole !== 'admin')) return null;
+  return '管理者の役職の付け外しと、管理者の部員の変更は、管理者だけができます。';
 }
 
 /** その日を引退後として扱うか。引退日がなければ、引退にした人は常に引退後。 */

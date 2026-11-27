@@ -7,7 +7,14 @@ const AdminTab = lazy(async () => {
   return { default: component };
 });
 
-export function LazyAdminTab(props: { today: string; onHome: (home: Home) => void }) {
+type LazyAdminTabProps = {
+  today: string;
+  /** 管理者の役職を付け外しできる */
+  viewerIsAdmin: boolean;
+  onHome: (home: Home) => void;
+};
+
+export function LazyAdminTab(props: LazyAdminTabProps) {
   return (
     <Suspense fallback={<p className="empty">読み込み中…</p>}>
       <AdminTab {...props} />

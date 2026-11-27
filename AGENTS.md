@@ -27,7 +27,7 @@
 | 画面 | コード |
 |---|---|
 | 部員／状態（現役・引退・休部・退部・卒業） | member / status (`active` `retired` `suspended` `graduated`) |
-| 役職（部員・主将・副務） | role (`member` `captain` `vice`) |
+| 役職（部員・主将・副務・管理者） | role (`member` `captain` `vice` `admin`) |
 | 打刻（入室・退室・自動退室） | punch (`in` `out` `auto_out`) |
 | 練習ルール／区分（前半・後半・全体）／集合時刻 | practice rule / part / deadline |
 | コマ表（4コマ・5コマ） | koma |

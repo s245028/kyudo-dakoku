@@ -5,7 +5,9 @@ import { useRemote } from '../../lib/useRemote.ts';
 import { MemberCard } from './MemberCard.tsx';
 import { PendingMember } from './PendingMember.tsx';
 
-export function RosterSection({ onHome }: { onHome: (home: Home) => void }) {
+type RosterSectionProps = { viewerIsAdmin: boolean; onHome: (home: Home) => void };
+
+export function RosterSection({ viewerIsAdmin, onHome }: RosterSectionProps) {
   const roster = useRemote(loadRoster);
   const action = useAction();
   const run = (name: string, params: object) =>
@@ -25,14 +27,26 @@ export function RosterSection({ onHome }: { onHome: (home: Home) => void }) {
       <ul className="list">
         {pending.length === 0 && <li className="empty">承認待ちの人はいません</li>}
         {pending.map((member) => (
-          <PendingMember key={member.id} member={member} sending={action.sending} run={run} />
+          <PendingMember
+            key={member.id}
+            member={member}
+            viewerIsAdmin={viewerIsAdmin}
+            sending={action.sending}
+            run={run}
+          />
         ))}
       </ul>
       <h3>部員名簿（{approved.length}人）</h3>
       <ul className="list">
         {!roster.data && !roster.error && <li className="empty">読み込み中…</li>}
         {approved.map((member) => (
-          <MemberCard key={member.id} member={member} sending={action.sending} run={run} />
+          <MemberCard
+            key={member.id}
+            member={member}
+            viewerIsAdmin={viewerIsAdmin}
+            sending={action.sending}
+            run={run}
+          />
         ))}
       </ul>
     </>

@@ -1,6 +1,6 @@
 // 代替わり（10月ごろ）と学年の繰り上げ（4月）
 import { fiscalYearOf, type PracticeDate } from './date.ts';
-import { GRADE_LABELS, hasActingCaptain, type Grade, type Member, type Role } from './member.ts';
+import { GRADE_LABELS, hasActingManager, type Grade, type Member, type Role } from './member.ts';
 import { normalizeStudentNo } from './registration.ts';
 import { invalid, type Validated } from './validation.ts';
 
@@ -44,13 +44,23 @@ export function planGenerationChange(input: {
   );
   if (missing.length > 0) return invalid(`名簿にない学生番号があります：${missing.join(', ')}`);
 
+  const namedAdmin = members.some(
+    (member) => member.role === 'admin' && [...captainNos, ...viceNos].includes(member.studentNo),
+  );
+  if (namedAdmin) {
+    return invalid(
+      '管理者の人は、新しい主将・副務に指定できません。先に名簿で役職を変えてください。',
+    );
+  }
+
   const retiringIds = new Set(retiring.map((member) => member.id));
   const after = members.map((member): RosterMember => {
     const next = { ...member };
     if (retiringIds.has(member.id)) {
       next.status = 'retired';
       next.retiredOn = today;
-      next.role = 'member';
+      // 管理者は役員ではないので、引退しても外さない
+      if (member.role !== 'admin') next.role = 'member';
     }
     if (captainNos.length > 0 && member.role === 'captain') next.role = 'member';
     if (viceNos.length > 0 && member.role === 'vice') next.role = 'member';
@@ -58,7 +68,7 @@ export function planGenerationChange(input: {
     if (viceNos.includes(member.studentNo)) next.role = 'vice';
     return next;
   });
-  if (!hasActingCaptain(after)) {
+  if (!hasActingManager(after)) {
     return invalid('主将がいなくなります。承認済みの在籍者を新しい主将に指定してください。');
   }
 
@@ -101,7 +111,7 @@ export function planGradePromotion(input: {
     graduatingIds.push(member.id);
     return { ...member, status: 'graduated' };
   });
-  if (!hasActingCaptain(after)) {
+  if (!hasActingManager(after)) {
     return invalid('主将がいなくなります。先に主将を交代してください。');
   }
   return {

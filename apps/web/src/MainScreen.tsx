@@ -88,7 +88,13 @@ export function MainScreen(props: MainScreenProps) {
           />
         )}
         {tab === 'me' && <ProfileTab home={home} onHome={onHome} />}
-        {tab === 'admin' && <LazyAdminTab today={view.today} onHome={onHome} />}
+        {tab === 'admin' && (
+          <LazyAdminTab
+            today={view.today}
+            viewerIsAdmin={member.role === 'admin'}
+            onHome={onHome}
+          />
+        )}
       </main>
       <TabBar
         current={tab}
