@@ -22,9 +22,11 @@ function contentParam(params: Params): string {
 
 /** 罰1件をロックして、今日時点の状態と一緒に返す。 */
 async function lockPenalty(tx: Sql, penaltyId: string, today: string) {
-  const [penalty] = await tx<{ date: string; baseCount: number; completed: boolean }[]>`
-    select practice_date::text as date, base_count as "baseCount",
-      completed_on is not null as completed
+  const [penalty] = await tx<
+    { date: string; countedFrom: string | null; baseCount: number; completed: boolean }[]
+  >`
+    select practice_date::text as date, counted_from::text as "countedFrom",
+      base_count as "baseCount", completed_on is not null as completed
     from public.penalties where id = ${penaltyId} for update`;
   if (!penalty) throw new AppError(NOT_FOUND);
 

@@ -34,7 +34,14 @@ export function AdminScreen({
             ログアウト
           </button>
         </div>
-        {tab === 'admin' && <LazyAdminTab today={today} viewerIsAdmin onHome={onHome} />}
+        {tab === 'admin' && (
+          <LazyAdminTab
+            today={today}
+            viewerIsAdmin
+            pendingNotices={home.pendingNotices ?? 0}
+            onHome={onHome}
+          />
+        )}
         {tab === 'presence' && <PresenceTab />}
         {tab === 'penalty' && (
           <PenaltyTab
@@ -46,7 +53,13 @@ export function AdminScreen({
           />
         )}
       </main>
-      <TabBar current={tab} tabs={ADMIN_TABS} penaltyCount={0} onSelect={setTab} />
+      <TabBar
+        current={tab}
+        tabs={ADMIN_TABS}
+        penaltyCount={0}
+        noticeCount={home.pendingNotices ?? 0}
+        onSelect={setTab}
+      />
     </>
   );
 }

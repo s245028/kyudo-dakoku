@@ -84,6 +84,7 @@ describe('権限', () => {
     'admin-delete-member',
     'admin-add-exception',
     'admin-delete-exception',
+    'admin-review-notice',
     'admin-rejudge',
     'admin-set-manual',
     'admin-update-settings',
@@ -102,6 +103,7 @@ describe('権限', () => {
     date: DATE,
     kind: 'koma4',
     judgement: '',
+    approval: 'approved',
     changes: { role: 'captain' },
     settings: {
       allowedDistanceMeters: 150,

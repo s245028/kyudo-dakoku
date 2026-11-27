@@ -7,6 +7,7 @@ import './styles/base.css';
 import './styles/forms.css';
 import './styles/layout.css';
 import './styles/scan.css';
+import './styles/notice.css';
 import './styles/penalties.css';
 import './styles/admin.css';
 

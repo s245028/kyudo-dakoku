@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { callAction, messageOf } from '../../lib/api.ts';
 import type { Home, HomeData, HomeView } from '../../lib/home.ts';
 import { failureFeedback, successFeedback } from './feedback.ts';
-import { JoinCard } from './JoinCard.tsx';
+import { UpcomingDaysCard } from '../notice/UpcomingDaysCard.tsx';
 import { currentPosition, type ScanPosition } from './position.ts';
 import { ResultCard } from './ResultCard.tsx';
 import type { ScanOutcome, ScanResponse } from './scanResult.ts';
@@ -128,9 +128,11 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
         </>
       )}
       {approved && <TodayPunches punches={view.todayPunches} />}
-      {view.retired && (
-        <JoinCard
-          days={view.joinDays}
+      {approved && (
+        <UpcomingDaysCard
+          retired={view.retired}
+          noticeDays={view.noticeDays}
+          joinDays={view.joinDays}
           noticeLeadMinutes={home.settings.noticeLeadMinutes}
           onChanged={onHome}
         />

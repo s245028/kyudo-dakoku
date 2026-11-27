@@ -6,6 +6,8 @@ import {
   type ExistingAutoPenalty,
   type Judgement,
   type ManualJudgement,
+  type NoticeRejection,
+  type Part,
   type PracticeDate,
 } from '../../../packages/core/src/index.ts';
 import type { Sql } from './db.ts';
@@ -19,14 +21,33 @@ import {
   lockJudgeableMembers,
 } from './store.ts';
 
+type RecordedPlan = { part: Part; deadline: string };
+
+async function loadRecordedPlans(
+  tx: Sql,
+  date: PracticeDate,
+  memberIds: string[],
+): Promise<Map<string, RecordedPlan>> {
+  const rows = await tx<(RecordedPlan & { memberId: string })[]>`
+    select member_id as "memberId", part, to_char(deadline, 'HH24:MI') as deadline
+    from public.attendance where practice_date = ${date} and member_id in ${tx(memberIds)}`;
+  return new Map(rows.map(({ memberId, ...plan }) => [memberId, plan]));
+}
+
 /**
  * その日の出欠を判定して、出欠一覧と自動の罰を合わせる。判定はここだけで行う。
  * 必ずトランザクションの中で呼ぶ。`memberIds` が null なら対象者全員。
  * 判定の対象でない部員の記録には触れない。戻り値は判定した行数。
+ * `keepRecordedPlan` なら、出欠一覧にある人は記録した区分と集合時刻のまま判定する。
  */
 export async function judgeDate(
   tx: Sql,
-  input: { date: PracticeDate; now: Date; memberIds: readonly string[] | null },
+  input: {
+    date: PracticeDate;
+    now: Date;
+    memberIds: readonly string[] | null;
+    keepRecordedPlan?: boolean;
+  },
 ): Promise<number> {
   const { date, now, memberIds } = input;
   const members = await lockJudgeableMembers(tx, memberIds);
@@ -38,6 +59,9 @@ export async function judgeDate(
   const koma = await loadKoma(tx, ids);
   const exceptions = await loadExceptions(tx, date);
   const punches = await loadPunches(tx, date, ids);
+  const recorded = input.keepRecordedPlan
+    ? await loadRecordedPlans(tx, date, ids)
+    : new Map<string, RecordedPlan>();
 
   const judged: { memberId: string; result: Judgement | null }[] = [];
   for (const member of members) {
@@ -50,6 +74,7 @@ export async function judgeDate(
       exceptions,
       punches,
       settings,
+      recorded: recorded.get(member.id) ?? null,
     });
     if (!record) {
       await tx`delete from public.attendance
@@ -101,7 +126,11 @@ export async function syncAutoPenalties(
         or exists (select 1 from public.penalty_tasks t where t.penalty_id = p.id) as locked
     from public.penalties p where p.auto_key in ${tx(keys)}`;
   const types = await loadPenaltyTypes(tx);
-  const changes = planAutoPenaltySync({ date, judged, existing, types });
+  const rejections = await tx<NoticeRejection[]>`
+    select member_id as "memberId",
+      (reviewed_at at time zone 'Asia/Tokyo')::date::text as "reviewedOn"
+    from public.exceptions where date = ${date} and approval = 'rejected'`;
+  const changes = planAutoPenaltySync({ date, judged, existing, types, rejections });
 
   if (changes.remove.length > 0) {
     await tx`delete from public.penalties where id in ${tx(changes.remove)}`;
@@ -117,6 +146,7 @@ export async function syncAutoPenalties(
       reason: penalty.reason,
       base_count: penalty.baseCount,
       auto_key: penalty.autoKey,
+      counted_from: penalty.countedFrom ?? null,
     })}`;
   }
 }

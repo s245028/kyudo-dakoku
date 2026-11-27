@@ -5,6 +5,7 @@ import {
   summarizePenalty,
   toPracticeDate,
   upcomingJoinDays,
+  upcomingNoticeDays,
   validPunches,
   type Gender,
   type Grade,
@@ -33,6 +34,8 @@ export type HomeMember = {
 export type Penalty = {
   id: string;
   date: string;
+  /** 倍になる日数を、`date` より後から数えるときの起算日 */
+  countedFrom?: string | null;
   memberId: string;
   name: string;
   studentNo: string;
@@ -56,10 +59,17 @@ export type HomeData = {
   exceptions: (Omit<PracticeException, 'contactedAt'> & { contactedAt: string | null })[];
   punches: { id: number; at: string; kind: PunchKind; canceledAt: string | null }[];
   penalties: Penalty[];
+  /** 承認を待っている連絡の数。主将と管理者以外は 0 */
+  pendingNotices?: number;
 };
 
 /** 管理者（部員ではないログイン）に返る内容 */
-export type AdminHome = { member: null; isAdmin: true; settings: HomeData['settings'] };
+export type AdminHome = {
+  member: null;
+  isAdmin: true;
+  settings: HomeData['settings'];
+  pendingNotices?: number;
+};
 
 /** 登録していない端末は member が null */
 export type Home = HomeData | AdminHome | { member: null };
@@ -114,9 +124,20 @@ export function describeHome(home: HomeData, now: Date) {
   ).filter((punch) => toPracticeDate(punch.at) === today);
   const last = punches.at(-1);
 
+  const noticeDays = upcomingNoticeDays({
+    member,
+    now,
+    rules,
+    koma,
+    exceptions,
+    settings: home.settings,
+    enteredToday: punches.some((punch) => punch.kind === 'in'),
+  });
+
   return {
     today,
     retired,
+    noticeDays,
     /** 今日判定される場合の予定。判定されなければ null */
     plan: judged ? plan : null,
     inRoomSince: last?.kind === 'in' ? last.at : null,

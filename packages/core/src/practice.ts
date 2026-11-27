@@ -40,6 +40,9 @@ export const EXCEPTION_LABELS: Record<ExceptionKind, string> = {
   join: '参加',
 };
 
+export const NOTICE_APPROVALS = ['pending', 'approved', 'rejected'] as const;
+export type NoticeApproval = (typeof NOTICE_APPROVALS)[number];
+
 export type PracticeRule = {
   /** 0=日曜 … 6=土曜 */
   weekday: number;
@@ -78,9 +81,15 @@ export type PracticeException = {
   memo: string;
   /** 主将へ連絡があった日時（欠席・遅刻の連絡） */
   contactedAt: Date | null;
+  /** アプリから締め切りまでに出した連絡の承認の状態。主将の入力と締め切り後の連絡は null */
+  approval?: NoticeApproval | null;
+  /** 却下した理由 */
+  rejectionReason?: string;
+  /** 本人がアプリから出した */
+  selfSubmitted?: boolean;
 };
 
-export type Notice = Pick<PracticeException, 'contactedAt'>;
+export type Notice = Pick<PracticeException, 'contactedAt' | 'approval'>;
 
 export type PracticePlan = {
   part: Part;
@@ -122,6 +131,17 @@ function komaConditionOf(
   return fourth ? 'koma4' : 'no_koma';
 }
 
+/** 判定に使う連絡。却下した連絡は使わず、承認待ちより確定した連絡を優先する。 */
+function effectiveNotice(
+  mine: readonly PracticeException[],
+  kind: 'absent_notice' | 'late_notice',
+): PracticeException | null {
+  const notices = mine.filter(
+    (exception) => exception.kind === kind && exception.approval !== 'rejected',
+  );
+  return notices.find((notice) => notice.approval !== 'pending') ?? notices[0] ?? null;
+}
+
 /** その日のその人の区分と集合時刻を決める。練習日でなければ null。 */
 export function resolvePracticePlan(input: {
   date: PracticeDate;
@@ -153,7 +173,9 @@ export function resolvePracticePlan(input: {
   if (!rule) return null;
 
   for (const exception of mine) {
-    if (exception.memo) notes.push(`${EXCEPTION_LABELS[exception.kind]}：${exception.memo}`);
+    if (!exception.memo) continue;
+    const rejected = exception.approval === 'rejected' ? '（却下）' : '';
+    notes.push(`${EXCEPTION_LABELS[exception.kind]}${rejected}：${exception.memo}`);
   }
 
   return {
@@ -161,8 +183,8 @@ export function resolvePracticePlan(input: {
     deadline: rule.deadline,
     startTime: rule.startTime,
     exempt: mine.some((exception) => exception.kind === 'day_off'),
-    absentNotice: mine.find((exception) => exception.kind === 'absent_notice') ?? null,
-    lateNotice: mine.find((exception) => exception.kind === 'late_notice') ?? null,
+    absentNotice: effectiveNotice(mine, 'absent_notice'),
+    lateNotice: effectiveNotice(mine, 'late_notice'),
     joined: mine.some((exception) => exception.kind === 'join'),
     notes,
   };

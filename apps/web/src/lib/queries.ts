@@ -1,14 +1,15 @@
 // 主将・副務が表を直接読む。読めるかどうかは、データベースの行単位の権限が決める。
-import type {
-  EditableSettings,
-  Grade,
-  Judgement,
-  ManualJudgement,
-  MemberStatus,
-  PenaltyType,
-  PracticeException,
-  PracticeRule,
-  Role,
+import {
+  NOTICE_KINDS,
+  type EditableSettings,
+  type Grade,
+  type Judgement,
+  type ManualJudgement,
+  type MemberStatus,
+  type PenaltyType,
+  type PracticeException,
+  type PracticeRule,
+  type Role,
 } from '@kyudo/core';
 import { ApiError, OFFLINE_MESSAGE } from './api.ts';
 import { ensureSession, supabase } from './supabase.ts';
@@ -29,6 +30,16 @@ export type StoredException = Omit<PracticeException, 'contactedAt'> & {
   id: string;
   contactedAt: string | null;
 };
+
+const EXCEPTION_COLUMNS =
+  'id, date, memberId:member_id, kind, memo, contactedAt:contacted_at, approval, rejectionReason:rejection_reason, createdBy:created_by';
+
+type ExceptionReply = Omit<StoredException, 'selfSubmitted'> & { createdBy: string | null };
+
+const toStoredException = ({ createdBy, ...exception }: ExceptionReply): StoredException => ({
+  ...exception,
+  selfSubmitted: createdBy !== null && createdBy === exception.memberId,
+});
 
 export type AttendanceEntry = {
   memberId: string;
@@ -84,15 +95,31 @@ export async function loadRecentTaskContents(): Promise<string[]> {
   return rows.map((row) => row.content);
 }
 
-export const loadExceptionsSince = (date: string) =>
-  read<StoredException[]>(() =>
+export async function loadExceptionsSince(date: string): Promise<StoredException[]> {
+  const rows = await read<ExceptionReply[]>(() =>
     supabase()
       .from('exceptions')
-      .select('id, date, memberId:member_id, kind, memo, contactedAt:contacted_at')
+      .select(EXCEPTION_COLUMNS)
       .gte('date', date)
       .order('date')
       .order('created_at'),
   );
+  return rows.map(toStoredException);
+}
+
+/** 欠席・遅刻の連絡。指定した日以降のものと、それより前の承認待ち。 */
+export async function loadNotices(since: string): Promise<StoredException[]> {
+  const rows = await read<ExceptionReply[]>(() =>
+    supabase()
+      .from('exceptions')
+      .select(EXCEPTION_COLUMNS)
+      .in('kind', [...NOTICE_KINDS])
+      .or(`approval.eq.pending,date.gte.${since}`)
+      .order('date')
+      .order('created_at'),
+  );
+  return rows.map(toStoredException);
+}
 
 export const loadAttendance = (date: string) =>
   read<AttendanceEntry[]>(() =>

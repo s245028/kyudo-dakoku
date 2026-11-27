@@ -26,6 +26,7 @@ export function PenaltyRow({ penalty, mine, children }: PenaltyRowProps) {
       <p className="penalty-count">
         <strong>罰{penalty.remaining}個</strong>
         <small>あと{penalty.daysToDouble}日で残りが2倍</small>
+        {penalty.countedFrom && <small>{shortDate(penalty.countedFrom)}から数える</small>}
       </p>
       <div className="penalty-tasks">{children}</div>
       {penalty.paid > 0 && <p className="penalty-paid">{penalty.paid}個 消化済み</p>}

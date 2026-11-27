@@ -12,7 +12,7 @@ import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
 import { DeleteMember } from './DeleteMember.tsx';
 import { Options } from './Options.tsx';
-import type { RunAction } from './types.ts';
+import type { RunAction } from '../../lib/useAction.ts';
 
 type MemberCardProps = {
   member: RosterEntry;

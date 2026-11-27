@@ -11,6 +11,8 @@ type LazyAdminTabProps = {
   today: string;
   /** 管理者の役職を付け外しできる */
   viewerIsAdmin: boolean;
+  /** 承認を待っている連絡の数 */
+  pendingNotices: number;
   onHome: (home: Home) => void;
 };
 

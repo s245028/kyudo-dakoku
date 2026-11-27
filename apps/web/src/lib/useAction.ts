@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { callAction, messageOf } from './api.ts';
 
+/** 書き込みの操作を実行する。成功したら true */
+export type RunAction = (action: string, params: object) => Promise<boolean>;
+
 /** 書き込みの操作を1つずつ実行し、送信中とエラーを持つ。 */
 export function useAction() {
   const [sending, setSending] = useState(false);

@@ -2,6 +2,7 @@ import {
   addDays,
   decideJoin,
   JOIN_DAYS_AHEAD,
+  NOTICE_KINDS,
   toPracticeDate,
 } from '../../../../packages/core/src/index.ts';
 import { requireEnrolledMember, type RequestContext } from '../context.ts';
@@ -47,8 +48,10 @@ async function changeJoin(
         created_at: now,
       })}`;
     } else {
+      // 参加をやめた日の、本人が出した連絡も一緒に消す
       await tx`delete from public.exceptions
-        where date = ${date} and member_id = ${member.id} and kind = 'join'`;
+        where date = ${date} and member_id = ${member.id}
+          and (kind = 'join' or (kind in ${tx([...NOTICE_KINDS])} and created_by = ${member.id}))`;
     }
     if (date === today) await judgeDate(tx, { date, now, memberIds: [member.id] });
   });

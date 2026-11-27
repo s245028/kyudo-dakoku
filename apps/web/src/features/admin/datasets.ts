@@ -18,10 +18,12 @@ import {
   type Gender,
   type Judgement,
   type Koma,
+  type NoticeApproval,
   type Part,
   type PunchKind,
 } from '@kyudo/core';
 import { readEveryRow } from '../../lib/exportQueries.ts';
+import { APPROVAL_LABELS } from '../../lib/noticeLabels.ts';
 import { loadRoster, loadSettings, type RosterEntry } from '../../lib/queries.ts';
 
 export type Table = { header: string[]; rows: CsvValue[][] };
@@ -169,6 +171,7 @@ type PenaltyRow = {
   memo: string;
   created_by: string | null;
   completed_on: string | null;
+  counted_from: string | null;
   auto_key: string | null;
 };
 
@@ -204,10 +207,12 @@ async function penalties(today: string): Promise<Table> {
       '消化日',
       '記録した人',
       'メモ',
+      '数え始め',
     ],
     rows: rows.map((row) => {
       const state = summarizePenalty({
         date: row.practice_date,
+        countedFrom: row.counted_from,
         baseCount: row.base_count,
         tasks: tasks
           .filter((task) => task.penalty_id === row.id)
@@ -229,6 +234,7 @@ async function penalties(today: string): Promise<Table> {
         row.completed_on,
         row.auto_key ? '自動' : nameOf(row.created_by),
         row.memo,
+        row.counted_from,
       ];
     }),
   };
@@ -274,6 +280,8 @@ type ExceptionRow = {
   kind: ExceptionKind;
   memo: string;
   contacted_at: string | null;
+  approval: NoticeApproval | null;
+  rejection_reason: string;
 };
 
 async function exceptions(): Promise<Table> {
@@ -282,13 +290,24 @@ async function exceptions(): Promise<Table> {
     readEveryRow<ExceptionRow>('exceptions', '*', ['date', 'id']),
   ]);
   return {
-    header: ['日付', '学生番号（空欄=全員）', '名前', '内容', 'メモ', '連絡日時'],
+    header: [
+      '日付',
+      '学生番号（空欄=全員）',
+      '名前',
+      '内容',
+      'メモ',
+      '連絡日時',
+      '承認',
+      '却下の理由',
+    ],
     rows: rows.map((row) => [
       row.date,
       ...who(row.member_id),
       EXCEPTION_LABELS[row.kind],
       row.memo,
       dateTime(row.contacted_at),
+      row.approval ? APPROVAL_LABELS[row.approval] : '',
+      row.rejection_reason,
     ]),
   };
 }
