@@ -12,7 +12,7 @@ export type Sql = ReturnType<typeof connect>;
 export async function clearRecords(sql: Sql) {
   await sql`truncate public.members, public.exceptions, public.punches, public.attendance,
     public.penalties, public.penalty_tasks, public.grade_promotions, public.nightly_runs,
-    public.admins, public.lineups restart identity cascade`;
+    public.admins, public.lineups, public.push_subscriptions restart identity cascade`;
 }
 
 export function anonymousClient() {

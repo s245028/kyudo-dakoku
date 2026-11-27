@@ -107,3 +107,11 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.notification-card {
+  margin: 14px 0;
+}
+
+.notification-card h3 {
+  margin: 0 0 4px;
+}

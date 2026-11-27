@@ -2,6 +2,7 @@
 import {
   decideKomaRequest,
   KOMA_CHANGE_KINDS,
+  receivedMessage,
   toPracticeDate,
   type KomaRequestInput,
 } from '../../../../packages/core/src/index.ts';
@@ -9,11 +10,13 @@ import { requireEnrolledMember, type RequestContext } from '../context.ts';
 import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { stringParam, type Params } from '../params.ts';
+import { notifyManagers } from '../push.ts';
 import { homeSnapshot, loadNoticeContext } from '../store.ts';
 
 /** 申請を保存するか取り消す。出し直しは、前の申請と入れ替える。出欠の判定は変えない。 */
-async function changeRequest({ sql, userId, now }: RequestContext, input: KomaRequestInput) {
-  await inTransaction(sql, async (tx) => {
+async function changeRequest(context: RequestContext, input: KomaRequestInput) {
+  const { sql, userId, now } = context;
+  const sent = await inTransaction(sql, async (tx) => {
     const member = await requireEnrolledMember(tx, userId);
     const decision = decideKomaRequest(await loadNoticeContext(tx, member, now), input);
     if (!decision.ok) throw new AppError(decision.message);
@@ -37,7 +40,14 @@ async function changeRequest({ sql, userId, now }: RequestContext, input: KomaRe
       created_by: member.id,
       created_at: now,
     })}`;
+    return receivedMessage({
+      name: member.name,
+      date: input.date,
+      subject: 'koma',
+      overdue: false,
+    });
   });
+  if (sent) await notifyManagers(context, sent);
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
 }
 

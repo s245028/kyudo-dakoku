@@ -1,7 +1,8 @@
-import { GRADE_LABELS, ROLE_LABELS, STATUS_LABELS } from '@kyudo/core';
+import { canAdminister, GRADE_LABELS, ROLE_LABELS, STATUS_LABELS } from '@kyudo/core';
 import type { Home, HomeData } from '../../lib/home.ts';
 import { AdminLogin } from '../register/AdminLogin.tsx';
 import { KomaForm } from './KomaForm.tsx';
+import { NotificationCard } from './NotificationCard.tsx';
 
 export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Home) => void }) {
   const { member } = home;
@@ -32,6 +33,15 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
         休講・補講などその日だけの変更や、遅刻・欠席は、集合時間の{home.settings.noticeLeadMinutes}
         分前までに「打刻」タブの「出欠の連絡」から送ってください。
       </p>
+      {member.approved && (
+        <NotificationCard
+          description={
+            canAdminister(member)
+              ? '出欠の連絡やコマ変更の申請が届いたときと、自分の分が承認・却下されたときに知らせます。'
+              : '出欠の連絡やコマ変更の申請が、承認・却下されたときに知らせます。'
+          }
+        />
+      )}
       <AdminLogin />
     </>
   );

@@ -6,10 +6,17 @@ import {
 } from '../../../packages/core/src/index.ts';
 import type { Sql } from './db.ts';
 import { AppError } from './errors.ts';
+import type { PushSender } from './push.ts';
 import { findMemberByDevice, lockMemberByDevice, type MemberRow } from './store.ts';
 
 /** 1回の操作で使うもの。`userId` はログインを確かめた端末の識別子 */
-export type RequestContext = { sql: Sql; userId: string; now: Date };
+export type RequestContext = {
+  sql: Sql;
+  userId: string;
+  now: Date;
+  /** 通知の送り方。テストで差し替える */
+  sendPush?: PushSender;
+};
 
 export const UNREGISTERED_MESSAGE = 'この端末は登録されていません。登録し直してください。';
 

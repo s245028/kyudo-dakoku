@@ -1,6 +1,7 @@
 import { ApiError, OFFLINE_MESSAGE } from './api.ts';
 import { setAdminMode } from './adminMode.ts';
 import { isAdminHome, type Home } from './home.ts';
+import { disablePush } from './push.ts';
 import { createAppClient, supabase } from './supabase.ts';
 
 /** 入力し直しても、同じ保存場所を使う接続は1つにする */
@@ -30,6 +31,8 @@ export async function logInAsAdmin(email: string, password: string): Promise<voi
 }
 
 export async function logOutAdmin(): Promise<void> {
+  // ログアウトした端末には、管理者あての通知を届けない
+  await disablePush().catch(() => {});
   // 通信できなくても、この端末は部員の画面に戻す
   await supabase()
     .auth.signOut({ scope: 'local' })

@@ -6,6 +6,7 @@ import type { TabId } from './components/tabs.ts';
 import { LazyAdminTab } from './features/admin/LazyAdminTab.tsx';
 import { PenaltyTab } from './features/penalties/PenaltyTab.tsx';
 import { PresenceTab } from './features/presence/PresenceTab.tsx';
+import { NotificationCard } from './features/profile/NotificationCard.tsx';
 import { logOutAdmin } from './lib/adminAuth.ts';
 import type { AdminHome, Home } from './lib/home.ts';
 
@@ -35,12 +36,15 @@ export function AdminScreen({
           </button>
         </div>
         {tab === 'admin' && (
-          <LazyAdminTab
-            today={today}
-            viewerIsAdmin
-            pendingNotices={home.pendingNotices ?? 0}
-            onHome={onHome}
-          />
+          <>
+            <LazyAdminTab
+              today={today}
+              viewerIsAdmin
+              pendingNotices={home.pendingNotices ?? 0}
+              onHome={onHome}
+            />
+            <NotificationCard description="出欠の連絡やコマ変更の申請が届いたときに知らせます。" />
+          </>
         )}
         {tab === 'presence' && <PresenceTab />}
         {tab === 'penalty' && (
