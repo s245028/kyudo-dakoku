@@ -54,7 +54,7 @@ export function NotificationCard({ description }: { description: string }) {
   }
 
   return (
-    <section className="card notification-card">
+    <section className="section notification-card">
       <h3>通知</h3>
       <p className="sub">{description}理由は通知に表示しません。</p>
       {status && GUIDES[status] && <p className="sub">{GUIDES[status]}</p>}

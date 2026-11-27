@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useAction } from '../../lib/useAction.ts';
 import type { Home } from '../../lib/home.ts';
 import { PracticeDayRow } from './PracticeDayRow.tsx';
+import { PRACTICE_DAYS_ID } from './practiceDaysId.ts';
 
 /** はじめに出す日数。残りはボタンで開く */
 const COLLAPSED_DAYS = 3;
@@ -29,7 +30,7 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
     action.run<{ home: Home }>(name, params, ({ home }) => onChanged(home));
 
   return (
-    <section className="card practice-days">
+    <section className="section practice-days" id={PRACTICE_DAYS_ID}>
       <h3>{retired ? '参加する練習日' : '出欠の連絡'}</h3>
       <p className="hint">
         欠席・遅刻の連絡は集合の{noticeLeadMinutes}

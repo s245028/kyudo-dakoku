@@ -32,8 +32,8 @@
 }
 
 .pill {
-  padding: 4px 10px;
-  border-radius: 999px;
+  padding: 3px 8px;
+  border-radius: 4px;
   background: rgb(255 255 255 / 15%);
   font-size: 12px;
   white-space: nowrap;
@@ -96,19 +96,14 @@
   stroke-linejoin: round;
 }
 
+/* 開いているタブは、色と線の太さで示す */
 .tab-current {
   color: var(--ink);
+  font-weight: 800;
 }
 
-.tab-current::before {
-  position: absolute;
-  top: 0;
-  left: 25%;
-  right: 25%;
-  height: 3px;
-  border-radius: 0 0 3px 3px;
-  background: var(--ink);
-  content: '';
+.tab-current svg {
+  stroke-width: 2.6;
 }
 
 .badge {

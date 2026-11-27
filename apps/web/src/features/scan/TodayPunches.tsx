@@ -4,7 +4,7 @@ import type { HomeView } from '../../lib/home.ts';
 /** 今日の自分の入退室の記録 */
 export function TodayPunches({ punches }: { punches: HomeView['todayPunches'] }) {
   return (
-    <section className="card punch-history">
+    <section className="section punch-history">
       <h3>今日の入退室</h3>
       {punches.length === 0 ? (
         <p className="empty">まだ記録がありません</p>

@@ -15,7 +15,9 @@
   --gold-soft: #fff7d6;
   --gold-line: #e8d98a;
   --content-width: 520px;
-  --radius: 14px;
+  --wood: #f4e1bd;
+  --radius: 8px;
+  --radius-small: 6px;
 }
 
 * {
@@ -54,12 +56,24 @@ h3 {
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 ul {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* 画面の中の区切り。箱にはせず、線と余白で分ける */
+.section {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.section h3 {
+  margin: 0 0 8px;
 }
 
 .card {
@@ -74,7 +88,7 @@ ul {
   padding: 14px 16px;
   background: var(--gold-soft);
   border: 1px solid var(--gold-line);
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-size: 14px;
   line-height: 1.7;
 }

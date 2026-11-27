@@ -3,6 +3,7 @@ import { callAction, messageOf } from '../../lib/api.ts';
 import type { Home, HomeData, HomeView } from '../../lib/home.ts';
 import { failureFeedback, successFeedback } from './feedback.ts';
 import { PublishedLineups } from '../lineup/PublishedLineups.tsx';
+import { PRACTICE_DAYS_ID } from '../notice/practiceDaysId.ts';
 import { UpcomingDaysCard } from '../notice/UpcomingDaysCard.tsx';
 import { currentPosition, type ScanPosition } from './position.ts';
 import { ResultCard } from './ResultCard.tsx';
@@ -19,6 +20,14 @@ type ScanTabProps = {
   onHome: (home: Home) => void;
   onShowPenalties: () => void;
 };
+
+/** 打刻画面の下の、これからの練習日の欄まで送る */
+function showNotices() {
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document
+    .getElementById(PRACTICE_DAYS_ID)
+    ?.scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' });
+}
 
 type Phase = { type: 'scanning' } | { type: 'sending' } | ScanOutcome;
 
@@ -91,7 +100,11 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
           承認されると、ここから打刻できるようになります。先に「自分」タブで授業のコマを入力しておいてください。
         </p>
       )}
-      <TodayCard view={view} onShowPenalties={onShowPenalties} />
+      <TodayCard
+        view={view}
+        onShowPenalties={onShowPenalties}
+        onShowNotices={approved ? showNotices : undefined}
+      />
       {showCamera && <p className="scanner-heading">{next}の読み取り</p>}
       <div className="scanner" hidden={!showCamera}>
         <video ref={videoRef} playsInline muted />

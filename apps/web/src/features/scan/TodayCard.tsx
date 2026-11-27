@@ -4,9 +4,12 @@ import { totalRemaining, type HomeView } from '../../lib/home.ts';
 export function TodayCard({
   view,
   onShowPenalties,
+  onShowNotices,
 }: {
   view: HomeView;
   onShowPenalties: () => void;
+  /** 連絡の欄へ移る。承認前は指定しない */
+  onShowNotices?: (() => void) | undefined;
 }) {
   const total = totalRemaining(view.penalties);
 
@@ -26,6 +29,11 @@ export function TodayCard({
         <span className="today-label">あなたの罰</span>
         <span className="today-value">{total ? `${total}個` : 'なし'}</span>
       </button>
+      {onShowNotices && (
+        <button type="button" className="secondary today-notice" onClick={onShowNotices}>
+          {view.retired ? '参加する練習日を選ぶ' : '欠席・遅刻を連絡する'}
+        </button>
+      )}
     </div>
   );
 }
