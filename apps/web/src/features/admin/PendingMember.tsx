@@ -39,7 +39,7 @@ export function PendingMember({
           label="削除"
           className="small secondary"
           disabled={sending || refusal !== null}
-          onConfirm={() => void run('admin-delete-pending', params)}
+          onConfirm={() => void run('admin-delete-member', params)}
         />
       </span>
     </li>

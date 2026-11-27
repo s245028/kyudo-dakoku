@@ -10,6 +10,7 @@ import {
 import { useState, type FormEvent } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
+import { DeleteMember } from './DeleteMember.tsx';
 import { Options } from './Options.tsx';
 import type { RunAction } from './types.ts';
 
@@ -92,6 +93,7 @@ export function MemberCard({ member, viewerIsAdmin, sending, run }: MemberCardPr
           />
         </form>
       )}
+      {open && !refusal && <DeleteMember member={member} sending={sending} run={run} />}
     </li>
   );
 }

@@ -9,12 +9,7 @@ import {
 import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions/configuration.ts';
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
-import {
-  approveMember,
-  deletePendingMember,
-  resetDevice,
-  updateMember,
-} from './actions/members.ts';
+import { approveMember, deleteMember, resetDevice, updateMember } from './actions/members.ts';
 import {
   addPenalty,
   assignTask,
@@ -47,7 +42,7 @@ export const ACTIONS = {
   'admin-approve': approveMember,
   'admin-update-member': updateMember,
   'admin-reset-device': resetDevice,
-  'admin-delete-pending': deletePendingMember,
+  'admin-delete-member': deleteMember,
   'admin-add-exception': addException,
   'admin-delete-exception': deleteException,
   'admin-rejudge': rejudge,

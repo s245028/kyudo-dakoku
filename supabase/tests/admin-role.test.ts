@@ -193,7 +193,7 @@ describe('役職が管理者の部員', () => {
     ['admin-update-member', { changes: { role: 'member' } }],
     ['admin-update-member', { changes: { status: 'graduated' } }],
     ['admin-reset-device', {}],
-    ['admin-delete-pending', {}],
+    ['admin-delete-member', { deleteRecords: true }],
     ['admin-approve', {}],
   ])('主将は %s で管理者を変えられない: %o', async (action, params) => {
     const captain = await memberWithRole('captain');
