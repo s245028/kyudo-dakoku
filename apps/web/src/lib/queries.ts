@@ -2,6 +2,7 @@
 import {
   NOTICE_KINDS,
   type EditableSettings,
+  type Gender,
   type Grade,
   type Judgement,
   type ManualJudgement,
@@ -19,6 +20,7 @@ export type RosterEntry = {
   studentNo: string;
   name: string;
   grade: Grade;
+  gender: Gender;
   status: MemberStatus;
   role: Role;
   approved: boolean;
@@ -59,7 +61,7 @@ export type StoredRule = PracticeRule & { id: string };
 
 type Reply = { data: unknown; error: unknown };
 
-async function read<T>(query: () => PromiseLike<Reply>): Promise<T> {
+export async function read<T>(query: () => PromiseLike<Reply>): Promise<T> {
   await ensureSession();
   const { data, error } = await query();
   if (error) throw new ApiError(OFFLINE_MESSAGE);
@@ -71,7 +73,7 @@ export const loadRoster = () =>
     supabase()
       .from('members')
       .select(
-        'id, studentNo:student_no, name, grade, status, role, approved, retiredOn:retired_on, linked',
+        'id, studentNo:student_no, name, grade, gender, status, role, approved, retiredOn:retired_on, linked',
       )
       .order('student_no'),
   );

@@ -85,6 +85,8 @@ describe('権限', () => {
     'admin-add-exception',
     'admin-delete-exception',
     'admin-review-notice',
+    'admin-save-lineup',
+    'admin-delete-lineup',
     'admin-rejudge',
     'admin-set-manual',
     'admin-update-settings',
@@ -104,6 +106,9 @@ describe('権限', () => {
     kind: 'koma4',
     judgement: '',
     approval: 'approved',
+    part: 'first',
+    format: 'groups',
+    groups: [[ids.member]],
     changes: { role: 'captain' },
     settings: {
       allowedDistanceMeters: 150,

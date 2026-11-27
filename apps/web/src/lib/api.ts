@@ -37,7 +37,9 @@ export async function callAction<T extends object>(
 }
 
 /** 読み取り用のデータベース関数を呼ぶ。 */
-export async function callFunction<T>(name: 'home' | 'presence' | 'penalty_board'): Promise<T> {
+export async function callFunction<T>(
+  name: 'home' | 'presence' | 'penalty_board' | 'published_lineups',
+): Promise<T> {
   await ensureSession();
   const response = await supabase().rpc(name);
   if (response.error) throw new ApiError(OFFLINE_MESSAGE);

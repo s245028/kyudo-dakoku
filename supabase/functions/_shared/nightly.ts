@@ -43,6 +43,8 @@ export async function runNightly(sql: Sql, now: Date): Promise<NightlyResult> {
       })}`;
     }
     const judged = await judgeDate(tx, { date, now, memberIds: null });
+    // 立ち順は当日分だけを残す
+    await tx`delete from public.lineups where practice_date < ${date}`;
     await tx`update public.nightly_runs
       set checked_out = ${checkouts.length}, judged = ${judged}
       where practice_date = ${date}`;
