@@ -3,8 +3,20 @@ import type { PracticeDate } from './date.ts';
 export const MEMBER_STATUSES = ['active', 'retired', 'suspended', 'graduated'] as const;
 export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
-/** `admin`（管理者）は、役員ではなくアプリを管理する人。付け外しは管理者だけができる */
-export const ROLES = ['member', 'captain', 'vice', 'admin'] as const;
+/**
+ * 男子副将・女子副将・主務・会計の権限は部員と同じ。
+ * `admin`（管理者）は、役員ではなくアプリを管理する人。付け外しは管理者だけができる。
+ */
+export const ROLES = [
+  'member',
+  'captain',
+  'men_vice_captain',
+  'women_vice_captain',
+  'chief_manager',
+  'vice',
+  'treasurer',
+  'admin',
+] as const;
 export type Role = (typeof ROLES)[number];
 
 export const GRADES = ['B1', 'B2', 'B3', 'B4', 'M1', 'M2'] as const;
@@ -23,7 +35,11 @@ export const STATUS_LABELS: Record<MemberStatus, string> = {
 export const ROLE_LABELS: Record<Role, string> = {
   member: '部員',
   captain: '主将',
+  men_vice_captain: '男子副将',
+  women_vice_captain: '女子副将',
+  chief_manager: '主務',
   vice: '副務',
+  treasurer: '会計',
   admin: '管理者',
 };
 

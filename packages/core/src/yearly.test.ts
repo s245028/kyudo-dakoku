@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminOnlyRefusal, canAdminister, canManagePenalties } from './member.ts';
+import { adminOnlyRefusal, canAdminister, canManagePenalties, ROLES } from './member.ts';
 import { validateRegistration } from './registration.ts';
 import { aMember, MONDAY } from './testing.ts';
 import {
@@ -70,6 +70,27 @@ describe('代替わり', () => {
 
   it('学生番号は区切り文字と大文字小文字を問わない', () => {
     expect(parseStudentNos(' s1234、s5678, S9 ')).toEqual(['S1234', 'S5678', 'S9']);
+  });
+});
+
+describe('ほかの役職がある場合の代替わり', () => {
+  it('引退する人の役職は外し、残る人の役職は変えない', () => {
+    const result = planGenerationChange({
+      members: [
+        ...members,
+        roster('money', 'B3', { role: 'treasurer' }),
+        roster('chief', 'B2', { role: 'chief_manager' }),
+      ],
+      retiringGrade: 'B3',
+      captainNos: ['NEXT'],
+      viceNos: [],
+      today: MONDAY,
+    });
+
+    expect(result.ok && result.value.updated).toContainEqual(
+      expect.objectContaining({ id: 'money', status: 'retired', role: 'member' }),
+    );
+    expect(result.ok && result.value.updated.map((member) => member.id)).not.toContain('chief');
   });
 });
 
@@ -192,5 +213,17 @@ describe('部員登録の入力', () => {
     { grade: 'B5' },
   ])('%o は拒否する', (change) => {
     expect(validateRegistration({ ...input, ...change }).ok).toBe(false);
+  });
+});
+
+describe('役職と権限', () => {
+  it('男子副将・女子副将・主務・会計の権限は部員と同じ', () => {
+    const roles = ['men_vice_captain', 'women_vice_captain', 'chief_manager', 'treasurer'] as const;
+
+    for (const role of roles) {
+      expect(ROLES).toContain(role);
+      expect(canAdminister({ ...aMember(), role })).toBe(false);
+      expect(canManagePenalties({ ...aMember(), role })).toBe(false);
+    }
   });
 });

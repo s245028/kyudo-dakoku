@@ -129,11 +129,12 @@
 ### 2.8 部員登録と役職
 - 部員がアプリで登録する（学生番号・名前・性別 男/女・学年 1〜4年/院1〜2年）。続けてコマ表を入力する。
 - **主将が承認するまで打刻できない**。承認していない人は判定にも載らない。
-- 役職：部員／主将／副務。罰をつける・割り当てる・消化するのは副務と主将。承認・名簿・臨時変更・手動判定・設定・代替わりは主将だけ。
+- 役職：部員／主将／副務（ほかの役職は下の「現行と変えた点」）。罰をつける・割り当てる・消化するのは副務と主将。承認・名簿・臨時変更・手動判定・設定・代替わりは主将だけ。
 - スマホを替えたときは、主将が「再登録を許可」すると、同じ学生番号で登録し直せる（承認はやり直し）。
 - 現行と変えた点：主将と管理者は、部員を**削除**できる。本人の打刻・出欠・罰・臨時変更・コマ表も消え、元に戻せない（本人が記録した他人の記録は残し、記録した人を空にする）。自分は削除できない。退部した人の記録を残すときは、削除せず状態を「休部・退部」にする。
 - 現行と変えた点：開発用に**管理者ログイン**（部員ではないログイン）を追加した。主将と同じ管理操作と罰の操作ができる。打刻・出欠・罰の対象にはならない。本番では登録しない。
 - 現行と変えた点：役職に**管理者**を追加した（アプリを管理する人が、主将と表示されずに済むように）。部員のまま打刻・判定の対象になり、主将と同じ管理操作と罰の操作ができる。この役職の付け外しと、管理者の部員の変更（承認・名簿・再登録の許可・削除）は、管理者（この役職の部員か管理者ログイン）だけができる。代替わりで引退しても役職は残る。卒業・休部・退部にすると操作できなくなる。管理できる人（主将か管理者）が1人もいなくなる変更はできない。
+- 現行と変えた点：役職に**男子副将・女子副将・主務・会計**を追加した（2026-11-27）。権限は部員と同じで、役職は1人1つ。代替わりで引退すると外れる。新しい人は名簿で指定する。
 - コマ表は設定で「ロック」でき、ロック中は部員が変更できない。
 
 ---
@@ -192,7 +193,7 @@ kyudo-dakoku/
 |---|---|---|
 | `settings` | key, value(jsonb) | 入口QR、道場の緯度・経度、許容距離、二重読み取り秒数、取り消し秒数、自動退室時刻、コマ表ロック、連絡の締め切り（分）、罰が倍になる日数 |
 | `practice_rules` | weekday, condition, part, deadline(time), start_time(time) | 2.1 の表。condition は `all` / `no_koma` / `koma4` / `koma5` |
-| `members` | id(uuid), student_no(unique), name, grade, gender, status, role, approved, retired_on(date), auth_user_id(unique, null可), registered_at | status: active/retired/suspended/graduated。role: member/captain/vice/admin |
+| `members` | id(uuid), student_no(unique), name, grade, gender, status, role, approved, retired_on(date), auth_user_id(unique, null可), registered_at | status: active/retired/suspended/graduated。role: member/captain/men_vice_captain/women_vice_captain/chief_manager/vice/treasurer/admin |
 | `koma` | member_id, mon4, mon5, tue4, tue5, thu4, thu5, updated_at | 1人1行 |
 | `exceptions` | id, date, member_id(null=全員), kind, memo, contacted_at, approval, rejection_reason, reviewed_at, reviewed_by, created_by, created_at | kind: day_off/no_koma/koma4/koma5/absent_notice/late_notice/join。approval: pending/approved/rejected（締め切りまでのアプリからの連絡だけ。ほかは null） |
 | `punches` | id, member_id, punched_at(timestamptz), practice_date(date), kind(in/out/auto_out), canceled_at, distance_m, via | 消さずに取り消し時刻を入れる |
