@@ -1,10 +1,14 @@
 // DB の行を packages/core の型に読み込む
 import {
+  addDays,
   DEFAULT_SETTINGS,
+  NOTICE_DAYS_AHEAD,
+  toPracticeDate,
   type Grade,
   type Koma,
   type Member,
   type MemberStatus,
+  type NoticeContext,
   type PenaltyType,
   type PracticeDate,
   type PracticeException,
@@ -93,7 +97,10 @@ export async function loadExceptions(
   return sql<PracticeException[]>`
     select date::text, member_id as "memberId", kind, memo, contacted_at as "contactedAt",
       approval, rejection_reason as "rejectionReason",
-      coalesce(created_by = member_id, false) as "selfSubmitted"
+      coalesce(created_by = member_id, false) as "selfSubmitted",
+      case when base_part is not null then jsonb_build_object(
+        'part', base_part, 'deadline', to_char(base_deadline, 'HH24:MI')
+      ) end as "basePlan"
     from public.exceptions where date between ${from} and ${to}
     order by date, created_at, id`;
 }
@@ -116,6 +123,25 @@ export async function loadPenaltyTypes(sql: Sql): Promise<PenaltyType[]> {
   return sql<PenaltyType[]>`
     select reason, base_count as "baseCount", assigned_by as "assignedBy", description
     from public.penalty_types order by assigned_by, reason`;
+}
+
+/** 連絡とコマ変更の申請の可否を決めるのに必要なもの */
+export async function loadNoticeContext(
+  sql: Sql,
+  member: MemberRow,
+  now: Date,
+): Promise<NoticeContext> {
+  const today = toPracticeDate(now);
+  const punches = await loadPunches(sql, today, [member.id]);
+  return {
+    member,
+    now,
+    rules: await loadRules(sql),
+    koma: (await loadKoma(sql, [member.id])).get(member.id) ?? null,
+    exceptions: await loadExceptions(sql, today, addDays(today, NOTICE_DAYS_AHEAD)),
+    settings: await loadSettings(sql),
+    enteredToday: punches.some((punch) => punch.kind === 'in' && !punch.canceledAt),
+  };
 }
 
 export async function homeSnapshot(

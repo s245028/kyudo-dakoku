@@ -1,11 +1,13 @@
 import { toInstant, toPracticeDate, type ClockTime, type PracticeDate } from './date.ts';
 import { isApprovedMember, isRetiredOn, type Member } from './member.ts';
 import {
+  isKomaRequest,
   resolvePracticePlan,
   type Koma,
   type Notice,
   type Part,
   type PracticeException,
+  type PlanTime,
   type PracticePlan,
   type PracticeRule,
 } from './practice.ts';
@@ -151,6 +153,30 @@ function decideResult(input: {
   return done(judgeNotice(notice, limit, notes, 'absent'));
 }
 
+/** コマ変更の申請の結果しだいで消える罰は、承認か却下まで保留する */
+const HELD_FOR_KOMA_REQUEST: Partial<Record<Judgement, Judgement>> = {
+  late: 'late_pending',
+  late_notice_overdue: 'late_pending',
+  absent_unexcused: 'absent_pending',
+  absent_notice_overdue: 'absent_pending',
+};
+
+/**
+ * 判定に使う区分と集合時刻。過去の日を判定し直すときは、記録した時刻のままにする。
+ * コマ変更の申請があれば、承認なら申請の時刻、それ以外は申請する前の時刻にする。
+ */
+function planFor(
+  resolved: PracticePlan,
+  recorded: PlanTime | null | undefined,
+  mine: readonly PracticeException[],
+): PracticePlan {
+  if (!recorded) return resolved;
+  const requests = mine.filter(isKomaRequest);
+  if (requests.some((request) => request.approval === 'approved')) return resolved;
+  const base = requests.findLast((request) => request.basePlan)?.basePlan;
+  return { ...resolved, ...(base ?? recorded) };
+}
+
 /** 入室から退室までの合計。当日の入室中は、今までの時間を足す。 */
 function minutesInRoom(punches: readonly Punch[], openUntil: Date | null): number {
   let total = 0;
@@ -181,7 +207,7 @@ export type JudgementInput = {
   punches: readonly Punch[];
   settings: JudgementSettings;
   /** 記録済みの区分と集合時刻。過去の日を、今のコマ表で変えずに判定し直すときに渡す */
-  recorded?: Pick<PracticePlan, 'part' | 'deadline'> | null;
+  recorded?: PlanTime | null;
 };
 
 /**
@@ -194,7 +220,13 @@ export function judgeAttendance(input: JudgementInput): AttendanceRecord | null 
 
   const resolved = resolvePracticePlan({ ...input, memberId: member.id });
   if (!resolved) return null;
-  const plan = { ...resolved, ...input.recorded };
+  const plan = planFor(
+    resolved,
+    input.recorded,
+    input.exceptions.filter(
+      (exception) => exception.date === date && exception.memberId === member.id,
+    ),
+  );
 
   const mine = validPunches(input.punches).filter(
     (punch) => punch.memberId === member.id && toPracticeDate(punch.at) === date,
@@ -205,6 +237,7 @@ export function judgeAttendance(input: JudgementInput): AttendanceRecord | null 
   const firstIn = mine.find((punch) => punch.kind === 'in')?.at ?? null;
   const lastOut = mine.findLast((punch) => punch.kind !== 'in')?.at ?? null;
   const decision = decideResult({ date, plan, judged, firstIn, now, settings });
+  const held = plan.komaRequestPending ? HELD_FOR_KOMA_REQUEST[decision.result] : undefined;
   const notes = [...plan.notes, ...decision.notes];
   if (mine.some((punch) => punch.kind === 'auto_out')) notes.push('退室打刻なし');
 
@@ -216,7 +249,7 @@ export function judgeAttendance(input: JudgementInput): AttendanceRecord | null 
     firstIn,
     lastOut,
     minutes: minutesInRoom(mine, toPracticeDate(now) === date ? now : null),
-    result: decision.result,
+    result: held ?? decision.result,
     lateMinutes: decision.lateMinutes,
     notes,
   };

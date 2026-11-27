@@ -1,7 +1,7 @@
 import { addDays } from '@kyudo/core';
 import { useCallback } from 'react';
 import type { Home } from '../../lib/home.ts';
-import { loadNotices, loadRoster, type StoredException } from '../../lib/queries.ts';
+import { loadNotices, loadRoster, loadRules, type StoredException } from '../../lib/queries.ts';
 import { useAction } from '../../lib/useAction.ts';
 import { useRemote } from '../../lib/useRemote.ts';
 import { NoticeRow } from './NoticeRow.tsx';
@@ -9,12 +9,16 @@ import { NoticeRow } from './NoticeRow.tsx';
 /** 判断を変えられるように、さかのぼって出す日数 */
 const HISTORY_DAYS = 7;
 
-/** 部員からの欠席・遅刻の連絡。承認待ちを承認・却下する。 */
+/** 部員からの欠席・遅刻の連絡と、コマ変更の申請。承認待ちを承認・却下する。 */
 export function NoticeSection({ today, onHome }: { today: string; onHome: (home: Home) => void }) {
   const load = useCallback(async () => {
     const since = addDays(today, -HISTORY_DAYS);
-    const [members, notices] = await Promise.all([loadRoster(), loadNotices(since)]);
-    return { members, notices };
+    const [members, notices, rules] = await Promise.all([
+      loadRoster(),
+      loadNotices(since),
+      loadRules(),
+    ]);
+    return { members, notices, rules };
   }, [today]);
   const { data, error, reload } = useRemote(load);
   const action = useAction();
@@ -33,6 +37,7 @@ export function NoticeSection({ today, onHome }: { today: string; onHome: (home:
         <NoticeRow
           key={notice.id}
           notice={notice}
+          rules={data?.rules ?? []}
           name={data?.members.find((member) => member.id === notice.memberId)?.name ?? '不明'}
           sending={action.sending}
           run={run}
@@ -55,7 +60,7 @@ export function NoticeSection({ today, onHome }: { today: string; onHome: (home:
       </p>
       <h3>承認待ち{data && `（${pending.length}件）`}</h3>
       <p className="hint">
-        承認か却下をするまで、その人の罰は保留します。却下は連絡なしと同じ扱いです。
+        承認か却下をするまで、その人の罰は保留します。却下は、連絡や申請がないのと同じ扱いです。
       </p>
       {list(pending, '承認待ちはありません')}
       <h3>{HISTORY_DAYS}日前からの連絡</h3>

@@ -1,4 +1,4 @@
-import type { JoinDay, NoticeDay } from '@kyudo/core';
+import type { JoinDay, KomaRequestDay, NoticeDay } from '@kyudo/core';
 import { useState } from 'react';
 import { useAction } from '../../lib/useAction.ts';
 import type { Home } from '../../lib/home.ts';
@@ -10,6 +10,7 @@ const COLLAPSED_DAYS = 3;
 type UpcomingDaysCardProps = {
   retired: boolean;
   noticeDays: NoticeDay[];
+  komaDays: KomaRequestDay[];
   /** 引退した人の、参加の登録の対象になる日 */
   joinDays: JoinDay[];
   noticeLeadMinutes: number;
@@ -18,7 +19,7 @@ type UpcomingDaysCardProps = {
 
 /** これからの練習日。欠席・遅刻の連絡と、引退した人の参加の登録をする。 */
 export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
-  const { retired, noticeDays, joinDays, noticeLeadMinutes, onChanged } = props;
+  const { retired, noticeDays, komaDays, joinDays, noticeLeadMinutes, onChanged } = props;
   const [expanded, setExpanded] = useState(false);
   const action = useAction();
   const days = retired ? joinDays : noticeDays;
@@ -33,6 +34,7 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
       <p className="hint">
         欠席・遅刻の連絡は集合の{noticeLeadMinutes}
         分前までに送り、主将の承認を受けます。過ぎると連絡遅れになります。
+        休講・補講で集合時刻が変わるときは、同じ締め切りまでにコマ変更を申請します。
         {retired &&
           `引退した人は、参加を登録した日だけ遅刻・欠席を判定します。登録は集合時刻まで、取り消しは集合の${noticeLeadMinutes}分前までです。`}
       </p>
@@ -47,6 +49,7 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
             day={day}
             join={joinDays.find((candidate) => candidate.date === day.date)}
             notice={noticeDays.find((candidate) => candidate.date === day.date)}
+            komaDay={komaDays.find((candidate) => candidate.date === day.date)}
             sending={action.sending}
             run={run}
           />

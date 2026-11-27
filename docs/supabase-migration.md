@@ -93,6 +93,15 @@
 - 理由を読めるのは、本人・主将・副務・管理者だけ。
 - 送っただけでは出欠一覧を変えない。入室したときか、夜の処理で判定する。
 
+#### 2.3.2 コマ変更の申請（2026-11-27 追加）
+休講・補講で集合時刻が変わるとき、部員がアプリから申請する。全員向けの休講などは、これまでどおり主将が臨時変更に入力する。
+
+- 申請できるのは、コマで集合時刻が変わる日（月・火・木）の、今日から14日先まで。内容は「4・5コマなし／4コマのみ／5コマあり」から今の予定と違うもの。**理由は必須**。
+- **承認制**（主将か管理者）。締め切りは**変更前の**集合の60分前で、過ぎた申請は受け付けない（主将に直接伝える）。締め切りまでは出し直しと取り消しができる。
+- 承認したら、その日は申請の内容で判定する（コマ表と、主将が入力した臨時変更より優先）。却下したら、申請がないのと同じ。
+- **承認待ちの間**は、遅刻・欠席になる場合の罰を保留する。
+- 過去の日をあとから承認・却下したときは、承認なら申請の時刻、却下なら申請時に記録した変更前の時刻で判定する。ついた罰は、確認した日から数える。
+
 ### 2.4 罰
 - 自動でつく理由：遅刻、遅刻（連絡遅れ）、無断欠席、欠席（連絡遅れ）。
 - 副務・主将がつける理由：私物の出しっぱなし、その他（メモ必須）。理由と「基本の数」は管理画面で増やせる（初期値はすべて1個）。
@@ -195,7 +204,7 @@ kyudo-dakoku/
 | `practice_rules` | weekday, condition, part, deadline(time), start_time(time) | 2.1 の表。condition は `all` / `no_koma` / `koma4` / `koma5` |
 | `members` | id(uuid), student_no(unique), name, grade, gender, status, role, approved, retired_on(date), auth_user_id(unique, null可), registered_at | status: active/retired/suspended/graduated。role: member/captain/men_vice_captain/women_vice_captain/chief_manager/vice/treasurer/admin |
 | `koma` | member_id, mon4, mon5, tue4, tue5, thu4, thu5, updated_at | 1人1行 |
-| `exceptions` | id, date, member_id(null=全員), kind, memo, contacted_at, approval, rejection_reason, reviewed_at, reviewed_by, created_by, created_at | kind: day_off/no_koma/koma4/koma5/absent_notice/late_notice/join。approval: pending/approved/rejected（締め切りまでのアプリからの連絡だけ。ほかは null） |
+| `exceptions` | id, date, member_id(null=全員), kind, memo, contacted_at, approval, rejection_reason, reviewed_at, reviewed_by, created_by, created_at | kind: day_off/no_koma/koma4/koma5/absent_notice/late_notice/join。approval: pending/approved/rejected（締め切りまでのアプリからの連絡と、コマ変更の申請。ほかは null）。base_part, base_deadline: 申請する前の予定 |
 | `punches` | id, member_id, punched_at(timestamptz), practice_date(date), kind(in/out/auto_out), canceled_at, distance_m, via | 消さずに取り消し時刻を入れる |
 | `attendance` | practice_date, member_id, part, deadline, first_in, last_out, minutes, auto_result, late_minutes, manual_result, manual_reason, note | (practice_date, member_id) で一意 |
 | `penalty_types` | reason, base_count, assigned_by(auto/officer), description | 2.4 の初期値を seed に |
@@ -241,7 +250,8 @@ kyudo-dakoku/
 | `undo-scan` | 本人 | 60秒以内の取り消し。入室の取り消しならその日を判定し直す |
 | `join` / `unjoin` | 引退した人 | 参加の登録・取り消し（2.5 の締め切り） |
 | `submit-notice` / `cancel-notice` | 承認済み・現役／参加を登録した引退した人 | 欠席・遅刻の連絡の送信・取り消し（2.3.1） |
-| `admin-review-notice` | 主将 | 連絡の承認・却下 |
+| `admin-review-notice` | 主将 | 連絡とコマ変更の申請の承認・却下 |
+| `submit-koma-change` / `cancel-koma-change` | 承認済み・現役／参加を登録した引退した人 | コマ変更の申請・取り消し（2.3.2） |
 | `add-penalty` | 副務・主将 | 罰をつける（基本の数ぶんのやることが必須） |
 | `assign-task` / `edit-task` / `complete-task` | 副務・主将 | やることの割り当て・変更・消化 |
 | `admin-*` | 主将 | 承認、部員の削除、再登録の許可、名前・状態・役職・学年・引退日の変更、臨時変更の登録と削除（連絡日時つき）、手動判定、指定日の再判定、罰の消化済み化、設定・練習ルール・罰の種類の変更。入口QRは画面から変えられない |
@@ -260,11 +270,11 @@ kyudo-dakoku/
 
 | タブ | 内容 |
 |---|---|
-| 打刻 | 今日の集合時刻と自分の罰の数 → **QR読み取り**（今日の欄のすぐ下。次が入室か退室かを表示） → 結果（入室/退室・時刻・遅刻なら「罰がつきました」・取り消しボタン）とその下の「退室する／入室する（QRを読む）」ボタン → 今日の自分の入退室の記録 → これからの練習日（欠席・遅刻の連絡と状態。引退した人は参加の登録も） |
+| 打刻 | 今日の集合時刻と自分の罰の数 → **QR読み取り**（今日の欄のすぐ下。次が入室か退室かを表示） → 結果（入室/退室・時刻・遅刻なら「罰がつきました」・取り消しボタン）とその下の「退室する／入室する（QRを読む）」ボタン → 今日の自分の入退室の記録 → これからの練習日（欠席・遅刻の連絡、コマ変更の申請と状態。引退した人は参加の登録も） |
 | 在室 | いま道場にいる人と入室時刻（Realtime で自動更新） |
 | 罰 | 自分の罰と、やること一覧。全員の未消化の罰（古い順、あと何日で2倍か）。副務・主将は割り当て・変更・消化・罰をつける |
 | 自分 | 登録内容、コマ表の入力 |
-| 管理（主将のみ） | 出欠の連絡の承認・却下（承認待ちの数をタブに表示）、承認待ちの部員、名簿（状態・役職・学年・再登録の許可）、臨時変更（休講・補講、欠席/遅刻連絡と連絡日時）、出欠一覧（手動判定・再判定）、設定・練習ルール・罰の種類、代替わり、学年の繰り上げ、CSV 書き出し |
+| 管理（主将のみ） | 出欠の連絡とコマ変更の申請の承認・却下（承認待ちの数をタブに表示）、承認待ちの部員、名簿（状態・役職・学年・再登録の許可）、臨時変更（休講・補講、欠席/遅刻連絡と連絡日時）、出欠一覧（手動判定・再判定）、設定・練習ルール・罰の種類、代替わり、学年の繰り上げ、CSV 書き出し |
 
 ### 速さのための工夫
 - 前回のホーム画面の内容を端末に保存し、開いた瞬間に表示して裏で更新する。
@@ -340,6 +350,8 @@ kyudo-dakoku/
 | 30 | 集合の59分前にアプリから欠席の連絡 | 承認の対象外、欠席（連絡遅れ）、取り消せない |
 | 31 | 理由を空にして連絡を送る | 拒否 |
 | 32 | 練習日の10日後に連絡を却下 | 罰は1個。倍になる日数は却下した日から数える |
+| 33 | コマ変更の申請が承認待ちで、変更前の時刻に遅れた | 遅刻（承認待ち）、罰なし |
+| 34 | 変更前の集合の59分前にコマ変更を申請 | 拒否 |
 
 ---
 

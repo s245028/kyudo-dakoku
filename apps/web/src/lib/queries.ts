@@ -26,13 +26,15 @@ export type RosterEntry = {
   linked: boolean;
 };
 
-export type StoredException = Omit<PracticeException, 'contactedAt'> & {
+export type StoredException = Omit<PracticeException, 'contactedAt' | 'basePlan'> & {
   id: string;
   contactedAt: string | null;
+  /** コマ変更を申請したときの、変更前の集合時刻 */
+  baseDeadline: string | null;
 };
 
 const EXCEPTION_COLUMNS =
-  'id, date, memberId:member_id, kind, memo, contactedAt:contacted_at, approval, rejectionReason:rejection_reason, createdBy:created_by';
+  'id, date, memberId:member_id, kind, memo, contactedAt:contacted_at, approval, rejectionReason:rejection_reason, createdBy:created_by, baseDeadline:base_deadline';
 
 type ExceptionReply = Omit<StoredException, 'selfSubmitted'> & { createdBy: string | null };
 
@@ -107,13 +109,13 @@ export async function loadExceptionsSince(date: string): Promise<StoredException
   return rows.map(toStoredException);
 }
 
-/** 欠席・遅刻の連絡。指定した日以降のものと、それより前の承認待ち。 */
+/** 欠席・遅刻の連絡と、コマ変更の申請。指定した日以降のものと、それより前の承認待ち。 */
 export async function loadNotices(since: string): Promise<StoredException[]> {
   const rows = await read<ExceptionReply[]>(() =>
     supabase()
       .from('exceptions')
       .select(EXCEPTION_COLUMNS)
-      .in('kind', [...NOTICE_KINDS])
+      .or(`kind.in.(${NOTICE_KINDS.join(',')}),approval.not.is.null`)
       .or(`approval.eq.pending,date.gte.${since}`)
       .order('date')
       .order('created_at'),

@@ -1,9 +1,13 @@
 import {
+  KOMA_REQUEST_LABELS,
   NOTICE_KIND_LABELS,
   NOTICE_REASON_MAX_LENGTH,
-  type NoticeKind,
   toClockTime,
   toPracticeDate,
+  weekdayOf,
+  type KomaChangeKind,
+  type NoticeKind,
+  type PracticeRule,
 } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
 import { dateWithWeekday, shortDate } from '../../lib/format.ts';
@@ -21,14 +25,27 @@ function contactText(contactedAt: string): string {
   return `連絡 ${shortDate(toPracticeDate(at))} ${toClockTime(at)}`;
 }
 
+/** 連絡の種類か、申請したコマ変更の内容 */
+function summaryOf(notice: StoredException, rules: readonly PracticeRule[]): string {
+  if (notice.kind in NOTICE_KIND_LABELS) return NOTICE_KIND_LABELS[notice.kind as NoticeKind];
+  const kind = notice.kind as KomaChangeKind;
+  const rule = rules.find(
+    (candidate) => candidate.weekday === weekdayOf(notice.date) && candidate.condition === kind,
+  );
+  const before = notice.baseDeadline?.slice(0, 5);
+  const times = rule && before ? `（集合 ${before} → ${rule.deadline}）` : '';
+  return `コマ変更：${KOMA_REQUEST_LABELS[kind]}${times}`;
+}
+
 type NoticeRowProps = {
   notice: StoredException;
+  rules: readonly PracticeRule[];
   name: string;
   sending: boolean;
   run: RunAction;
 };
 
-export function NoticeRow({ notice, name, sending, run }: NoticeRowProps) {
+export function NoticeRow({ notice, rules, name, sending, run }: NoticeRowProps) {
   const [rejecting, setRejecting] = useState(false);
   const { approval } = notice;
   const review = (decision: 'approved' | 'rejected', rejectionReason = '') =>
@@ -55,7 +72,7 @@ export function NoticeRow({ notice, name, sending, run }: NoticeRowProps) {
         </span>
       </p>
       <p className="sub">
-        {NOTICE_KIND_LABELS[notice.kind as NoticeKind]}
+        {summaryOf(notice, rules)}
         {notice.contactedAt && `・${contactText(notice.contactedAt)}`}
       </p>
       {notice.memo && <p className="notice-reason">{notice.memo}</p>}

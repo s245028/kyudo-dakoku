@@ -5,6 +5,7 @@ import {
   summarizePenalty,
   toPracticeDate,
   upcomingJoinDays,
+  upcomingKomaDays,
   upcomingNoticeDays,
   validPunches,
   type Gender,
@@ -124,7 +125,7 @@ export function describeHome(home: HomeData, now: Date) {
   ).filter((punch) => toPracticeDate(punch.at) === today);
   const last = punches.at(-1);
 
-  const noticeDays = upcomingNoticeDays({
+  const requestContext = {
     member,
     now,
     rules,
@@ -132,12 +133,13 @@ export function describeHome(home: HomeData, now: Date) {
     exceptions,
     settings: home.settings,
     enteredToday: punches.some((punch) => punch.kind === 'in'),
-  });
+  };
 
   return {
     today,
     retired,
-    noticeDays,
+    noticeDays: upcomingNoticeDays(requestContext),
+    komaDays: upcomingKomaDays(requestContext),
     /** 今日判定される場合の予定。判定されなければ null */
     plan: judged ? plan : null,
     inRoomSince: last?.kind === 'in' ? last.at : null,

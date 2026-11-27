@@ -9,6 +9,7 @@ import {
 import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions/configuration.ts';
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
+import { cancelKomaChange, submitKomaChange } from './actions/koma-requests.ts';
 import { cancelNotice, reviewNotice, submitNotice } from './actions/notices.ts';
 import { approveMember, deleteMember, resetDevice, updateMember } from './actions/members.ts';
 import {
@@ -35,6 +36,8 @@ export const ACTIONS = {
   unjoin,
   'submit-notice': submitNotice,
   'cancel-notice': cancelNotice,
+  'submit-koma-change': submitKomaChange,
+  'cancel-koma-change': cancelKomaChange,
   // 副務・主将
   'add-penalty': addPenalty,
   'assign-task': assignTask,
