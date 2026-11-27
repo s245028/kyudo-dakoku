@@ -54,7 +54,7 @@ export function App() {
           state={{ label: '未登録', active: false }}
         />
         <main className="app-main">
-          <RegisterScreen onRegistered={registered} />
+          <RegisterScreen onRegistered={registered} onTransferred={apply} />
         </main>
       </>
     );

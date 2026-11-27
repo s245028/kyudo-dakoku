@@ -6,7 +6,7 @@ import { stringParam, type Params } from '../params.ts';
 import { homeSnapshot } from '../store.ts';
 
 const ALREADY_USED =
-  'この学生番号はすでに登録されています。スマホを替えたなどで登録し直したいときは、主将に連絡してください。';
+  'この学生番号はすでに登録されています。登録済みの画面を開けるときは「登録済みの人はこちら」から引き継いでください。開けないときは、主将に連絡してください。';
 
 /** アプリからの部員登録。主将が承認するまで打刻はできない。 */
 export async function register({ sql, userId, now }: RequestContext, params: Params) {

@@ -18,5 +18,6 @@ export * from './push.ts';
 export * from './registration.ts';
 export * from './scan.ts';
 export * from './settings.ts';
+export * from './transfer.ts';
 export * from './validation.ts';
 export * from './yearly.ts';

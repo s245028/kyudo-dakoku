@@ -78,6 +78,8 @@ select vault.create_secret('https://<プロジェクトID>.supabase.co/functions
 
 2人目以降の承認や役職の変更は、主将がアプリの「管理」タブで行います。
 
+部員にアプリのリンクを LINE で送るときは、末尾に `?openExternalBrowser=1` をつけます（例：`https://kyudo-dakoku.vercel.app/?openExternalBrowser=1`）。LINE の中のブラウザは保存場所が別なので、そこでは登録できないようにしています。
+
 ### 開発用の管理者（本番では作らない）
 
 部員ではないログインで、管理画面・在室・罰を使えます。
