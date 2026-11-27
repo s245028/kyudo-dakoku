@@ -1,0 +1,312 @@
+/* 統計は、資料として読めるように、白地・濃い文字・罫線の表にする */
+.app-main:has(.stats) {
+  background: #fff;
+}
+
+.stats {
+  --sub: #3d4741;
+  --line: #b8bdb9;
+  --data: #1f4e3d;
+  --data-pale: #b9d6c8;
+  --head: #edf2ef;
+}
+
+/* 数の系列。1は塗りつぶし・実線、2は薄い塗り・点線。白黒でも見分けられる */
+.tone-1 {
+  --fill: var(--data);
+}
+
+.tone-2 {
+  --fill: var(--data-pale);
+}
+
+.period-picker {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.period-select {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.period-select select {
+  flex: 1;
+  border-color: var(--ink);
+}
+
+.period-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.period-inputs label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.choice-row {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  margin: 18px 0 4px;
+  border: 1px solid var(--data);
+}
+
+.choice-row button {
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 4px;
+  border-radius: 0;
+  background: #fff;
+  color: var(--data);
+}
+
+.choice-row button + button {
+  border-left: 1px solid var(--data);
+}
+
+.choice-row button[aria-pressed='true'] {
+  background: var(--data);
+  color: #fff;
+}
+
+.data-table {
+  width: 100%;
+  margin-top: 16px;
+  border-collapse: collapse;
+  border-top: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table caption {
+  padding-bottom: 6px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 4px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.data-table th:first-child {
+  text-align: left;
+}
+
+.data-table thead th {
+  border-bottom: 1px solid var(--ink);
+  background: var(--head);
+  font-size: 12px;
+}
+
+.data-table tbody th {
+  font-weight: 400;
+}
+
+.data-table tfoot th,
+.data-table tfoot td {
+  border-top: 1px solid var(--ink);
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.summary-table .main-value {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.table-bar {
+  display: block;
+  width: 100%;
+  height: 8px;
+  margin-top: 4px;
+  fill: var(--data);
+}
+
+.figure-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.figure-heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.figure-heading select {
+  width: auto;
+  padding: 6px 8px;
+  border-color: var(--ink);
+}
+
+.chart {
+  margin: 8px 0 0;
+}
+
+.chart > svg {
+  display: block;
+  width: 100%;
+}
+
+.chart-legend {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.chart-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.key {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--data);
+  background: var(--fill);
+}
+
+.key-line {
+  width: 22px;
+  height: 0;
+  border-width: 2px 0 0;
+}
+
+.tone-2 .key-line {
+  border-top-style: dashed;
+}
+
+.chart-grid {
+  stroke: #c9cdca;
+}
+
+.chart-axis {
+  stroke: var(--ink);
+}
+
+.chart-text {
+  fill: var(--ink);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-value {
+  fill: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chart-bar {
+  fill: var(--fill);
+  stroke: var(--data);
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--data);
+  stroke-width: 2;
+}
+
+.chart-dot {
+  fill: var(--fill);
+  stroke: var(--data);
+  stroke-width: 1.5;
+}
+
+.tone-2 .chart-line {
+  stroke-dasharray: 5 3;
+}
+
+.rank-table th,
+.rank-table td {
+  padding-block: 0;
+  height: 40px;
+}
+
+.rank-table .rank {
+  width: 3em;
+  text-align: center;
+}
+
+.rank-table .name {
+  text-align: left;
+}
+
+.rank-table .sorted {
+  background: var(--head);
+  font-weight: 700;
+}
+
+/* 表の中の見出しと名前のボタンは、文字として見せる */
+.rank-table button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: inherit;
+}
+
+.rank-table tbody button {
+  font-weight: 400;
+}
+
+.rank-table tbody button span {
+  color: var(--data);
+  font-weight: 700;
+}
+
+.rank-table .rank-detail td {
+  height: auto;
+  text-align: left;
+}
+
+.penalty-details {
+  font-size: 13px;
+}
+
+.penalty-details li {
+  display: grid;
+  grid-template-columns: 3.4em 1fr;
+  gap: 0 8px;
+  padding: 6px 0;
+}
+
+.penalty-details li + li {
+  border-top: 1px solid var(--line);
+}
+
+.penalty-details li span:last-child {
+  grid-column: 2;
+  color: var(--sub);
+}
+
+.stats-notes {
+  margin: 24px 0 0;
+  padding: 10px 0 0 20px;
+  border-top: 1px solid var(--line);
+  color: var(--sub);
+  font-size: 12px;
+}

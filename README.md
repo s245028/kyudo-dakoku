@@ -76,7 +76,7 @@ update public.members set approved = true, role = 'captain' where student_no = '
 select vault.create_secret('https://<プロジェクトID>.supabase.co/functions/v1/nightly', 'nightly_url');
 ```
 
-2人目以降の承認や役職の変更は、主将がアプリの「管理」タブで行います。
+2人目以降の承認や役職の変更は、主将がアプリの「役職」タブで行います。罰の統計は、主将と副務が「役職」→「集計」で見られます。
 
 部員にアプリのリンクを LINE で送るときは、末尾に `?openExternalBrowser=1` をつけます（例：`https://kyudo-dakoku.vercel.app/?openExternalBrowser=1`）。LINE の中のブラウザは保存場所が別なので、そこでは登録できないようにしています。
 
@@ -95,7 +95,7 @@ select id from auth.users where email = 'メールアドレス';
 3. アプリの部員登録画面か「自分」タブの下にある **管理者ログイン** から入ります。戻るときは **ログアウト** を押します。
 
 権限を外すときは `delete from public.admins;` を実行します。
-夜の自動処理が動いたかは、「管理」→「出欠」の下に表示されます。
+夜の自動処理が動いたかは、「役職」→「出欠」の下に表示されます。
 
 一時停止対策は、GitHub の **Settings → Secrets and variables → Actions → Variables** に `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` を追加すると動きます。**Actions** の「Keep Supabase awake」を **Run workflow** で実行して確認できます。
 

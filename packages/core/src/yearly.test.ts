@@ -256,7 +256,7 @@ describe('役職タブ', () => {
       'lineup',
       'lineup',
     ]);
-    expect(area('vice')).toBe('notices');
+    expect(area('vice')).toBe('vice');
     expect([area('member'), area('treasurer'), area('captain', false)]).toEqual([null, null, null]);
   });
 

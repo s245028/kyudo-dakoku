@@ -96,14 +96,14 @@ export function canEditLineups(member: WithRole): boolean {
 
 /**
  * 「役職」タブに出すもの。`admin` は管理のすべて、`lineup` は立ち順、
- * `notices` は出欠の連絡の一覧（見るだけ）。なければ null。
+ * `vice` は副務向けの出欠の連絡の一覧（見るだけ）と集計。なければ null。
  */
-export type OfficerArea = 'admin' | 'lineup' | 'notices';
+export type OfficerArea = 'admin' | 'lineup' | 'vice';
 
 export function officerArea(member: WithRole): OfficerArea | null {
   if (canAdminister(member)) return 'admin';
   if (canEditLineups(member)) return 'lineup';
-  return isApprovedMember(member) && member.role === 'vice' ? 'notices' : null;
+  return isApprovedMember(member) && member.role === 'vice' ? 'vice' : null;
 }
 
 /** 罰をつける・割り当てる・消化する・取り消すことができるか。主将はできない。 */

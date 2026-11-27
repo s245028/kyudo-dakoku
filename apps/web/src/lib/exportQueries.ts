@@ -1,4 +1,4 @@
-// 書き出し用に、表の全部の行を読む（主将）
+// 書き出しと集計のために、表の全部の行を読む（読める人はデータベースの権限が決める）
 import { ApiError, OFFLINE_MESSAGE } from './api.ts';
 import { ensureSession, supabase } from './supabase.ts';
 

@@ -1,10 +1,12 @@
 import type { Home } from '../../lib/home.ts';
 import { LineupSection } from '../lineup/LineupSection.tsx';
+import { StatsSection } from '../stats/StatsSection.tsx';
 import { AttendanceSection } from './AttendanceSection.tsx';
 import { ExceptionSection } from './ExceptionSection.tsx';
 import { ExportSection } from './ExportSection.tsx';
 import { NoticeSection } from './NoticeSection.tsx';
 import { RosterSection } from './RosterSection.tsx';
+import { SectionMenu } from './SectionMenu.tsx';
 import { SECTIONS, type SectionId } from './sections.ts';
 import { SettingsSection } from './SettingsSection.tsx';
 import { YearlySection } from './YearlySection.tsx';
@@ -30,29 +32,18 @@ export function AdminTab(props: AdminTabProps) {
 
   return (
     <>
-      <div className="section-menu">
-        {(Object.keys(SECTIONS) as SectionId[]).map((id) => (
-          <button
-            key={id}
-            type="button"
-            className={id === section ? 'small' : 'small secondary'}
-            aria-pressed={id === section}
-            onClick={() => onSection(id)}
-          >
-            {SECTIONS[id]}
-            {!!counts[id] && (
-              <span className="section-badge" aria-label={`承認待ち${counts[id]}件`}>
-                {counts[id]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <SectionMenu
+        ids={Object.keys(SECTIONS) as SectionId[]}
+        current={section}
+        counts={counts}
+        onSelect={onSection}
+      />
       {section === 'notices' && <NoticeSection today={today} onHome={onHome} />}
       {section === 'lineup' && <LineupSection />}
       {section === 'roster' && <RosterSection viewerIsAdmin={viewerIsAdmin} onHome={onHome} />}
       {section === 'exceptions' && <ExceptionSection today={today} />}
       {section === 'attendance' && <AttendanceSection today={today} />}
+      {section === 'stats' && <StatsSection today={today} />}
       {section === 'settings' && <SettingsSection onHome={onHome} />}
       {section === 'yearly' && <YearlySection today={today} onHome={onHome} />}
       {section === 'export' && <ExportSection today={today} />}
