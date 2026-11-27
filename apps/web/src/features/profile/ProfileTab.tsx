@@ -30,7 +30,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
         授業がある曜日・コマにチェックしてください。5コマがある日は後半、4コマだけの日と、どちらもない日は前半の集合時刻で遅刻を判定します。
         <br />
         休講・補講などその日だけの変更や、遅刻・欠席は、集合時間の{home.settings.noticeLeadMinutes}
-        分前までに主将へ連絡してください。
+        分前までに「打刻」タブの「出欠の連絡」から送ってください。
       </p>
       <AdminLogin />
     </>

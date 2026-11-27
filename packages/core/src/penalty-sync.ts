@@ -25,8 +25,8 @@ export type AutoPenalty = {
   countedFrom?: PracticeDate;
 };
 
-/** 却下した連絡の、部員と却下した日 */
-export type NoticeRejection = { memberId: string; reviewedOn: PracticeDate };
+/** 主将が承認か却下をした、部員と日 */
+export type Review = { memberId: string; reviewedOn: PracticeDate };
 
 export type PenaltyChanges = {
   create: AutoPenalty[];
@@ -45,8 +45,8 @@ export function planAutoPenaltySync(input: {
   /** `judged` の部員の、その日の自動の罰 */
   existing: readonly ExistingAutoPenalty[];
   types: readonly PenaltyType[];
-  /** その日の却下した連絡。却下が遅れたら、却下した日から数える */
-  rejections?: readonly NoticeRejection[];
+  /** その日の連絡と申請の承認・却下。練習日より後なら、倍になる日数はその日から数える */
+  reviews?: readonly Review[];
 }): PenaltyChanges {
   const changes: PenaltyChanges = { create: [], update: [], remove: [] };
 
@@ -62,7 +62,7 @@ export function planAutoPenaltySync(input: {
     }
     const baseCount = input.types.find((type) => type.reason === reason)?.baseCount ?? 1;
     if (!current) {
-      const countedFrom = (input.rejections ?? [])
+      const countedFrom = (input.reviews ?? [])
         .filter((entry) => entry.memberId === memberId && entry.reviewedOn > input.date)
         .map((entry) => entry.reviewedOn)
         .sort()

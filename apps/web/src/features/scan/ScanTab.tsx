@@ -132,6 +132,7 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
         <UpcomingDaysCard
           retired={view.retired}
           noticeDays={view.noticeDays}
+          komaDays={view.komaDays}
           joinDays={view.joinDays}
           noticeLeadMinutes={home.settings.noticeLeadMinutes}
           onChanged={onHome}

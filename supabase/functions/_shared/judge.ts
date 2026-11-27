@@ -6,9 +6,9 @@ import {
   type ExistingAutoPenalty,
   type Judgement,
   type ManualJudgement,
-  type NoticeRejection,
   type Part,
   type PracticeDate,
+  type Review,
 } from '../../../packages/core/src/index.ts';
 import type { Sql } from './db.ts';
 import {
@@ -126,11 +126,11 @@ export async function syncAutoPenalties(
         or exists (select 1 from public.penalty_tasks t where t.penalty_id = p.id) as locked
     from public.penalties p where p.auto_key in ${tx(keys)}`;
   const types = await loadPenaltyTypes(tx);
-  const rejections = await tx<NoticeRejection[]>`
+  const reviews = await tx<Review[]>`
     select member_id as "memberId",
       (reviewed_at at time zone 'Asia/Tokyo')::date::text as "reviewedOn"
-    from public.exceptions where date = ${date} and approval = 'rejected'`;
-  const changes = planAutoPenaltySync({ date, judged, existing, types, rejections });
+    from public.exceptions where date = ${date} and reviewed_at is not null`;
+  const changes = planAutoPenaltySync({ date, judged, existing, types, reviews });
 
   if (changes.remove.length > 0) {
     await tx`delete from public.penalties where id in ${tx(changes.remove)}`;

@@ -73,6 +73,12 @@ const KOMA_BY_WEEKDAY: Partial<Record<number, { fourth: KomaKey; fifth: KomaKey 
   4: { fourth: 'thu4', fifth: 'thu5' },
 };
 
+export const KOMA_CHANGE_KINDS = ['no_koma', 'koma4', 'koma5'] as const;
+export type KomaChangeKind = (typeof KOMA_CHANGE_KINDS)[number];
+
+/** その日の区分と集合時刻 */
+export type PlanTime = { part: Part; deadline: ClockTime };
+
 export type PracticeException = {
   date: PracticeDate;
   /** null は全員 */
@@ -81,12 +87,17 @@ export type PracticeException = {
   memo: string;
   /** 主将へ連絡があった日時（欠席・遅刻の連絡） */
   contactedAt: Date | null;
-  /** アプリから締め切りまでに出した連絡の承認の状態。主将の入力と締め切り後の連絡は null */
+  /**
+   * 承認の状態。アプリから締め切りまでに出した連絡と、コマ変更の申請が持つ。
+   * 主将の入力と、締め切り後の連絡は null
+   */
   approval?: NoticeApproval | null;
   /** 却下した理由 */
   rejectionReason?: string;
   /** 本人がアプリから出した */
   selfSubmitted?: boolean;
+  /** コマ変更を申請したときの、変更前の区分と集合時刻 */
+  basePlan?: PlanTime | null;
 };
 
 export type Notice = Pick<PracticeException, 'contactedAt' | 'approval'>;
@@ -100,13 +111,22 @@ export type PracticePlan = {
   absentNotice: Notice | null;
   lateNotice: Notice | null;
   joined: boolean;
+  /** コマ変更の申請が承認待ち */
+  komaRequestPending: boolean;
   notes: string[];
 };
 
-type KomaException = PracticeException & { kind: 'no_koma' | 'koma4' | 'koma5' };
+type KomaException = PracticeException & { kind: KomaChangeKind };
 
 function isKomaException(exception: PracticeException): exception is KomaException {
-  return ['no_koma', 'koma4', 'koma5'].includes(exception.kind);
+  return KOMA_CHANGE_KINDS.some((kind) => kind === exception.kind);
+}
+
+export type KomaRequestException = KomaException & { approval: NoticeApproval };
+
+/** 部員がアプリから申請したコマ変更。主将が入力した臨時変更は承認の状態を持たない。 */
+export function isKomaRequest(exception: PracticeException): exception is KomaRequestException {
+  return isKomaException(exception) && Boolean(exception.approval);
 }
 
 /** コマ表に臨時変更を重ねて、その日に使うルールの条件を決める。 */
@@ -160,14 +180,19 @@ export function resolvePracticePlan(input: {
   if (everyone.some((exception) => exception.kind === 'day_off')) return null;
 
   const mine = today.filter((exception) => exception.memberId === memberId);
+  const requests = mine.filter(isKomaRequest);
+  const approved = requests.findLast((request) => request.approval === 'approved');
   const notes: string[] = [];
   let rule = rules.find((candidate) => candidate.condition === 'all');
 
   if (!rule) {
     if (!koma) notes.push('コマ表未登録');
-    const changes = [...everyone, ...mine].filter(isKomaException);
-    if (changes.length > 0) notes.push('臨時変更あり');
-    const condition = komaConditionOf(weekday, koma, changes);
+    const changes = [...everyone, ...mine]
+      .filter(isKomaException)
+      .filter((change) => !change.approval);
+    if (changes.length > 0 || approved) notes.push('臨時変更あり');
+    // 承認した申請は、コマ表と主将の入力より優先する
+    const condition = approved?.kind ?? komaConditionOf(weekday, koma, changes);
     rule = rules.find((candidate) => candidate.condition === condition);
   }
   if (!rule) return null;
@@ -186,6 +211,7 @@ export function resolvePracticePlan(input: {
     absentNotice: effectiveNotice(mine, 'absent_notice'),
     lateNotice: effectiveNotice(mine, 'late_notice'),
     joined: mine.some((exception) => exception.kind === 'join'),
+    komaRequestPending: requests.some((request) => request.approval === 'pending'),
     notes,
   };
 }

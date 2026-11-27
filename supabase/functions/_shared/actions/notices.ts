@@ -1,8 +1,6 @@
 // 欠席・遅刻の連絡（本人）と、承認・却下（主将）
 import {
-  addDays,
   decideNotice,
-  NOTICE_DAYS_AHEAD,
   NOTICE_KINDS,
   toPracticeDate,
   validateNoticeReview,
@@ -13,14 +11,7 @@ import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
 import { stringParam, uuidParam, type Params } from '../params.ts';
-import {
-  homeSnapshot,
-  loadExceptions,
-  loadKoma,
-  loadPunches,
-  loadRules,
-  loadSettings,
-} from '../store.ts';
+import { homeSnapshot, loadNoticeContext } from '../store.ts';
 
 /**
  * 連絡を保存するか取り消す。出し直しは、前の連絡と入れ替える。
@@ -31,19 +22,7 @@ async function changeNotice({ sql, userId, now }: RequestContext, request: Notic
 
   await inTransaction(sql, async (tx) => {
     const member = await requireEnrolledMember(tx, userId);
-    const punches = await loadPunches(tx, today, [member.id]);
-    const decision = decideNotice(
-      {
-        member,
-        now,
-        rules: await loadRules(tx),
-        koma: (await loadKoma(tx, [member.id])).get(member.id) ?? null,
-        exceptions: await loadExceptions(tx, today, addDays(today, NOTICE_DAYS_AHEAD)),
-        settings: await loadSettings(tx),
-        enteredToday: punches.some((punch) => punch.kind === 'in' && !punch.canceledAt),
-      },
-      request,
-    );
+    const decision = decideNotice(await loadNoticeContext(tx, member, now), request);
     if (!decision.ok) throw new AppError(decision.message);
     if (decision.change === 'none') return;
 
@@ -101,7 +80,9 @@ export async function reviewNotice({ sql, userId, now }: RequestContext, params:
       where id = ${id} and approval is not null
       returning date::text, member_id as "memberId"`;
     if (!notice) {
-      throw new AppError('承認の対象の連絡がありません。本人が取り消したか、出し直しています。');
+      throw new AppError(
+        '承認の対象の連絡・申請がありません。本人が取り消したか、出し直しています。',
+      );
     }
     if (notice.date <= today) {
       await judgeDate(tx, {

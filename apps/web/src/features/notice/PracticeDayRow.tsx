@@ -2,6 +2,7 @@ import {
   NOTICE_KIND_LABELS,
   PART_LABELS,
   type JoinDay,
+  type KomaRequestDay,
   type NoticeDay,
   type NoticeKind,
   type Part,
@@ -10,6 +11,7 @@ import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { dateWithWeekday } from '../../lib/format.ts';
 import type { RunAction } from '../../lib/useAction.ts';
+import { KomaChange } from './KomaChange.tsx';
 import { NoticeForm } from './NoticeForm.tsx';
 import { NoticeStatus } from './NoticeStatus.tsx';
 
@@ -17,11 +19,13 @@ type PracticeDayRowProps = {
   day: { date: string; part: Part; deadline: string };
   join: JoinDay | undefined;
   notice: NoticeDay | undefined;
+  komaDay: KomaRequestDay | undefined;
   sending: boolean;
   run: RunAction;
 };
 
-export function PracticeDayRow({ day, join, notice, sending, run }: PracticeDayRowProps) {
+export function PracticeDayRow(props: PracticeDayRowProps) {
+  const { day, join, notice, komaDay, sending, run } = props;
   const [writing, setWriting] = useState<NoticeKind | null>(null);
   const { date } = day;
   const sent = notice?.notice ?? null;
@@ -97,6 +101,7 @@ export function PracticeDayRow({ day, join, notice, sending, run }: PracticeDayR
           }}
         />
       )}
+      {komaDay && <KomaChange day={komaDay} sending={sending} run={run} />}
     </li>
   );
 }

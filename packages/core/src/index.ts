@@ -3,6 +3,7 @@ export * from './attendance.ts';
 export * from './csv.ts';
 export * from './date.ts';
 export * from './join.ts';
+export * from './koma-request.ts';
 export * from './location.ts';
 export * from './member.ts';
 export * from './nightly.ts';

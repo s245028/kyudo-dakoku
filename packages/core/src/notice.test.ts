@@ -201,7 +201,7 @@ describe('却下が遅れた罰の数え方（受け入れテスト32）', () =>
       judged: [{ memberId: 'm1', result: 'absent_unexcused' }],
       existing: [],
       types: DEFAULT_PENALTY_TYPES,
-      rejections: [{ memberId: 'm1', reviewedOn }],
+      reviews: [{ memberId: 'm1', reviewedOn }],
     }).create[0]!;
 
   it('練習日より後の却下は、却下した日から数える', () => {
