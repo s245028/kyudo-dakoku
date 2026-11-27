@@ -1,4 +1,5 @@
 import {
+  adminOnlyRefusal,
   GRADE_LABELS,
   GRADES,
   MEMBER_STATUSES,
@@ -12,10 +13,18 @@ import type { RosterEntry } from '../../lib/queries.ts';
 import { Options } from './Options.tsx';
 import type { RunAction } from './types.ts';
 
-type MemberCardProps = { member: RosterEntry; sending: boolean; run: RunAction };
+type MemberCardProps = {
+  member: RosterEntry;
+  viewerIsAdmin: boolean;
+  sending: boolean;
+  run: RunAction;
+};
 
-export function MemberCard({ member, sending, run }: MemberCardProps) {
+export function MemberCard({ member, viewerIsAdmin, sending, run }: MemberCardProps) {
   const [open, setOpen] = useState(false);
+  const refusal = adminOnlyRefusal({ actorIsAdmin: viewerIsAdmin, targetRole: member.role });
+  // 管理者でなければ、管理者の役職は選べない
+  const roles = viewerIsAdmin ? ROLES : ROLES.filter((role) => role !== 'admin');
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,7 +52,8 @@ export function MemberCard({ member, sending, run }: MemberCardProps) {
           {!member.linked && '・端末なし'}
         </span>
       </button>
-      {open && (
+      {open && refusal && <p className="row-note">{refusal}</p>}
+      {open && !refusal && (
         <form className="form" onSubmit={(event) => void save(event)}>
           <label>
             名前
@@ -58,7 +68,7 @@ export function MemberCard({ member, sending, run }: MemberCardProps) {
           <label>
             役職
             <select name="role" defaultValue={member.role}>
-              <Options values={ROLES} labels={ROLE_LABELS} />
+              <Options values={roles} labels={ROLE_LABELS} />
             </select>
           </label>
           <label>

@@ -17,8 +17,14 @@ const SECTIONS = {
 } as const;
 type SectionId = keyof typeof SECTIONS;
 
-/** 主将の管理画面 */
-export function AdminTab({ today, onHome }: { today: string; onHome: (home: Home) => void }) {
+type AdminTabProps = {
+  today: string;
+  viewerIsAdmin: boolean;
+  onHome: (home: Home) => void;
+};
+
+/** 主将と管理者の管理画面 */
+export function AdminTab({ today, viewerIsAdmin, onHome }: AdminTabProps) {
   const [section, setSection] = useState<SectionId>('roster');
 
   return (
@@ -36,7 +42,7 @@ export function AdminTab({ today, onHome }: { today: string; onHome: (home: Home
           </button>
         ))}
       </div>
-      {section === 'roster' && <RosterSection onHome={onHome} />}
+      {section === 'roster' && <RosterSection viewerIsAdmin={viewerIsAdmin} onHome={onHome} />}
       {section === 'exceptions' && <ExceptionSection today={today} />}
       {section === 'attendance' && <AttendanceSection today={today} />}
       {section === 'settings' && <SettingsSection onHome={onHome} />}

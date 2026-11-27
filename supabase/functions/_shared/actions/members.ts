@@ -1,19 +1,24 @@
 // 名簿の操作（主将）
-import { toPracticeDate, validateMemberUpdate } from '../../../../packages/core/src/index.ts';
+import {
+  adminOnlyRefusal,
+  ROLES,
+  toPracticeDate,
+  validateMemberUpdate,
+} from '../../../../packages/core/src/index.ts';
 import { requireCaptain, type Actor, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
-import { AppError } from '../errors.ts';
+import { AppError, refuseIf } from '../errors.ts';
 import { objectParam, uuidParam, type Params } from '../params.ts';
 import { homeSnapshot, lockRoster, type MemberRow } from '../store.ts';
 
 /**
- * アプリから管理できる主将が残らない変更は、取りやめる。
- * 管理者は自分で直せるので対象外（唯一の主将の再登録を許可する場合など）。
+ * アプリから管理できる人（主将・管理者）が残らない変更は、取りやめる。
+ * 管理者ログインは自分で直せるので対象外（唯一の主将の再登録を許可する場合など）。
  */
-export async function ensureCaptainRemains(tx: Sql, actor: Actor): Promise<void> {
+export async function ensureManagerRemains(tx: Sql, actor: Actor): Promise<void> {
   if (actor.id === null) return;
   const [captain] = await tx`select 1 from public.members
-    where role = 'captain' and approved and status in ('active', 'retired')
+    where role in ('captain', 'admin') and approved and status in ('active', 'retired')
       and auth_user_id is not null
     limit 1`;
   if (!captain) {
@@ -35,8 +40,10 @@ async function changeMember(
     const actor = await requireCaptain(tx, userId);
     const target = roster.find((member) => member.id === memberId);
     if (!target) throw new AppError('部員が見つかりません。画面を開き直してください。');
+    const nextRole = ROLES.find((role) => role === objectParam(params, 'changes')['role']);
+    refuseIf(adminOnlyRefusal({ actorIsAdmin: actor.isAdmin, targetRole: target.role, nextRole }));
     await change(tx, target);
-    await ensureCaptainRemains(tx, actor);
+    await ensureManagerRemains(tx, actor);
   });
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
 }

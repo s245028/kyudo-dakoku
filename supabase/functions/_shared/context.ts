@@ -26,10 +26,11 @@ export async function requireEnrolledMember(tx: Sql, userId: string): Promise<Me
 }
 
 /**
- * 管理の操作をする人。`id` は部員の id で、管理者（部員ではないログイン）は null。
+ * 管理の操作をする人。`id` は部員の id で、管理者ログイン（部員ではない）は null。
  * 記録した人の列には、この `id` をそのまま入れる。
+ * `isAdmin` は、管理者ログインか、役職が管理者の部員。
  */
-export type Actor = { id: string | null };
+export type Actor = { id: string | null; isAdmin: boolean };
 
 export async function isAdmin(tx: Sql, userId: string): Promise<boolean> {
   const [admin] = await tx`select 1 from public.admins where auth_user_id = ${userId}`;
@@ -44,14 +45,19 @@ async function requireActor(
   allows: (member: MemberRow) => boolean,
   refusal: string,
 ): Promise<Actor> {
-  if (await isAdmin(tx, userId)) return { id: null };
+  if (await isAdmin(tx, userId)) return { id: null, isAdmin: true };
   const member = await findMemberByDevice(tx, userId);
   if (!member || !allows(member)) throw new AppError(refusal);
-  return { id: member.id };
+  return { id: member.id, isAdmin: member.role === 'admin' };
 }
 
 export const requireOfficer = (tx: Sql, userId: string) =>
-  requireActor(tx, userId, canManagePenalties, 'この操作ができるのは副務と主将だけです。');
+  requireActor(
+    tx,
+    userId,
+    canManagePenalties,
+    'この操作ができるのは、副務・主将・管理者だけです。',
+  );
 
 export const requireCaptain = (tx: Sql, userId: string) =>
-  requireActor(tx, userId, canAdminister, 'この操作ができるのは主将だけです。');
+  requireActor(tx, userId, canAdminister, 'この操作ができるのは、主将と管理者だけです。');

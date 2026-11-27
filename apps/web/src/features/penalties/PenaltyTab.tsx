@@ -100,7 +100,7 @@ export function PenaltyTab({ viewer, mine, today, doublingDays, onHome }: Penalt
             ))}
             {captain && operations && (
               <ConfirmButton
-                label="この罰をまるごと消化済みにする（主将）"
+                label="この罰をまるごと消化済みにする"
                 className="small secondary"
                 disabled={operations.sending}
                 onConfirm={() =>

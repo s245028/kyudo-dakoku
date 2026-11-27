@@ -34,7 +34,7 @@ export function AdminScreen({
             ログアウト
           </button>
         </div>
-        {tab === 'admin' && <LazyAdminTab today={today} onHome={onHome} />}
+        {tab === 'admin' && <LazyAdminTab today={today} viewerIsAdmin onHome={onHome} />}
         {tab === 'presence' && <PresenceTab />}
         {tab === 'penalty' && (
           <PenaltyTab
