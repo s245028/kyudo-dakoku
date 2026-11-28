@@ -31,10 +31,10 @@ export function KomaChange({ day, sending, run }: KomaChangeProps) {
         </div>
       )}
       {!writing && day.canSubmit && (
-        <div className="notice-actions">
+        <div className="day-actions">
           <button
             type="button"
-            className="small secondary"
+            className="secondary"
             disabled={sending}
             onClick={() => setWriting(true)}
           >
@@ -43,7 +43,7 @@ export function KomaChange({ day, sending, run }: KomaChangeProps) {
           {day.canCancel && (
             <ConfirmButton
               label="申請を取り消す"
-              className="small secondary"
+              className="secondary"
               disabled={sending}
               onConfirm={() => void run('cancel-koma-change', { date })}
             />

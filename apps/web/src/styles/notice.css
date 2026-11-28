@@ -5,49 +5,158 @@
   border-top: 0;
 }
 
-.practice-days .hint {
-  margin: 0 0 8px;
-  font-size: 12px;
+.deadline-rules {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-size: 13px;
 }
 
-.practice-days ul {
+.deadline-rules div {
+  display: grid;
+  grid-template-columns: 7.5em 1fr;
+  gap: 8px;
+}
+
+.deadline-rules dt {
+  color: var(--sub);
+}
+
+.deadline-rules dd {
   margin: 0;
-  padding: 0;
-  list-style: none;
+  font-weight: 700;
 }
 
-.practice-days li {
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
+/* 練習日は1日ずつ白い箱にする */
+.practice-days ul {
+  display: grid;
+  gap: 10px;
+}
+
+.day-card {
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+}
+
+.practice-days button {
+  margin: 10px 0 0;
+}
+
+.practice-days button.secondary {
+  min-height: 44px;
+  padding: 10px;
+  background: var(--card);
+  border-color: var(--line-strong);
+}
+
+.practice-days button.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
+.day-card > button.link-button {
+  margin-bottom: -6px;
+  color: var(--ink);
+  font-size: 14px;
+}
+
+/* 入力欄の中の間隔は、欄の指定（gap）に任せる */
+.practice-days .form button {
+  margin: 0;
+}
+
+.practice-days textarea,
+.practice-days select {
+  border-color: var(--line-strong);
+}
+
+/* 並べたボタン。奇数の最後は横いっぱいにする */
+.day-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.practice-days .day-actions button {
+  margin: 0;
+}
+
+.day-actions > :last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .practice-day {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
 }
 
 .practice-date {
-  font-weight: 700;
+  font-size: 19px;
+  font-weight: 800;
 }
 
 .practice-date small {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--sub);
   font-weight: 400;
 }
 
-.join-status {
-  color: var(--green);
-  font-size: 14px;
-  font-weight: 700;
+.join-chip,
+.practice-days .notice-state {
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-small);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.join-chip {
+  color: var(--sub);
+}
+
+.join-chip-on,
+.practice-days .notice-state-approved {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+.practice-days .notice-state-pending {
+  background: var(--gold-strong);
+  border-color: var(--gold-ink);
+  color: var(--gold-ink);
+}
+
+.practice-days .notice-state-rejected,
+.practice-days .notice-state-overdue {
+  background: var(--red-soft);
+  border-color: var(--red);
+  color: var(--red);
 }
 
 .notice-status {
-  margin-top: 6px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--radius);
   font-size: 14px;
+}
+
+.notice-status > p:first-child {
+  font-weight: 700;
 }
 
 .notice-status > p:first-child,

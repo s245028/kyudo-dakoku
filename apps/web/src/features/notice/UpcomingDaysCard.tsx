@@ -2,9 +2,13 @@ import type { JoinDay, KomaRequestDay, NoticeDay } from '@kyudo/core';
 import { useState } from 'react';
 import { useAction } from '../../lib/useAction.ts';
 import type { Home } from '../../lib/home.ts';
+import { DeadlineRules } from './DeadlineRules.tsx';
 import { PracticeDayRow } from './PracticeDayRow.tsx';
 
-/** はじめに出す日数。下の項目が送らずに見えるように、次の1日だけにする。残りはボタンで開く */
+/**
+ * はじめに出す日数。下の項目が送らずに見えるように、次の1日だけにする。
+ * 連絡か申請を出した日は、この数に関係なく出す。残りはボタンで開く
+ */
 const COLLAPSED_DAYS = 1;
 
 type UpcomingDaysCardProps = {
@@ -23,7 +27,12 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
   const [expanded, setExpanded] = useState(false);
   const action = useAction();
   const days = retired ? joinDays : noticeDays;
-  const visible = expanded ? days : days.slice(0, COLLAPSED_DAYS);
+  const hasSent = (date: string) =>
+    noticeDays.some((day) => day.date === date && day.notice) ||
+    komaDays.some((day) => day.date === date && day.request);
+  const collapsed = days.filter((day, index) => index < COLLAPSED_DAYS || hasSent(day.date));
+  const hidden = days.length - collapsed.length;
+  const visible = expanded ? days : collapsed;
 
   const run = (name: string, params: object) =>
     action.run<{ home: Home }>(name, params, ({ home }) => onChanged(home));
@@ -31,11 +40,7 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
   return (
     <section className="section practice-days">
       <h3>{retired ? '参加する練習日' : '欠席・遅刻の連絡'}</h3>
-      <p className="hint">
-        {retired
-          ? `参加の登録は集合時刻まで。取り消しと欠席・遅刻の連絡は集合の${noticeLeadMinutes}分前までで、過ぎた連絡は連絡遅れになります。`
-          : `締め切りは集合の${noticeLeadMinutes}分前。過ぎた連絡は連絡遅れになり、コマ変更は申請できません。`}
-      </p>
+      <DeadlineRules retired={retired} noticeLeadMinutes={noticeLeadMinutes} />
       <p className="form-error" role="alert">
         {action.error}
       </p>
@@ -53,9 +58,9 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
           />
         ))}
       </ul>
-      {days.length > COLLAPSED_DAYS && (
-        <button type="button" className="link-button" onClick={() => setExpanded(!expanded)}>
-          {expanded ? '閉じる' : `ほかの練習日も見る（あと${days.length - COLLAPSED_DAYS}日）`}
+      {hidden > 0 && (
+        <button type="button" className="secondary" onClick={() => setExpanded(!expanded)}>
+          {expanded ? '閉じる' : `ほかの練習日も見る（あと${hidden}日）`}
         </button>
       )}
     </section>
