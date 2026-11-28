@@ -1,8 +1,14 @@
 /* 欠席・遅刻の連絡と、これからの練習日 */
-.practice-days:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+/* 欄全体を少し濃い地色にして、下の項目と分ける。画面の左右と上の余白いっぱいに広げる */
+.practice-days {
+  margin: -16px -16px 0;
+  padding: 16px 16px 18px;
+  background: var(--bg-section);
+  border-bottom: 1px solid var(--line);
+}
+
+.practice-days h3 {
+  margin: 0 0 8px;
 }
 
 .deadline-rules {
@@ -11,7 +17,7 @@
   margin: 0 0 10px;
   padding: 10px 12px;
   background: var(--card);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
   font-size: 13px;
 }
@@ -40,7 +46,7 @@
 .day-card {
   padding: 12px;
   background: var(--card);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   border-radius: 10px;
 }
 
@@ -52,7 +58,7 @@
   min-height: 44px;
   padding: 10px;
   background: var(--card);
-  border-color: var(--line-strong);
+  border-color: var(--line);
 }
 
 .practice-days button.danger {
@@ -74,7 +80,7 @@
 
 .practice-days textarea,
 .practice-days select {
-  border-color: var(--line-strong);
+  border-color: var(--line);
 }
 
 /* 並べたボタン。奇数の最後は横いっぱいにする */
@@ -116,7 +122,7 @@
 .practice-days .notice-state {
   flex-shrink: 0;
   padding: 3px 10px;
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--line);
   border-radius: var(--radius-small);
   font-size: 13px;
   font-weight: 800;

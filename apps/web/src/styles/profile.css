@@ -1,6 +1,6 @@
 /* 自分の画面。項目の一覧と、開いた項目 */
 .menu-list {
-  margin-top: 22px;
+  margin-top: 20px;
 }
 
 .menu-list:first-child {

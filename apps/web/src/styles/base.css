@@ -1,12 +1,11 @@
 :root {
   --bg: #f4f1ea;
+  --bg-section: #e8e2d4;
   --ink: #1d2b24;
   --sub: #45504a;
   --card: #fff;
   --soft: #faf8f3;
   --line: #b9b2a2;
-  /* 押せるものと箱の区切り。背景との明暗差を3:1以上にする */
-  --line-strong: #736c60;
   --green: #1f5a40;
   --green-soft: #e4efe8;
   --accent: #2f7a55;
