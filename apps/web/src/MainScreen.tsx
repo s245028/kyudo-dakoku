@@ -9,7 +9,7 @@ import {
   toClockTime,
   waitingCount,
 } from '@kyudo/core';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Header } from './components/Header.tsx';
 import { TabBar } from './components/TabBar.tsx';
 import type { TabId } from './components/tabs.ts';
@@ -67,6 +67,11 @@ export function MainScreen(props: MainScreenProps) {
   useAppBadge(tasks === null ? null : waiting);
   // 通信が切れている間に入れた的中は、開き直したときにも送る
   useEffect(() => startDraftSync(), []);
+  const main = useRef<HTMLElement>(null);
+  // 画面を切り替えたら、上から見せる
+  useLayoutEffect(() => {
+    main.current?.scrollTo(0, 0);
+  }, [tab, navigation.visit]);
 
   // 画面を切り替えるたびに、対応を待っている数も読み直す
   function select(next: ViewId) {
@@ -106,7 +111,7 @@ export function MainScreen(props: MainScreenProps) {
             : undefined
         }
       />
-      <main className="app-main">
+      <main className="app-main" ref={main}>
         {error && (
           <p className="notice" role="alert">
             {error}
@@ -129,6 +134,7 @@ export function MainScreen(props: MainScreenProps) {
             active={tab === 'scan'}
             onHome={onHome}
             onShowPenalties={() => select('penalty')}
+            onShowNotices={() => select('me')}
           />
         </div>
         {tab === 'presence' && <PresenceTab />}
@@ -152,7 +158,15 @@ export function MainScreen(props: MainScreenProps) {
             onManage={managesPenalties ? () => openSection('penalties') : undefined}
           />
         )}
-        {tab === 'me' && <ProfileTab home={home} onHome={onHome} />}
+        {tab === 'me' && (
+          <ProfileTab
+            key={navigation.visit}
+            home={home}
+            view={view}
+            initialPage={navigation.visit === 0 && props.initialTab === 'me' ? 'koma' : null}
+            onHome={onHome}
+          />
+        )}
         {tab === 'officer' && (
           <LazyOfficerTab
             today={view.today}

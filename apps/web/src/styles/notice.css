@@ -1,4 +1,10 @@
 /* 欠席・遅刻の連絡と、これからの練習日 */
+.practice-days:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .practice-days .hint {
   margin: 0 0 8px;
   font-size: 12px;

@@ -1,18 +1,38 @@
-import { describeEvent, PART_LABELS } from '@kyudo/core';
+import { describeEvent, NOTICE_KIND_LABELS, PART_LABELS, type NoticeState } from '@kyudo/core';
 import { totalRemaining, type HomeView } from '../../lib/home.ts';
+import { APPROVAL_LABELS, NOTICE_STATE_LABELS } from '../../lib/noticeLabels.ts';
 
 export function TodayCard({
   view,
+  noticeLeadMinutes,
   onShowPenalties,
   onShowNotices,
 }: {
   view: HomeView;
+  noticeLeadMinutes: number;
   onShowPenalties: () => void;
-  /** 連絡の欄へ移る。承認前は指定しない */
+  /** 「自分」の連絡の欄へ移る。承認前は指定しない */
   onShowNotices?: (() => void) | undefined;
 }) {
   const total = totalRemaining(view.penalties);
   const event = view.plan?.event;
+  // 今日出した連絡と申請の状態は、打刻する前にも分かるようにする
+  const notice = view.noticeDays.find((day) => day.date === view.today)?.notice;
+  const koma = view.komaDays.find((day) => day.date === view.today)?.request;
+  const sent: { label: string; state: NoticeState; text: string }[] = [
+    ...(notice
+      ? [
+          {
+            label: `${NOTICE_KIND_LABELS[notice.kind]}の連絡`,
+            state: notice.state,
+            text: NOTICE_STATE_LABELS[notice.state],
+          },
+        ]
+      : []),
+    ...(koma
+      ? [{ label: 'コマ変更の申請', state: koma.state, text: APPROVAL_LABELS[koma.state] }]
+      : []),
+  ];
 
   return (
     <div className="today-card">
@@ -38,9 +58,17 @@ export function TodayCard({
           {event.memo && <p>{event.memo}</p>}
         </div>
       )}
+      {sent.map(({ label, state, text }) => (
+        <p key={label} className="today-sent">
+          今日の{label}
+          <span className={`notice-state notice-state-${state}`}>{text}</span>
+        </p>
+      ))}
       {onShowNotices && (
-        <button type="button" className="secondary today-notice" onClick={onShowNotices}>
-          {view.retired ? '参加する練習日を選ぶ' : '欠席・遅刻を連絡する'}
+        <button type="button" className="today-notice" onClick={onShowNotices}>
+          {view.retired
+            ? '参加する練習日を選ぶ'
+            : `欠席・遅刻の連絡は集合${noticeLeadMinutes}分前まで`}
         </button>
       )}
     </div>

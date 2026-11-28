@@ -3,10 +3,9 @@ import { useState } from 'react';
 import { useAction } from '../../lib/useAction.ts';
 import type { Home } from '../../lib/home.ts';
 import { PracticeDayRow } from './PracticeDayRow.tsx';
-import { PRACTICE_DAYS_ID } from './practiceDaysId.ts';
 
-/** はじめに出す日数。残りはボタンで開く */
-const COLLAPSED_DAYS = 3;
+/** はじめに出す日数。下の項目が送らずに見えるように、次の1日だけにする。残りはボタンで開く */
+const COLLAPSED_DAYS = 1;
 
 type UpcomingDaysCardProps = {
   retired: boolean;
@@ -30,14 +29,12 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
     action.run<{ home: Home }>(name, params, ({ home }) => onChanged(home));
 
   return (
-    <section className="section practice-days" id={PRACTICE_DAYS_ID}>
-      <h3>{retired ? '参加する練習日' : '出欠の連絡'}</h3>
+    <section className="section practice-days">
+      <h3>{retired ? '参加する練習日' : '欠席・遅刻の連絡'}</h3>
       <p className="hint">
-        欠席・遅刻の連絡は集合の{noticeLeadMinutes}
-        分前までに送り、主将の承認を受けます。過ぎると連絡遅れになります。
-        休講・補講で集合時刻が変わるときは、同じ締め切りまでにコマ変更を申請します。
-        {retired &&
-          `引退した人は、参加を登録した日だけ遅刻・欠席を判定します。登録は集合時刻まで、取り消しは集合の${noticeLeadMinutes}分前までです。`}
+        {retired
+          ? `参加の登録は集合時刻まで。取り消しと欠席・遅刻の連絡は集合の${noticeLeadMinutes}分前までで、過ぎた連絡は連絡遅れになります。`
+          : `締め切りは集合の${noticeLeadMinutes}分前。過ぎた連絡は連絡遅れになり、コマ変更は申請できません。`}
       </p>
       <p className="form-error" role="alert">
         {action.error}

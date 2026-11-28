@@ -68,9 +68,14 @@ function Recorded({
             }
           >
             {scan.message}
-            {scan.penaltyAdded && '　罰がつきました（罰タブで確認）'}
+            {scan.penaltyAdded && '　罰がつきました'}
             {scan.penaltyPending && '　連絡か申請が承認待ちのため、罰は保留しています'}
           </p>
+          {scan.penaltyAdded && (
+            <p className="result-note">
+              やることは「罰」タブで確認し、終わったら証拠画像を副務に送ってください。
+            </p>
+          )}
           <p className="result-note">{memberName} さん</p>
           <UndoButton punchId={scan.id} undoSeconds={scan.undoSeconds} onUndone={onUndone} />
         </>

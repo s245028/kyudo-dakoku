@@ -36,11 +36,34 @@
   color: var(--green);
 }
 
-button.today-notice {
+.today-sent {
+  display: flex;
   grid-column: 1 / -1;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+
+button.today-notice {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-height: 44px;
-  margin: 0;
-  padding: 10px;
+  margin: 0 0 -10px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14px;
+  text-align: left;
+}
+
+.today-notice::after {
+  color: var(--sub);
+  font-size: 20px;
+  content: '›';
 }
 
 .scanner {

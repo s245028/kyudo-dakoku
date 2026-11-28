@@ -206,9 +206,7 @@ export function BulkForm({
       <button type="submit" disabled={sending}>
         保存する
       </button>
-      <p className="hint">
-        引いた区分だけ入れてください。保存し直すと上書きになり、足し算にはなりません。両方を空にすると、その区分の記録を削除します。
-      </p>
+      <p className="hint">保存すると上書きします。両方を空にした区分は削除します。</p>
     </form>
   );
 }

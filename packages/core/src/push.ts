@@ -3,7 +3,7 @@ import { dateWithWeekday, type PracticeDate } from './date.ts';
 import { invalid, type Validated } from './validation.ts';
 
 /** 通知を押したときに開く画面 */
-export const OPEN_TARGETS = ['notices', 'members', 'penalties', 'scan'] as const;
+export const OPEN_TARGETS = ['notices', 'members', 'penalties', 'me'] as const;
 export type OpenTarget = (typeof OPEN_TARGETS)[number];
 
 export type PushMessage = {
@@ -69,7 +69,7 @@ export function reviewedMessage(input: {
   return {
     title: `${SUBJECT_LABELS[subject]}が${result}されました`,
     body: `${dateWithWeekday(date)}の分です。アプリで確認してください。`,
-    open: 'scan',
+    open: 'me',
   };
 }
 
