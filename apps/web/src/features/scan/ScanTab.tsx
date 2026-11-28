@@ -3,13 +3,10 @@ import { callAction, messageOf } from '../../lib/api.ts';
 import type { Home, HomeData, HomeView } from '../../lib/home.ts';
 import { failureFeedback, successFeedback } from './feedback.ts';
 import { PublishedLineups } from '../lineup/PublishedLineups.tsx';
-import { PRACTICE_DAYS_ID } from '../notice/practiceDaysId.ts';
-import { UpcomingDaysCard } from '../notice/UpcomingDaysCard.tsx';
 import { currentPosition, type ScanPosition } from './position.ts';
 import { ResultCard } from './ResultCard.tsx';
 import type { ScanOutcome, ScanResponse } from './scanResult.ts';
 import { TodayCard } from './TodayCard.tsx';
-import { TodayPunches } from './TodayPunches.tsx';
 import { useQrScanner } from './useQrScanner.ts';
 
 type ScanTabProps = {
@@ -19,15 +16,9 @@ type ScanTabProps = {
   active: boolean;
   onHome: (home: Home) => void;
   onShowPenalties: () => void;
+  /** 「自分」の欠席・遅刻の連絡へ移る */
+  onShowNotices: () => void;
 };
-
-/** 打刻画面の下の、これからの練習日の欄まで送る */
-function showNotices() {
-  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  document
-    .getElementById(PRACTICE_DAYS_ID)
-    ?.scrollIntoView({ block: 'start', behavior: smooth ? 'smooth' : 'auto' });
-}
 
 type Phase = { type: 'scanning' } | { type: 'sending' } | ScanOutcome;
 
@@ -41,7 +32,8 @@ function usePageVisible(): boolean {
   return visible;
 }
 
-export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTabProps) {
+export function ScanTab(props: ScanTabProps) {
+  const { home, view, active, onHome, onShowPenalties, onShowNotices } = props;
   const [phase, setPhase] = useState<Phase>({ type: 'scanning' });
   const videoRef = useRef<HTMLVideoElement>(null);
   const positionRef = useRef<Promise<ScanPosition | null> | null>(null);
@@ -103,7 +95,8 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
       <TodayCard
         view={view}
         onShowPenalties={onShowPenalties}
-        onShowNotices={approved ? showNotices : undefined}
+        noticeLeadMinutes={home.settings.noticeLeadMinutes}
+        onShowNotices={approved ? onShowNotices : undefined}
       />
       {showCamera && <p className="scanner-heading">{next}の読み取り</p>}
       <div className="scanner" hidden={!showCamera}>
@@ -141,18 +134,7 @@ export function ScanTab({ home, view, active, onHome, onShowPenalties }: ScanTab
           </button>
         </>
       )}
-      {approved && <TodayPunches punches={view.todayPunches} />}
       {approved && <PublishedLineups memberId={home.member.id} active={active} />}
-      {approved && (
-        <UpcomingDaysCard
-          retired={view.retired}
-          noticeDays={view.noticeDays}
-          komaDays={view.komaDays}
-          joinDays={view.joinDays}
-          noticeLeadMinutes={home.settings.noticeLeadMinutes}
-          onChanged={onHome}
-        />
-      )}
     </>
   );
 }

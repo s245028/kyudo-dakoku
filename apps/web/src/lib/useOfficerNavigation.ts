@@ -12,7 +12,7 @@ const DESTINATIONS: Record<OpenTarget, { view: ViewId; section?: OfficerSection 
   notices: { view: 'officer', section: 'notices' },
   members: { view: 'officer', section: 'roster' },
   penalties: { view: 'officer', section: 'penalties' },
-  scan: { view: 'scan' },
+  me: { view: 'me' },
 };
 
 /**
@@ -28,6 +28,8 @@ export function useOfficerNavigation(
   const [view, setView] = useState<ViewId>(initial?.view ?? initialView);
   const [section, setSection] = useState<OfficerSection | null>(initial?.section ?? null);
   const [menuOpen, setMenuOpen] = useState(false);
+  /** タブや通知で画面を開き直した回数。「自分」を最初の一覧に戻すのに使う */
+  const [visit, setVisit] = useState(0);
 
   useEffect(
     () =>
@@ -36,6 +38,7 @@ export function useOfficerNavigation(
         setView(next.view);
         if (next.section) setSection(next.section);
         setMenuOpen(false);
+        setVisit((count) => count + 1);
       }),
     [],
   );
@@ -46,8 +49,10 @@ export function useOfficerNavigation(
     section: section && allowed.includes(section) ? section : firstSection(allowed, pending),
     menuOpen,
     setMenuOpen,
+    visit,
     select: (next: ViewId) => {
       setMenuOpen(false);
+      setVisit((count) => count + 1);
       setView(next);
     },
     /** 役職の画面の項目を開く */

@@ -16,8 +16,7 @@ export function MyPenalties({ penalties }: { penalties: CountedPenalty[] }) {
     <div className="my-penalties my-penalties-open">
       <p className="my-penalties-total">あなたの罰：残り{total}個</p>
       <p className="my-penalties-note">
-        終わったら証拠の画像を副務へ。いちばん早いものは、あと{soonest}
-        日で残りが2倍になります。
+        終わったら証拠画像を副務に送ってください。あと{soonest}日で残りが2倍になります。
       </p>
       <ul>
         {penalties.flatMap((penalty) => [

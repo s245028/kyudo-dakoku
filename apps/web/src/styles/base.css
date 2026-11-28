@@ -35,6 +35,16 @@ body,
   height: 100%;
 }
 
+/*
+ * iOS 26 のホーム画面のアプリは、高さがステータスバーの分だけ短くなり、下に余白が残る
+ * （WebKit の不具合 301108）。文書を画面の高さまで伸ばして直す。ブラウザで開いたときは変えない
+ */
+@media (display-mode: standalone) {
+  html {
+    min-height: min(100lvh, calc(100% + env(safe-area-inset-top)));
+  }
+}
+
 body {
   background: var(--bg);
   color: var(--ink);

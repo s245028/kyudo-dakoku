@@ -39,12 +39,6 @@ export function PenaltyTab({ viewer, mine, today, doublingDays, onManage }: Pena
         operations={null}
         empty="いま罰がついている人はいません"
       />
-      <p className="hint">
-        罰1個ごとに、副務が「やること」を決めます。終わったら証拠の画像を副務に送ってください。副務が確認すると、その罰が消えます。
-        <br />
-        残っている罰は、ついた日から{doublingDays}
-        日ごとに2倍になります。増えた分のやることも副務が決めます。
-      </p>
     </>
   );
 }

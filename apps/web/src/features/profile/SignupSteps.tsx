@@ -24,7 +24,7 @@ export function SignupSteps({ komaSaved }: { komaSaved: boolean }) {
       <p>
         {komaSaved
           ? '主将の承認を待っています。承認されると打刻できます。'
-          : '下の「授業のコマ」にチェックして保存してください。授業がなくても保存します。'}
+          : '「授業のコマ」にチェックして保存してください。授業がなくても保存します。'}
       </p>
     </div>
   );

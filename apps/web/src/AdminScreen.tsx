@@ -80,7 +80,7 @@ export function AdminScreen({
               onHome={onHome}
             />
             <NotificationCard
-              description={`出欠の連絡、コマ変更の申請、新しい部員の登録が届いたときに知らせます。${ICON_BADGE_NOTE}`}
+              description={`届いた連絡・申請・部員登録を知らせます。${ICON_BADGE_NOTE}`}
             />
           </>
         )}

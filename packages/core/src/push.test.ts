@@ -31,10 +31,10 @@ describe('通知の文面', () => {
     });
   });
 
-  it('登録の通知は名簿を、本人への通知は打刻の画面を開く', () => {
+  it('登録の通知は名簿を、本人への通知は「自分」を開く', () => {
     expect(registrationMessage('a').open).toBe('members');
     expect(reviewedMessage({ date: MONDAY, subject: 'late', approval: 'approved' }).open).toBe(
-      'scan',
+      'me',
     );
   });
 
