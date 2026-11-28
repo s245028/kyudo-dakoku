@@ -1,10 +1,13 @@
 import { ensureSession, supabase } from './supabase.ts';
 
+/** 変わったことを知らせる通知の種類。在室（打刻）と、的中の記録 */
+export type ChangeTopic = 'presence' | 'hits';
+
 /**
- * 打刻が変わったという通知を受け取る。つながったときにも `onChange` を呼び、
+ * 内容が変わったという通知を受け取る。つながったときにも `onChange` を呼び、
  * 切れていた間の変化を取りこぼさない。戻り値を呼ぶと受け取りをやめる。
  */
-export function watchPresence(onChange: () => void): () => void {
+export function watchChanges(topic: ChangeTopic, onChange: () => void): () => void {
   let stopped = false;
   let stop = () => {};
 
@@ -14,7 +17,7 @@ export function watchPresence(onChange: () => void): () => void {
     await supabase().realtime.setAuth();
     if (stopped) return;
     const channel = supabase()
-      .channel('presence', { config: { private: true } })
+      .channel(topic, { config: { private: true } })
       .on('broadcast', { event: 'changed' }, onChange)
       .subscribe((state) => {
         if (String(state) === 'SUBSCRIBED') onChange();
@@ -22,7 +25,7 @@ export function watchPresence(onChange: () => void): () => void {
     stop = () => void supabase().removeChannel(channel);
   }
 
-  // つながらなくても、一覧は「更新」ボタンで読み直せる
+  // つながらなくても、画面を開き直せば読み直せる
   start().catch(() => {});
   return () => {
     stopped = true;

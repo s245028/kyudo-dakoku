@@ -13,6 +13,10 @@
   color: #fff;
 }
 
+.app-heading {
+  flex: 1;
+}
+
 .app-title {
   margin: 0;
   font-size: 18px;

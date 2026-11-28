@@ -4,7 +4,12 @@ import { GRADE_LABELS, hasActingManager, type Grade, type Member, type Role } fr
 import { normalizeStudentNo } from './registration.ts';
 import { invalid, type Validated } from './validation.ts';
 
-export type RosterMember = Member & { studentNo: string; grade: Grade; role: Role };
+export type RosterMember = Member & {
+  studentNo: string;
+  grade: Grade;
+  role: Role;
+  isAdmin: boolean;
+};
 
 export type GenerationChange = {
   /** 引退にする部員の id */
@@ -44,23 +49,14 @@ export function planGenerationChange(input: {
   );
   if (missing.length > 0) return invalid(`名簿にない学生番号があります：${missing.join(', ')}`);
 
-  const namedAdmin = members.some(
-    (member) => member.role === 'admin' && [...captainNos, ...viceNos].includes(member.studentNo),
-  );
-  if (namedAdmin) {
-    return invalid(
-      '管理者の人は、新しい主将・副務に指定できません。先に名簿で役職を変えてください。',
-    );
-  }
-
   const retiringIds = new Set(retiring.map((member) => member.id));
   const after = members.map((member): RosterMember => {
     const next = { ...member };
     if (retiringIds.has(member.id)) {
       next.status = 'retired';
       next.retiredOn = today;
-      // 管理者は役員ではないので、引退しても外さない
-      if (member.role !== 'admin') next.role = 'member';
+      // 管理者の指定は役職ではないので、引退しても外さない
+      next.role = 'member';
     }
     if (captainNos.length > 0 && member.role === 'captain') next.role = 'member';
     if (viceNos.length > 0 && member.role === 'vice') next.role = 'member';

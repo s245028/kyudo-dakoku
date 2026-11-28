@@ -1,9 +1,11 @@
 import {
+  ADMIN_LABEL,
   adminOnlyRefusal,
   GRADE_LABELS,
   GRADES,
   MEMBER_STATUSES,
   ROLE_LABELS,
+  roleLabels,
   ROLES,
   STATUS_LABELS,
 } from '@kyudo/core';
@@ -23,13 +25,16 @@ type MemberCardProps = {
 
 export function MemberCard({ member, viewerIsAdmin, sending, run }: MemberCardProps) {
   const [open, setOpen] = useState(false);
-  const refusal = adminOnlyRefusal({ actorIsAdmin: viewerIsAdmin, targetRole: member.role });
-  // 管理者でなければ、管理者の役職は選べない
-  const roles = viewerIsAdmin ? ROLES : ROLES.filter((role) => role !== 'admin');
+  const refusal = adminOnlyRefusal({
+    actorIsAdmin: viewerIsAdmin,
+    targetIsAdmin: member.isAdmin,
+  });
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const changes = Object.fromEntries(new FormData(event.currentTarget));
+    const { isAdmin, ...fields } = Object.fromEntries(new FormData(event.currentTarget));
+    // 管理者の指定は、管理者だけが送る
+    const changes = viewerIsAdmin ? { ...fields, isAdmin: isAdmin === 'on' } : fields;
     if (await run('admin-update-member', { memberId: member.id, changes })) setOpen(false);
   }
 
@@ -48,9 +53,8 @@ export function MemberCard({ member, viewerIsAdmin, sending, run }: MemberCardPr
           </small>
         </span>
         <span className="sub">
-          {member.role !== 'member' && `${ROLE_LABELS[member.role]}・`}
-          {STATUS_LABELS[member.status]}
-          {!member.linked && '・端末なし'}
+          {[...roleLabels(member), STATUS_LABELS[member.status]].join('・')}
+          {!member.linked && '・スマホ未登録'}
         </span>
       </button>
       {open && refusal && <p className="row-note">{refusal}</p>}
@@ -69,9 +73,15 @@ export function MemberCard({ member, viewerIsAdmin, sending, run }: MemberCardPr
           <label>
             役職
             <select name="role" defaultValue={member.role}>
-              <Options values={roles} labels={ROLE_LABELS} />
+              <Options values={ROLES} labels={ROLE_LABELS} />
             </select>
           </label>
+          {viewerIsAdmin && (
+            <label className="check">
+              <input type="checkbox" name="isAdmin" defaultChecked={member.isAdmin} />
+              {ADMIN_LABEL}（アプリの管理。役職と別に指定します）
+            </label>
+          )}
           <label>
             状態
             <select name="status" defaultValue={member.status}>

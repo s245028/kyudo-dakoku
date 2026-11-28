@@ -1,29 +1,3 @@
-.section-menu {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
-}
-
-.section-badge {
-  position: absolute;
-  top: -6px;
-  right: -3px;
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--red);
-  color: #fff;
-  font-size: 11px;
-  line-height: 18px;
-}
-
-.section-menu button.small {
-  position: relative;
-  width: 100%;
-  padding: 6px 0;
-  font-size: 12px;
-}
-
 .sub {
   color: var(--sub);
   font-size: 13px;
@@ -123,4 +97,70 @@ small.sub {
 
 .delete-member .sub {
   color: var(--red);
+}
+
+/* 押すと開く、ときどき使う入力 */
+.disclosure {
+  margin-top: 12px;
+}
+
+.disclosure summary,
+.past summary {
+  padding: 12px 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.disclosure-body {
+  display: grid;
+  gap: 14px;
+}
+
+.past {
+  margin-top: 18px;
+}
+
+.date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.choice-row + .schedule-form {
+  margin-top: 12px;
+}
+
+.member-search {
+  margin-bottom: 12px;
+}
+
+.member-search + .choice-row {
+  margin-top: 0;
+}
+
+.roster-list {
+  margin-top: 12px;
+}
+
+.recalculate {
+  margin-top: 22px;
+}
+
+.rule-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.rule-item:last-child {
+  border-bottom: 0;
+}
+
+.rule-item .list-row {
+  border-bottom: 0;
+}
+
+.rule-form {
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--soft);
 }

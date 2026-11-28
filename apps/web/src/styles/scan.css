@@ -188,3 +188,10 @@ button.today-notice {
   color: var(--sub);
   font-weight: 700;
 }
+
+/* 行事の日の時刻と内容 */
+.today-event {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  line-height: 1.7;
+}

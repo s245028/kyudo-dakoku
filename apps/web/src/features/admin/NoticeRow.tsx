@@ -10,6 +10,7 @@ import {
   type PracticeRule,
 } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
+import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { dateWithWeekday, shortDate } from '../../lib/format.ts';
 import { APPROVAL_LABELS } from '../../lib/noticeLabels.ts';
 import type { StoredException } from '../../lib/queries.ts';
@@ -78,9 +79,9 @@ export function NoticeRow({ notice, rules, name, sending, run, readOnly }: Notic
       </p>
       {notice.memo && <p className="notice-reason">{notice.memo}</p>}
       {notice.rejectionReason && <p className="sub">却下の理由：{notice.rejectionReason}</p>}
-      {!readOnly && approval && !rejecting && (
+      {!readOnly && !rejecting && (
         <div className="notice-actions">
-          {approval !== 'approved' && (
+          {approval && approval !== 'approved' && (
             <button
               type="button"
               className="small"
@@ -90,7 +91,7 @@ export function NoticeRow({ notice, rules, name, sending, run, readOnly }: Notic
               承認する
             </button>
           )}
-          {approval !== 'rejected' && (
+          {approval && approval !== 'rejected' && (
             <button
               type="button"
               className="small secondary"
@@ -100,6 +101,12 @@ export function NoticeRow({ notice, rules, name, sending, run, readOnly }: Notic
               却下する
             </button>
           )}
+          <ConfirmButton
+            label="削除"
+            className="small secondary notice-delete"
+            disabled={sending}
+            onConfirm={() => void run('admin-delete-exception', { exceptionId: notice.id })}
+          />
         </div>
       )}
       {rejecting && (

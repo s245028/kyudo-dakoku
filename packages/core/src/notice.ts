@@ -11,6 +11,7 @@ import {
   type PracticeException,
   type PracticeRule,
 } from './practice.ts';
+import type { PracticeEvent } from './event.ts';
 import type { Settings } from './settings.ts';
 import { invalid, type Validated } from './validation.ts';
 
@@ -49,6 +50,8 @@ export type NoticeDay = {
   canCancel: boolean;
   /** いま送ると連絡遅れになる */
   overdueNow: boolean;
+  /** 行事の日なら、その内容 */
+  event: PracticeEvent | null;
 };
 
 export type NoticeContext = {
@@ -100,6 +103,7 @@ function noticeDayOf(context: NoticeContext, date: PracticeDate): NoticeDay | nu
   const editable = !notice || (notice.selfSubmitted && !overdueNow);
 
   return {
+    event: plan.event,
     date,
     part: plan.part,
     deadline: plan.deadline,

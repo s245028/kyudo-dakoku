@@ -1,0 +1,166 @@
+/* 役職の画面：名前の左の3本線と、左から出る一覧。打刻の画面の対応待ち */
+button.header-menu {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 45%);
+}
+
+.header-menu svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* 濃い見出しの上でも目立つように、白い縁を付ける */
+.header-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  min-width: 24px;
+  padding: 0 5px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.section-title {
+  margin: 0 0 14px;
+  text-align: center;
+}
+
+.pending-list {
+  margin-bottom: 16px;
+  border-color: var(--red);
+}
+
+.pending-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+button.pending-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 50px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 0;
+  background: var(--red-faint);
+  color: var(--ink);
+  text-align: left;
+}
+
+.pending-item strong {
+  flex-shrink: 0;
+  color: var(--red);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-item strong::after {
+  margin-left: 8px;
+  content: '›';
+}
+
+.drawer-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+}
+
+button.drawer-shade {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  margin: 0;
+  border-radius: 0;
+  background: rgb(0 0 0 / 40%);
+}
+
+button.drawer-shade:active:not(:disabled) {
+  transform: none;
+}
+
+.drawer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(300px, 82vw);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + 18px) 14px calc(env(safe-area-inset-bottom) + 24px);
+  background: var(--bg);
+  animation: drawer-in 0.2s ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer {
+    animation: none;
+  }
+}
+
+.drawer h2 {
+  margin: 0;
+}
+
+.drawer h3 {
+  margin: 16px 0 6px;
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.drawer li + li {
+  border-top: 1px solid var(--line);
+}
+
+button.drawer-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 46px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+button.drawer-item[aria-current='page'] {
+  background: var(--green-soft);
+  box-shadow: inset 4px 0 var(--green);
+}
+
+.menu-badge {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  line-height: 20px;
+  text-align: center;
+}

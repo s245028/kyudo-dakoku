@@ -1,7 +1,15 @@
-import { canAdminister, GRADE_LABELS, ROLE_LABELS, STATUS_LABELS } from '@kyudo/core';
+import {
+  canAdminister,
+  canManagePenalties,
+  GRADE_LABELS,
+  ROLE_LABELS,
+  roleLabels,
+  STATUS_LABELS,
+} from '@kyudo/core';
 import type { Home, HomeData } from '../../lib/home.ts';
 import { AdminLogin } from '../register/AdminLogin.tsx';
 import { KomaForm } from './KomaForm.tsx';
+import { ICON_BADGE_NOTE } from './iconBadgeNote.ts';
 import { NotificationCard } from './NotificationCard.tsx';
 import { SignupSteps } from './SignupSteps.tsx';
 import { TransferCard } from './TransferCard.tsx';
@@ -12,7 +20,7 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
     ['名前', member.name],
     ['学生番号', member.studentNo],
     ['学年', GRADE_LABELS[member.grade]],
-    ['役職', ROLE_LABELS[member.role]],
+    ['役職', roleLabels(member).join('・') || ROLE_LABELS.member],
     ['状態', member.approved ? STATUS_LABELS[member.status] : '承認待ち'],
   ];
 
@@ -38,11 +46,14 @@ export function ProfileTab({ home, onHome }: { home: HomeData; onHome: (home: Ho
       </p>
       {member.approved && (
         <NotificationCard
-          description={
+          description={[
             canAdminister(member)
               ? '出欠の連絡、コマ変更の申請、新しい部員の登録が届いたときと、自分の分が承認・却下されたときに知らせます。'
-              : '出欠の連絡やコマ変更の申請が、承認・却下されたときに知らせます。'
-          }
+              : '出欠の連絡やコマ変更の申請が、承認・却下されたときに知らせます。',
+            member.role === 'vice' ? '罰の割り当て待ちが増えたときにも知らせます。' : '',
+            // 数字を出す相手は、対応を待つものがある役職
+            canAdminister(member) || canManagePenalties(member) ? ICON_BADGE_NOTE : '',
+          ].join('')}
         />
       )}
       <TransferCard />

@@ -7,6 +7,13 @@ const REQUEST_TIMEOUT_MS = 15_000;
 /** 利用者にそのまま見せるエラー */
 export class ApiError extends Error {}
 
+/** 届かなかったか、返事がなかった。時間をおけば送り直せる */
+export class OfflineError extends ApiError {
+  constructor() {
+    super(OFFLINE_MESSAGE);
+  }
+}
+
 export function messageOf(error: unknown): string {
   return error instanceof ApiError ? error.message : OFFLINE_MESSAGE;
 }
@@ -29,9 +36,10 @@ export async function callAction<T extends object>(
   const error: unknown = response.error;
   if (error instanceof FunctionsHttpError) {
     const body = (await (error.context as Response).json().catch(() => null)) as Reply | null;
-    throw new ApiError(body?.error ?? OFFLINE_MESSAGE);
+    if (!body?.error) throw new OfflineError();
+    throw new ApiError(body.error);
   }
-  if (error || !data) throw new ApiError(OFFLINE_MESSAGE);
+  if (error || !data) throw new OfflineError();
   if (!data.ok) throw new ApiError(data.error ?? OFFLINE_MESSAGE);
   return data;
 }

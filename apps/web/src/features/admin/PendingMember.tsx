@@ -15,7 +15,10 @@ export function PendingMember({
   run: RunAction;
 }) {
   const params = { memberId: member.id };
-  const refusal = adminOnlyRefusal({ actorIsAdmin: viewerIsAdmin, targetRole: member.role });
+  const refusal = adminOnlyRefusal({
+    actorIsAdmin: viewerIsAdmin,
+    targetIsAdmin: member.isAdmin,
+  });
 
   return (
     <li className="list-row">

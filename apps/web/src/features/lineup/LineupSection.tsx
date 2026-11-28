@@ -3,13 +3,14 @@ import {
   PART_LABELS,
   PARTS,
   practiceParts,
+  eventOn,
   weekdayOf,
   type Part,
 } from '@kyudo/core';
 import { useEffect, useState } from 'react';
 import { dateWithWeekday } from '../../lib/format.ts';
 import { loadLineupDay } from '../../lib/lineupQueries.ts';
-import { watchPresence } from '../../lib/presenceChannel.ts';
+import { useChanges } from '../../lib/useChanges.ts';
 import { useRemote } from '../../lib/useRemote.ts';
 import { LineupEditor } from './LineupEditor.tsx';
 import { ParticipantSummary } from './ParticipantSummary.tsx';
@@ -22,17 +23,10 @@ export function LineupSection() {
   const [chosen, setChosen] = useState<Part | null>(null);
 
   // 打刻があったときと、アプリに戻ったときに読み直す（ほかの人の保存にも気づける）
+  const changes = useChanges('presence');
   useEffect(() => {
-    const refresh = () => {
-      if (!document.hidden) void reload();
-    };
-    document.addEventListener('visibilitychange', refresh);
-    const stopWatching = watchPresence(refresh);
-    return () => {
-      document.removeEventListener('visibilitychange', refresh);
-      stopWatching();
-    };
-  }, [reload]);
+    if (changes > 0) void reload();
+  }, [changes, reload]);
 
   const participants = data ? listParticipants(data) : [];
   const scheduled = data ? practiceParts(data.date, data.rules, data.exceptions) : [];
@@ -87,7 +81,12 @@ export function LineupSection() {
                 participants={inPart}
                 members={data.members}
                 saved={data.lineups.find((lineup) => lineup.part === part) ?? null}
-                defaultFormat={weekdayOf(data.date) === SATURDAY ? 'groups' : 'targets'}
+                // 土曜と行事の日は立ち、ほかは的割りから始める
+                defaultFormat={
+                  weekdayOf(data.date) === SATURDAY || eventOn(data.date, data.exceptions)
+                    ? 'groups'
+                    : 'targets'
+                }
                 onSaved={reload}
               />
             </div>

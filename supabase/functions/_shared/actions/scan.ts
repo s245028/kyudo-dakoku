@@ -16,6 +16,7 @@ import { inTransaction } from '../db.ts';
 import { AppError, refuseIf } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
 import { objectParam, stringParam, type Params } from '../params.ts';
+import { notifyPenaltyWaiting } from '../push.ts';
 import {
   homeSnapshot,
   loadExceptions,
@@ -35,7 +36,8 @@ function positionParam(params: Params): Position | null {
 }
 
 /** 入口の QR を読んだときの打刻。在室中なら退室、そうでなければ入室。 */
-export async function scan({ sql, userId, now }: RequestContext, params: Params) {
+export async function scan(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const date = toPracticeDate(now);
   const result = await inTransaction(sql, async (tx) => {
     const member = await requireEnrolledMember(tx, userId);
@@ -71,6 +73,7 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
     let entry: ReturnType<typeof describeFirstEntry> = null;
     let penaltyAdded = false;
     let penaltyPending = false;
+    let addedPenalties = 0;
     if (decision.firstInToday) {
       const plan = resolvePracticePlan({
         date,
@@ -82,7 +85,7 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
       entry = describeFirstEntry({ member, date, plan, enteredAt: now });
       // 遅刻と、練習後の入室（欠席）の罰は、打刻した時点でつける（夜の判定を待たない）
       if (entry && (entry.lateMinutes > 0 || entry.missed)) {
-        await judgeDate(tx, { date, now, memberIds: [member.id] });
+        ({ addedPenalties } = await judgeDate(tx, { date, now, memberIds: [member.id] }));
         const [penalty] = await tx`
           select 1 from public.penalties where auto_key = ${autoPenaltyKey(date, member.id)}`;
         penaltyAdded = penalty !== undefined;
@@ -102,19 +105,22 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
       missed: entry?.missed ?? false,
       penaltyAdded,
       penaltyPending,
+      addedPenalties,
       undoSeconds: settings.undoSeconds,
     };
   });
+  if (!result.duplicate && result.addedPenalties > 0) await notifyPenaltyWaiting(context);
   // 最新の在室・罰を一緒に返し、アプリが取り直さなくて済むようにする
   return { scan: result, home: await homeSnapshot(sql, userId, date) };
 }
 
 /** 自分の打刻の取り消し。入室を取り消したら、その日を判定し直して罰を合わせる。 */
-export async function undoScan({ sql, userId, now }: RequestContext, params: Params) {
+export async function undoScan(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const id = Number(params['punchId']);
   if (!Number.isSafeInteger(id) || id < 1) throw new AppError('記録が見つかりません');
 
-  await inTransaction(sql, async (tx) => {
+  const added = await inTransaction(sql, async (tx) => {
     const member = await requireEnrolledMember(tx, userId);
     refuseIf(punchRefusal(member));
     const [punch] = await tx<(StoredPunch & { date: string })[]>`
@@ -125,9 +131,10 @@ export async function undoScan({ sql, userId, now }: RequestContext, params: Par
     refuseIf(undoRefusal({ punch: punch ?? null, memberId: member.id, now, undoSeconds }));
 
     await tx`update public.punches set canceled_at = ${now} where id = ${id}`;
-    if (punch!.kind === 'in') {
-      await judgeDate(tx, { date: punch!.date, now, memberIds: [member.id] });
-    }
+    if (punch!.kind !== 'in') return 0;
+    const judged = await judgeDate(tx, { date: punch!.date, now, memberIds: [member.id] });
+    return judged.addedPenalties;
   });
+  if (added > 0) await notifyPenaltyWaiting(context);
   return { home: await homeSnapshot(sql, userId, toPracticeDate(now)) };
 }

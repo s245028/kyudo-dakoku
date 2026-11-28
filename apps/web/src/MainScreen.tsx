@@ -1,21 +1,33 @@
 import {
+  canAdminister,
+  canCorrectHits,
   canManagePenalties,
-  officerArea,
+  officerSections,
   PART_LABELS,
-  ROLE_LABELS,
+  type OfficerSection,
+  roleLabels,
   toClockTime,
+  waitingCount,
 } from '@kyudo/core';
+import { useEffect } from 'react';
 import { Header } from './components/Header.tsx';
 import { TabBar } from './components/TabBar.tsx';
 import type { TabId } from './components/tabs.ts';
+import { HitsTab } from './features/hits/HitsTab.tsx';
 import { LazyOfficerTab } from './features/officer/LazyOfficerTab.tsx';
+import { OfficerMenu } from './features/officer/OfficerMenu.tsx';
+import { PendingList } from './features/officer/PendingList.tsx';
+import { pendingItems, sectionCounts } from './features/officer/pending.ts';
 import { PenaltyTab } from './features/penalties/PenaltyTab.tsx';
 import { PresenceTab } from './features/presence/PresenceTab.tsx';
 import { ProfileTab } from './features/profile/ProfileTab.tsx';
 import { ScanTab } from './features/scan/ScanTab.tsx';
 import { currentBrowser } from './lib/browser.ts';
+import { startDraftSync } from './lib/hitSync.ts';
+import { useAppBadge } from './lib/useAppBadge.ts';
 import { describeHome, totalRemaining, type Home, type HomeData } from './lib/home.ts';
-import { useOfficerNavigation } from './lib/useOfficerNavigation.ts';
+import { useOfficerNavigation, type ViewId } from './lib/useOfficerNavigation.ts';
+import { useUnassignedPenalties } from './lib/useUnassignedPenalties.ts';
 
 type MainScreenProps = {
   home: HomeData;
@@ -26,29 +38,48 @@ type MainScreenProps = {
   onRefresh: () => void;
 };
 
-const MEMBER_TABS: TabId[] = ['scan', 'presence', 'penalty', 'me'];
-const OFFICER_TABS: TabId[] = [...MEMBER_TABS, 'admin'];
+const MEMBER_TABS: TabId[] = ['scan', 'presence', 'hits', 'penalty', 'me'];
 
 export function MainScreen(props: MainScreenProps) {
   const { home, now, error, onHome, onRefresh } = props;
   const view = describeHome(home, now);
   const { member } = home;
-  const area = officerArea(member);
+  const sections = officerSections(member);
+  const officer = sections.length > 0;
+  const administers = canAdminister(member);
   const pending = {
-    notices: area === 'admin' ? (home.pendingNotices ?? 0) : 0,
-    members: area === 'admin' ? (home.pendingMembers ?? 0) : 0,
+    notices: administers ? (home.pendingNotices ?? 0) : 0,
+    members: administers ? (home.pendingMembers ?? 0) : 0,
   };
-  const navigation = useOfficerNavigation(props.initialTab, pending);
+  const navigation = useOfficerNavigation(props.initialTab, sections, pending);
   // 役職の画面を開いたまま役職がなくなったら、打刻の画面を出す
-  const tab = navigation.tab === 'admin' && !area ? 'scan' : navigation.tab;
+  const tab = navigation.view === 'officer' && !officer ? 'scan' : navigation.view;
+  const managesPenalties = canManagePenalties(member);
+  const tasks = useUnassignedPenalties(
+    managesPenalties,
+    view.today,
+    home.settings.penaltyDoublingDays,
+    home,
+  );
+  const counts = { ...pending, tasks: tasks ?? 0 };
+  const waiting = waitingCount(member, counts);
+  // 罰を数え終えるまでは、アイコンの数字を変えない
+  useAppBadge(tasks === null ? null : waiting);
+  // 通信が切れている間に入れた的中は、開き直したときにも送る
+  useEffect(() => startDraftSync(), []);
 
-  function select(next: TabId) {
+  // 画面を切り替えるたびに、対応を待っている数も読み直す
+  function select(next: ViewId) {
     navigation.select(next);
+    onRefresh();
+  }
+  function openSection(section: OfficerSection) {
+    navigation.openSection(section);
     onRefresh();
   }
 
   const todayText = view.plan
-    ? `今日：${PART_LABELS[view.plan.part]}（${view.plan.deadline}までに入室）`
+    ? `今日：${view.plan.event?.title ?? PART_LABELS[view.plan.part]}（${view.plan.deadline}までに入室）`
     : view.retired
       ? '引退：今日は参加登録なし（判定しません）'
       : '今日は練習日ではありません';
@@ -63,8 +94,17 @@ export function MainScreen(props: MainScreenProps) {
       <Header
         title={`${member.name} さん`}
         subtitle={todayText}
-        role={member.role === 'member' ? undefined : ROLE_LABELS[member.role]}
+        role={roleLabels(member).join('・') || undefined}
         state={state}
+        menu={
+          officer
+            ? {
+                waiting,
+                open: navigation.menuOpen,
+                onOpen: () => navigation.setMenuOpen(true),
+              }
+            : undefined
+        }
       />
       <main className="app-main">
         {error && (
@@ -79,6 +119,10 @@ export function MainScreen(props: MainScreenProps) {
         )}
         {/* 打刻タブは、結果の表示を残すために隠すだけにする */}
         <div hidden={tab !== 'scan'}>
+          <PendingList
+            items={pendingItems(counts).filter((item) => sections.includes(item.section))}
+            onOpen={openSection}
+          />
           <ScanTab
             home={home}
             view={view}
@@ -88,44 +132,52 @@ export function MainScreen(props: MainScreenProps) {
           />
         </div>
         {tab === 'presence' && <PresenceTab />}
-        {tab === 'penalty' && (
-          <PenaltyTab
+        {tab === 'hits' && (
+          <HitsTab
             viewer={{
               memberId: member.id,
-              officer: canManagePenalties(member),
-              admin: member.role === 'admin',
+              approved: member.approved,
+              canCorrect: canCorrectHits(member),
             }}
+            startDate={home.settings.hitStartDate ?? null}
+            today={view.today}
+          />
+        )}
+        {tab === 'penalty' && (
+          <PenaltyTab
+            viewer={{ memberId: member.id, admin: member.isAdmin }}
             mine={view.penalties}
             today={view.today}
             doublingDays={home.settings.penaltyDoublingDays}
-            onHome={onHome}
+            onManage={managesPenalties ? () => openSection('penalties') : undefined}
           />
         )}
         {tab === 'me' && <ProfileTab home={home} onHome={onHome} />}
-        {tab === 'admin' && area && (
+        {tab === 'officer' && (
           <LazyOfficerTab
-            area={area}
             today={view.today}
-            viewerIsAdmin={member.role === 'admin'}
+            viewer={{ memberId: member.id, administers, isAdmin: member.isAdmin }}
             section={navigation.section}
-            // 項目を切り替えるたびに、承認待ちの数を読み直す
-            onSection={(section) => {
-              navigation.setSection(section);
-              onRefresh();
-            }}
-            pendingNotices={pending.notices}
-            pendingMembers={pending.members}
+            settings={home.settings}
             onHome={onHome}
           />
         )}
       </main>
       <TabBar
-        current={tab}
-        tabs={area ? OFFICER_TABS : MEMBER_TABS}
+        current={tab === 'officer' ? null : tab}
+        tabs={MEMBER_TABS}
         penaltyCount={totalRemaining(view.penalties)}
-        officerCount={pending.notices + pending.members}
         onSelect={select}
       />
+      {navigation.menuOpen && (
+        <OfficerMenu
+          sections={sections}
+          current={tab === 'officer' ? navigation.section : null}
+          counts={sectionCounts(counts)}
+          onSelect={openSection}
+          onClose={() => navigation.setMenuOpen(false)}
+        />
+      )}
     </>
   );
 }

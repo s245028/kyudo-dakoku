@@ -28,6 +28,7 @@ export type HomeMember = {
   gender: Gender;
   status: MemberStatus;
   role: Role;
+  isAdmin: boolean;
   approved: boolean;
   retiredOn: string | null;
 };
@@ -54,6 +55,8 @@ export type HomeData = {
     penaltyDoublingDays: number;
     undoSeconds: number;
     requiresLocation: boolean;
+    hitStartDate: string | null;
+    leaderPenaltyMultiplier: number;
   };
   rules: PracticeRule[];
   koma: Koma | null;

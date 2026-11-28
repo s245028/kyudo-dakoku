@@ -11,6 +11,7 @@ import {
 } from './member.ts';
 import {
   PARTS,
+  eventOn,
   resolvePracticePlan,
   type Koma,
   type Part,
@@ -52,6 +53,7 @@ export function practiceParts(
   rules: readonly PracticeRule[],
   exceptions: readonly PracticeException[],
 ): Part[] {
+  if (eventOn(date, exceptions)) return ['whole'];
   const closed = exceptions.some(
     (exception) =>
       exception.date === date && exception.memberId === null && exception.kind === 'day_off',

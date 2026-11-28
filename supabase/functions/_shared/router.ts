@@ -8,6 +8,7 @@ import {
   setManualJudgement,
 } from './actions/attendance.ts';
 import { deleteRule, savePenaltyType, saveRule, updateSettings } from './actions/configuration.ts';
+import { saveHits } from './actions/hits.ts';
 import { join, unjoin } from './actions/join.ts';
 import { setKoma } from './actions/koma.ts';
 import { cancelKomaChange, submitKomaChange } from './actions/koma-requests.ts';
@@ -24,6 +25,7 @@ import {
 import { pushConfig, pushSubscribe, pushUnsubscribe } from './actions/push.ts';
 import { register } from './actions/register.ts';
 import { scan, undoScan } from './actions/scan.ts';
+import { addSchedule, deleteSchedule, saveEvent } from './actions/schedule.ts';
 import { claimTransfer, createTransferCode } from './actions/transfer.ts';
 import { changeGeneration, promoteGrades } from './actions/yearly.ts';
 import type { Params } from './params.ts';
@@ -47,6 +49,12 @@ export const ACTIONS = {
   'push-config': pushConfig,
   'push-subscribe': pushSubscribe,
   'push-unsubscribe': pushUnsubscribe,
+  // 本人と、副務・管理者
+  'save-hits': saveHits,
+  // 4役と管理者
+  'schedule-add': addSchedule,
+  'schedule-delete': deleteSchedule,
+  'event-save': saveEvent,
   // 副務と管理者
   'add-penalty': addPenalty,
   'assign-task': assignTask,

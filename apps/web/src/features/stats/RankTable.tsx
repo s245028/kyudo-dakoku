@@ -17,12 +17,15 @@ export function RankTable<K extends string>({
   columns,
   initial,
   rows,
+  formats = {},
 }: {
   caption: string;
   columns: Record<K, string>;
   /** はじめに並べる数 */
   initial: NoInfer<K>;
   rows: readonly RankRow<NoInfer<K>>[];
+  /** 数のまま出さない列の表示 */
+  formats?: Partial<Record<NoInfer<K>, (value: number) => string>>;
 }) {
   const [sorted, setSorted] = useState<K>(initial);
   const [opened, setOpened] = useState<string | null>(null);
@@ -78,7 +81,7 @@ export function RankTable<K extends string>({
                 </th>
                 {keys.map((key) => (
                   <td key={key} className={key === sorted ? 'sorted' : undefined}>
-                    {row.values[key]}
+                    {formats[key]?.(row.values[key]) ?? row.values[key]}
                   </td>
                 ))}
               </tr>

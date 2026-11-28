@@ -3,10 +3,18 @@ import { dateWithWeekday, type PracticeDate } from './date.ts';
 import { invalid, type Validated } from './validation.ts';
 
 /** 通知を押したときに開く画面 */
-export const OPEN_TARGETS = ['notices', 'members', 'scan'] as const;
+export const OPEN_TARGETS = ['notices', 'members', 'penalties', 'scan'] as const;
 export type OpenTarget = (typeof OPEN_TARGETS)[number];
 
-export type PushMessage = { title: string; body: string; open: OpenTarget };
+export type PushMessage = {
+  title: string;
+  body: string;
+  open: OpenTarget;
+  /** ホーム画面のアイコンに出す数。指定がなければ、数は変えない */
+  badge?: number;
+  /** 同じ値の通知は、対応している端末では前のものと入れ替わる */
+  tag?: string;
+};
 
 /** 通知の対象。欠席・遅刻の連絡か、コマ変更の申請 */
 export type PushSubject = 'absent' | 'late' | 'koma';
@@ -41,6 +49,14 @@ export function registrationMessage(name: string): PushMessage {
     open: 'members',
   };
 }
+
+/** 副務に、罰の割り当て待ちが増えたことを知らせる。ロック画面に出るので、名前も理由も入れない */
+export const PENALTY_WAITING_MESSAGE: PushMessage = {
+  title: '罰の割り当て待ちが増えました',
+  body: '「罰の管理」で、やることを割り当ててください。',
+  open: 'penalties',
+  tag: 'penalty-waiting',
+};
 
 /** 本人に、承認か却下を知らせる */
 export function reviewedMessage(input: {

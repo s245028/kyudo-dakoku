@@ -11,6 +11,8 @@ export type ExistingAutoPenalty = {
   autoKey: string;
   reason: string;
   baseCount: number;
+  /** つけたときの倍率。役職が変わっても変えない */
+  multiplier: number;
   /** やることを割り当て済み、または消化済み。判定が変わっても変えない */
   locked: boolean;
 };
@@ -21,6 +23,7 @@ export type AutoPenalty = {
   date: PracticeDate;
   reason: string;
   baseCount: number;
+  multiplier: number;
   /** 倍になる日数を、判定の日より後から数えるときの起算日 */
   countedFrom?: PracticeDate;
 };
@@ -47,6 +50,8 @@ export function planAutoPenaltySync(input: {
   types: readonly PenaltyType[];
   /** その日の連絡と申請の承認・却下。練習日より後なら、倍になる日数はその日から数える */
   reviews?: readonly Review[];
+  /** 新しくつける罰の、部員ごとの倍率。指定がなければ1 */
+  multiplierOf?: (memberId: string) => number;
 }): PenaltyChanges {
   const changes: PenaltyChanges = { create: [], update: [], remove: [] };
 
@@ -60,7 +65,9 @@ export function planAutoPenaltySync(input: {
       if (current) changes.remove.push(current.id);
       continue;
     }
-    const baseCount = input.types.find((type) => type.reason === reason)?.baseCount ?? 1;
+    const multiplier = current?.multiplier ?? input.multiplierOf?.(memberId) ?? 1;
+    const baseCount =
+      (input.types.find((type) => type.reason === reason)?.baseCount ?? 1) * multiplier;
     if (!current) {
       const countedFrom = (input.reviews ?? [])
         .filter((entry) => entry.memberId === memberId && entry.reviewedOn > input.date)
@@ -73,6 +80,7 @@ export function planAutoPenaltySync(input: {
         date: input.date,
         reason,
         baseCount,
+        multiplier,
         ...(countedFrom && { countedFrom }),
       });
     } else if (current.reason !== reason || current.baseCount !== baseCount) {

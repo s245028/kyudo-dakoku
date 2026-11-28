@@ -11,6 +11,7 @@ import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { judgeDate, syncAutoPenalties } from '../judge.ts';
 import { stringParam, uuidParam, type Params } from '../params.ts';
+import { notifyPenaltyWaiting } from '../push.ts';
 
 export async function addException({ sql, userId, now }: RequestContext, params: Params) {
   const input = validateException(params);
@@ -47,16 +48,18 @@ export async function deleteException({ sql, userId }: RequestContext, params: P
 }
 
 /** 指定した日の出欠を判定し直す。 */
-export async function rejudge({ sql, userId, now }: RequestContext, params: Params) {
+export async function rejudge(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const date = stringParam(params, 'date');
   if (!isPracticeDate(date)) throw new AppError('日付が正しくありません。');
   if (date > toPracticeDate(now)) throw new AppError('先の日付は判定できません。');
 
-  const count = await inTransaction(sql, async (tx) => {
+  const { judged, addedPenalties } = await inTransaction(sql, async (tx) => {
     await requireCaptain(tx, userId);
     return judgeDate(tx, { date, now, memberIds: null });
   });
-  return { count };
+  if (addedPenalties > 0) await notifyPenaltyWaiting(context);
+  return { count: judged };
 }
 
 /**
@@ -77,7 +80,8 @@ export async function refreshAttendance({ sql, userId, now }: RequestContext) {
  * 手動判定で上書きする。自動判定は計算し直さず、最終判定に合わせて自動の罰だけを直す。
  * 過去の日を、今のコマ表で判定し直してしまわないため。
  */
-export async function setManualJudgement({ sql, userId, now }: RequestContext, params: Params) {
+export async function setManualJudgement(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const date = stringParam(params, 'date');
   if (!isPracticeDate(date)) throw new AppError('日付が正しくありません。');
   const memberId = uuidParam(params, 'memberId');
@@ -85,7 +89,7 @@ export async function setManualJudgement({ sql, userId, now }: RequestContext, p
   if (!input.ok) throw new AppError(input.message);
   const { judgement, reason } = input.value;
 
-  await inTransaction(sql, async (tx) => {
+  const added = await inTransaction(sql, async (tx) => {
     await requireCaptain(tx, userId);
     await tx`select 1 from public.members where id = ${memberId} for update`;
     const [row] = await tx<{ result: Judgement }[]>`
@@ -93,8 +97,9 @@ export async function setManualJudgement({ sql, userId, now }: RequestContext, p
       set manual_result = ${judgement}, manual_reason = ${reason}, updated_at = ${now}
       where practice_date = ${date} and member_id = ${memberId}
       returning final_result as result`;
-    if (!row) throw new AppError('出欠一覧にありません。先にこの日を判定してください。');
-    await syncAutoPenalties(tx, date, [{ memberId, result: row.result }]);
+    if (!row) throw new AppError('出欠一覧にありません。先にこの日の出欠を計算し直してください。');
+    return syncAutoPenalties(tx, date, [{ memberId, result: row.result }]);
   });
+  if (added > 0) await notifyPenaltyWaiting(context);
   return {};
 }

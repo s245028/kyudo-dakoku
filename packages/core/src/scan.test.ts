@@ -203,6 +203,7 @@ describe('取り消し（受け入れテスト23）', () => {
           autoKey: autoPenaltyKey(MONDAY, 'm1'),
           reason: '遅刻',
           baseCount: 1,
+          multiplier: 1,
           locked: false,
         },
       ],

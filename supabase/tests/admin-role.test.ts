@@ -151,86 +151,100 @@ describe('管理者の操作', () => {
   });
 });
 
-describe('役職が管理者の部員', () => {
-  async function memberWithRole(role: 'admin' | 'captain') {
+describe('管理者に指定した部員', () => {
+  async function memberDevice(values: { role?: 'captain' | 'vice'; is_admin?: boolean }) {
     const device = await signInDevice();
-    const { id } = await insertMember(sql, { role, auth_user_id: device.userId });
+    const { id } = await insertMember(sql, { ...values, auth_user_id: device.userId });
     return { ...device, id };
   }
+  const manager = () => memberDevice({ is_admin: true });
+  const captain = () => memberDevice({ role: 'captain' });
 
-  const roleOf = async (id: string) => {
-    const [row] = await sql<{ role: string }[]>`select role from public.members where id = ${id}`;
-    return row?.role;
+  const stored = async (id: string) => {
+    const [row] = await sql<{ role: string; isAdmin: boolean }[]>`
+      select role, is_admin as "isAdmin" from public.members where id = ${id}`;
+    return row;
   };
 
-  const changeRole = (userId: string, memberId: string, role: string) =>
-    run('admin-update-member', { memberId, changes: { role } }, userId);
+  const change = (userId: string, memberId: string, changes: object) =>
+    run('admin-update-member', { memberId, changes }, userId);
 
   it('主将と同じ操作ができ、記録した人はその部員になる', async () => {
-    const manager = await memberWithRole('admin');
+    const admin = await manager();
     const { id } = await insertMember(sql, { approved: false });
 
-    expect((await run('admin-approve', { memberId: id }, manager.userId)).ok).toBe(true);
-    await run('admin-add-exception', { date: DATE, kind: 'day_off' }, manager.userId);
+    expect((await run('admin-approve', { memberId: id }, admin.userId)).ok).toBe(true);
+    await run('admin-add-exception', { date: DATE, kind: 'day_off' }, admin.userId);
 
-    expect(await sql`select created_by from public.exceptions`).toEqual([
-      { created_by: manager.id },
-    ]);
+    expect(await sql`select created_by from public.exceptions`).toEqual([{ created_by: admin.id }]);
   });
 
   it('名簿と設定を読める', async () => {
-    const manager = await memberWithRole('admin');
+    const admin = await manager();
     await insertMember(sql);
 
-    const members = await manager.client.from('members').select('id');
-    const qr = await manager.client.from('settings').select('key').eq('key', 'entranceQr');
+    const members = await admin.client.from('members').select('id');
+    const qr = await admin.client.from('settings').select('key').eq('key', 'entranceQr');
 
     expect(members.data).toHaveLength(2);
     expect(qr.data).toHaveLength(1);
   });
 
+  it('役職と重ねられ、役職の権限はそのまま使える', async () => {
+    const admin = await manager();
+    const vice = await memberDevice({ role: 'vice' });
+
+    expect(await change(admin.userId, vice.id, { isAdmin: true })).toMatchObject({ ok: true });
+
+    expect(await stored(vice.id)).toEqual({ role: 'vice', isAdmin: true });
+    expect((await run('admin-rejudge', { date: DATE }, vice.userId)).ok).toBe(true);
+    const home: unknown = (await vice.client.rpc('home')).data;
+    expect(home).toMatchObject({ member: { role: 'vice', isAdmin: true }, pendingMembers: 0 });
+  });
+
   it.each([
-    ['admin-update-member', { changes: { role: 'member' } }],
+    ['admin-update-member', { changes: { isAdmin: false } }],
     ['admin-update-member', { changes: { status: 'graduated' } }],
     ['admin-reset-device', {}],
     ['admin-delete-member', { deleteRecords: true }],
     ['admin-approve', {}],
   ])('主将は %s で管理者を変えられない: %o', async (action, params) => {
-    const captain = await memberWithRole('captain');
-    const manager = await memberWithRole('admin');
+    const chief = await captain();
+    const admin = await manager();
 
-    const result = await run(action, { memberId: manager.id, ...params }, captain.userId);
+    const result = await run(action, { memberId: admin.id, ...params }, chief.userId);
 
     expect(result).toMatchObject({ ok: false, error: containing('管理者だけ') });
-    expect(await roleOf(manager.id)).toBe('admin');
+    expect(await stored(admin.id)).toEqual({ role: 'member', isAdmin: true });
   });
 
-  it('主将は、自分に管理者を付けられない', async () => {
-    const captain = await memberWithRole('captain');
+  it('主将は自分に管理者を付けられないが、指定を変えずに名簿は保存できる', async () => {
+    const chief = await captain();
 
-    expect((await changeRole(captain.userId, captain.id, 'admin')).ok).toBe(false);
-    expect(await roleOf(captain.id)).toBe('captain');
+    expect((await change(chief.userId, chief.id, { isAdmin: true })).ok).toBe(false);
+    expect((await change(chief.userId, chief.id, { isAdmin: false, grade: 'B3' })).ok).toBe(true);
+    expect(await stored(chief.id)).toEqual({ role: 'captain', isAdmin: false });
   });
 
   it('管理者がいれば、主将を外せる', async () => {
-    const manager = await memberWithRole('admin');
-    const captain = await memberWithRole('captain');
+    const admin = await manager();
+    const chief = await captain();
 
-    expect((await changeRole(manager.userId, captain.id, 'member')).ok).toBe(true);
+    expect((await change(admin.userId, chief.id, { role: 'member' })).ok).toBe(true);
   });
 
-  it('最後の管理できる人は、自分を外せない', async () => {
-    const manager = await memberWithRole('admin');
+  it('最後の管理できる人は、自分の管理者を外せない', async () => {
+    const admin = await manager();
 
-    expect((await changeRole(manager.userId, manager.id, 'member')).ok).toBe(false);
-    expect(await roleOf(manager.id)).toBe('admin');
+    expect((await change(admin.userId, admin.id, { isAdmin: false })).ok).toBe(false);
+    expect(await stored(admin.id)).toEqual({ role: 'member', isAdmin: true });
   });
 
-  it('管理者ログインは、主将を管理者に変えられる', async () => {
-    const captain = await memberWithRole('captain');
+  it('管理者ログインは、主将に管理者を足せる', async () => {
+    const chief = await captain();
 
-    expect((await changeRole(admin.userId, captain.id, 'admin')).ok).toBe(true);
-    expect(await roleOf(captain.id)).toBe('admin');
+    expect((await change(admin.userId, chief.id, { isAdmin: true })).ok).toBe(true);
+    expect(await stored(chief.id)).toEqual({ role: 'captain', isAdmin: true });
   });
 });
 

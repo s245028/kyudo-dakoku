@@ -1,6 +1,7 @@
 // 主将・副務が表を直接読む。読めるかどうかは、データベースの行単位の権限が決める。
 import {
   NOTICE_KINDS,
+  SCHEDULE_KINDS,
   type EditableSettings,
   type Gender,
   type Grade,
@@ -8,11 +9,14 @@ import {
   type ManualJudgement,
   type MemberStatus,
   type PenaltyType,
+  type PracticeEvent,
   type PracticeException,
   type PracticeRule,
   type Role,
+  type ScheduleEntry,
 } from '@kyudo/core';
 import { ApiError, OFFLINE_MESSAGE } from './api.ts';
+import { readEveryRow } from './exportQueries.ts';
 import { ensureSession, supabase } from './supabase.ts';
 
 export type RosterEntry = {
@@ -23,10 +27,14 @@ export type RosterEntry = {
   gender: Gender;
   status: MemberStatus;
   role: Role;
+  isAdmin: boolean;
   approved: boolean;
   retiredOn: string | null;
   linked: boolean;
 };
+
+/** 承認済みの部員なら読める、名前と区別の内容 */
+export type DirectoryEntry = Pick<RosterEntry, 'id' | 'name' | 'grade' | 'gender' | 'status'>;
 
 export type StoredException = Omit<PracticeException, 'contactedAt' | 'basePlan'> & {
   id: string;
@@ -73,10 +81,12 @@ export const loadRoster = () =>
     supabase()
       .from('members')
       .select(
-        'id, studentNo:student_no, name, grade, gender, status, role, approved, retiredOn:retired_on, linked',
+        'id, studentNo:student_no, name, grade, gender, status, role, isAdmin:is_admin, approved, retiredOn:retired_on, linked',
       )
       .order('student_no'),
   );
+
+export const loadDirectory = () => read<DirectoryEntry[]>(() => supabase().rpc('member_directory'));
 
 export const loadPenaltyTypes = () =>
   read<PenaltyType[]>(() =>
@@ -99,12 +109,60 @@ export async function loadRecentTaskContents(): Promise<string[]> {
   return rows.map((row) => row.content);
 }
 
-export async function loadExceptionsSince(date: string): Promise<StoredException[]> {
+/** 役職の側が入れた予定。部全体か部員ごとの、`since` 以降のもの */
+export const loadSchedule = (scope: 'club' | 'member', since: string) =>
+  readEveryRow<ScheduleEntry>(
+    'exceptions',
+    'id, date, memberId:member_id, kind, memo',
+    ['date', 'id'],
+    (query) => {
+      const entered = query
+        .in('kind', [...SCHEDULE_KINDS])
+        .is('approval', null)
+        .gte('date', since);
+      return scope === 'club'
+        ? entered.is('member_id', null)
+        : entered.not('member_id', 'is', null);
+    },
+  );
+
+export type StoredEvent = { id: string; date: string; event: PracticeEvent };
+
+type EventRow = PracticeEvent & { id: string; date: string };
+
+/** `since` 以降の行事。古い順 */
+export async function loadEvents(since: string): Promise<StoredEvent[]> {
+  const rows = await read<EventRow[]>(() =>
+    supabase()
+      .from('exceptions')
+      .select(
+        'id, date, memo, title:event_title, deadline:event_deadline, startTime:event_start_time, endTime:event_end_time, shots:event_shots',
+      )
+      .eq('kind', 'event')
+      .gte('date', since)
+      .order('date'),
+  );
+  // データベースの時刻は秒まであるので、`HH:mm` にそろえる
+  return rows.map(({ id, date, ...event }) => ({
+    id,
+    date,
+    event: {
+      ...event,
+      deadline: event.deadline.slice(0, 5),
+      startTime: event.startTime.slice(0, 5),
+      endTime: event.endTime?.slice(0, 5) ?? null,
+    },
+  }));
+}
+
+/** 今日以降の、引退した人の参加の登録 */
+export async function loadJoins(since: string): Promise<StoredException[]> {
   const rows = await read<ExceptionReply[]>(() =>
     supabase()
       .from('exceptions')
       .select(EXCEPTION_COLUMNS)
-      .gte('date', date)
+      .eq('kind', 'join')
+      .gte('date', since)
       .order('date')
       .order('created_at'),
   );

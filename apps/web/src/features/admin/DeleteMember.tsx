@@ -19,7 +19,7 @@ export function DeleteMember({
     <div className="form delete-member">
       <p className="sub">
         削除すると、{member.name}
-        さんの打刻・出欠・罰・臨時変更・コマ表も消え、元に戻せません。退部した人の記録を残すには、状態を「休部・退部」にしてください。
+        さんの打刻・出欠・罰・予定と連絡・コマ表も消え、元に戻せません。退部した人の記録を残すには、状態を「休部・退部」にしてください。
       </p>
       <label className="check">
         <input

@@ -1,16 +1,15 @@
 import { TABS, type TabId } from './tabs.ts';
 
 type TabBarProps = {
-  current: TabId;
+  /** 開いているタブ。役職の画面では、どれも選ばない */
+  current: TabId | null;
   tabs: readonly TabId[];
   penaltyCount: number;
-  /** 承認を待っている連絡と部員の数 */
-  officerCount: number;
   onSelect: (tab: TabId) => void;
 };
 
-export function TabBar({ current, tabs, penaltyCount, officerCount, onSelect }: TabBarProps) {
-  const badges: Partial<Record<TabId, number>> = { penalty: penaltyCount, admin: officerCount };
+export function TabBar({ current, tabs, penaltyCount, onSelect }: TabBarProps) {
+  const badges: Partial<Record<TabId, number>> = { penalty: penaltyCount };
 
   return (
     <nav className="tabbar">

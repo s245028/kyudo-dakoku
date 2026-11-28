@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PENALTY_WAITING_MESSAGE,
   receivedMessage,
   registrationMessage,
   reviewedMessage,
@@ -19,6 +20,15 @@ describe('通知の文面', () => {
     expect(
       receivedMessage({ name: 'a', date: MONDAY, subject: 'late', overdue: true }).body,
     ).toContain('締め切り後');
+  });
+
+  it('罰の割り当て待ちの通知は、罰の管理を開く。名前も理由も入れない', () => {
+    expect(PENALTY_WAITING_MESSAGE).toEqual({
+      title: '罰の割り当て待ちが増えました',
+      body: '「罰の管理」で、やることを割り当ててください。',
+      open: 'penalties',
+      tag: 'penalty-waiting',
+    });
   });
 
   it('登録の通知は名簿を、本人への通知は打刻の画面を開く', () => {

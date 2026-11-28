@@ -3,10 +3,12 @@ import {
   cancelRefusal,
   cleanTaskContent,
   ownPenaltyRefusal,
+  penaltyMultiplier,
   summarizePenalty,
   toPracticeDate,
   validateNewPenalty,
   type PenaltyTask,
+  type Role,
 } from '../../../../packages/core/src/index.ts';
 import { requireOfficer, type Actor, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
@@ -70,16 +72,19 @@ export async function addPenalty(context: RequestContext, params: Params) {
 
   await inTransaction(sql, async (tx) => {
     const officer = await requireOfficer(tx, userId);
+    const [target] = await tx<{ role: Role }[]>`
+      select role from public.members where id = ${memberId}`;
+    if (!target) throw new AppError('部員が見つかりません。');
+    const { leaderPenaltyMultiplier } = await loadSettings(tx);
     const input = validateNewPenalty({
       reason: stringParam(params, 'reason'),
       date: stringParam(params, 'date') || toPracticeDate(now),
       memo: stringParam(params, 'memo'),
       contents,
       types: await loadPenaltyTypes(tx),
+      multiplier: penaltyMultiplier(target.role, leaderPenaltyMultiplier),
     });
     if (!input.ok) throw new AppError(input.message);
-    const [target] = await tx`select 1 from public.members where id = ${memberId}`;
-    if (!target) throw new AppError('部員が見つかりません。');
 
     const { value } = input;
     const [penalty] = await tx<{ id: string }[]>`
@@ -88,6 +93,7 @@ export async function addPenalty(context: RequestContext, params: Params) {
         member_id: memberId,
         reason: value.reason,
         base_count: value.baseCount,
+        multiplier: value.multiplier,
         memo: value.memo,
         created_by: officer.id,
         created_at: now,

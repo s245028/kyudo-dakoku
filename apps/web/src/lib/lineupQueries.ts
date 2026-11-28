@@ -22,7 +22,7 @@ type LineupDayReply = {
   members: Person[];
   rules: PracticeRule[];
   koma: (Koma & { memberId: string })[];
-  exceptions: Pick<PracticeException, 'date' | 'memberId' | 'kind' | 'approval'>[];
+  exceptions: Pick<PracticeException, 'date' | 'memberId' | 'kind' | 'approval' | 'event'>[];
   punches: { memberId: string; at: string; kind: Punch['kind']; canceledAt: string | null }[];
   lineups: SavedLineup[];
 };

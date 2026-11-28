@@ -7,10 +7,14 @@ import {
   DEFAULT_PENALTY_TYPES,
   taskSuggestions,
   unassignedCount,
+  penaltyMultiplier,
   validateNewPenalty,
   cancelRefusal,
   ownPenaltyRefusal,
+  totalUnassigned,
+  hasDoubledToday,
 } from './penalty.ts';
+import { ROLES } from './member.ts';
 
 const GIVEN = '2026-12-28';
 /** ついた日の `days` 日後 */
@@ -129,6 +133,32 @@ describe('罰をつけるときの入力', () => {
   });
 });
 
+describe('上4役の罰', () => {
+  it('主将・男子副将・女子副将・主務だけが倍になる', () => {
+    const doubled = ROLES.filter((role) => penaltyMultiplier(role, 2) === 2);
+
+    expect(doubled).toEqual(['captain', 'men_vice_captain', 'women_vice_captain', 'chief_manager']);
+    expect(penaltyMultiplier('captain', 1)).toBe(1);
+    expect(penaltyMultiplier('vice', 2)).toBe(1);
+  });
+
+  it('副務がつけるときも、倍の数の「やること」が必要', () => {
+    const input = {
+      reason: '私物の出しっぱなし',
+      date: '2026-11-30',
+      memo: '',
+      types: DEFAULT_PENALTY_TYPES,
+      multiplier: 2,
+    };
+
+    expect(validateNewPenalty({ ...input, contents: ['掃除'] })).toMatchObject({ ok: false });
+    expect(validateNewPenalty({ ...input, contents: ['掃除', '的貼り'] })).toMatchObject({
+      ok: true,
+      value: { baseCount: 2, multiplier: 2 },
+    });
+  });
+});
+
 describe('自分の罰と取り消し', () => {
   const refusal = (actorId: string | null, actorIsAdmin = false) =>
     ownPenaltyRefusal({ actorId, actorIsAdmin, ownerId: 'm1' });
@@ -144,5 +174,41 @@ describe('自分の罰と取り消し', () => {
     expect(cancelRefusal({ completed: false, paid: 0 })).toBeNull();
     expect(cancelRefusal({ completed: false, paid: 1 })).not.toBeNull();
     expect(cancelRefusal({ completed: true, paid: 0 })).not.toBeNull();
+  });
+});
+
+describe('割り当て待ちの数', () => {
+  const penalty = (baseCount: number, openTasks = 0, countedFrom: string | null = null) => ({
+    date: GIVEN,
+    countedFrom,
+    baseCount,
+    tasks: Array.from({ length: openTasks }, (_, index) => ({
+      id: String(index),
+      content: '掃除',
+      completedOn: null,
+    })),
+  });
+
+  it('残りの数から、割り当てたやることを引いて合計する', () => {
+    expect(totalUnassigned([penalty(2, 1), penalty(1), penalty(1, 1)], on(0), 7)).toBe(2);
+  });
+
+  it.each([
+    [0, false],
+    [6, false],
+    [7, true],
+    [8, false],
+    [14, true],
+  ])('ついた日の%i日後に、倍になって増えたか: %s', (days, expected) => {
+    expect(hasDoubledToday([penalty(1)], on(days), 7)).toBe(expected);
+  });
+
+  it('割り当て済みでも、倍になれば割り当て待ちが増える', () => {
+    expect(hasDoubledToday([penalty(1, 1)], on(7), 7)).toBe(true);
+  });
+
+  it('起算日があれば、そこから数える', () => {
+    expect(hasDoubledToday([penalty(1, 0, on(3))], on(7), 7)).toBe(false);
+    expect(hasDoubledToday([penalty(1, 0, on(3))], on(10), 7)).toBe(true);
   });
 });

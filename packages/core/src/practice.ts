@@ -1,4 +1,5 @@
 import { weekdayOf, type ClockTime, type PracticeDate } from './date.ts';
+import type { PracticeEvent } from './event.ts';
 
 export const PARTS = ['first', 'second', 'whole'] as const;
 export type Part = (typeof PARTS)[number];
@@ -27,6 +28,7 @@ export const EXCEPTION_KINDS = [
   'absent_notice',
   'late_notice',
   'join',
+  'event',
 ] as const;
 export type ExceptionKind = (typeof EXCEPTION_KINDS)[number];
 
@@ -38,6 +40,7 @@ export const EXCEPTION_LABELS: Record<ExceptionKind, string> = {
   absent_notice: '欠席連絡済',
   late_notice: '遅刻連絡済',
   join: '参加',
+  event: '行事',
 };
 
 export const NOTICE_APPROVALS = ['pending', 'approved', 'rejected'] as const;
@@ -100,6 +103,8 @@ export type PracticeException = {
   selfSubmitted?: boolean;
   /** コマ変更を申請したときの、変更前の区分と集合時刻 */
   basePlan?: PlanTime | null;
+  /** 行事の内容。種類が `event`（全員）のときだけ */
+  event?: PracticeEvent | null;
 };
 
 export type Notice = Pick<PracticeException, 'contactedAt' | 'approval'>;
@@ -116,6 +121,8 @@ export type PracticePlan = {
   joined: boolean;
   /** コマ変更の申請が承認待ち */
   komaRequestPending: boolean;
+  /** 行事の日なら、その内容 */
+  event: PracticeEvent | null;
   notes: string[];
 };
 
@@ -165,7 +172,22 @@ function effectiveNotice(
   return notices.find((notice) => notice.approval !== 'pending') ?? notices[0] ?? null;
 }
 
-/** その日のその人の区分と集合時刻を決める。練習日でなければ null。 */
+/** その日の行事。なければ null。 */
+export function eventOn(
+  date: PracticeDate,
+  exceptions: readonly PracticeException[],
+): PracticeEvent | null {
+  const found = exceptions.find(
+    (exception) =>
+      exception.date === date && exception.memberId === null && exception.kind === 'event',
+  );
+  return found?.event ?? null;
+}
+
+/**
+ * その日のその人の区分と集合時刻を決める。練習日でなければ null。
+ * 行事の日は、曜日のルール・コマ表・全員の休みより行事を優先し、全員が全体の1区分になる。
+ */
 export function resolvePracticePlan(input: {
   date: PracticeDate;
   memberId: string;
@@ -176,24 +198,28 @@ export function resolvePracticePlan(input: {
   const { date, memberId, koma } = input;
   const weekday = weekdayOf(date);
   const rules = input.rules.filter((rule) => rule.weekday === weekday);
-  if (rules.length === 0) return null;
-
+  const event = eventOn(date, input.exceptions);
   const today = input.exceptions.filter((exception) => exception.date === date);
   const everyone = today.filter((exception) => exception.memberId === null);
-  if (everyone.some((exception) => exception.kind === 'day_off')) return null;
+  if (!event) {
+    if (rules.length === 0) return null;
+    if (everyone.some((exception) => exception.kind === 'day_off')) return null;
+  }
 
   const mine = today.filter((exception) => exception.memberId === memberId);
-  const requests = mine.filter(isKomaRequest);
+  const requests = event ? [] : mine.filter(isKomaRequest);
   const approved = requests.findLast((request) => request.approval === 'approved');
-  const notes: string[] = [];
-  let rule = rules.find((candidate) => candidate.condition === 'all');
+  const notes: string[] = event ? [`行事：${event.title}`] : [];
+  let rule: Omit<PracticeRule, 'weekday' | 'condition'> | undefined = event
+    ? { ...event, part: 'whole' }
+    : rules.find((candidate) => candidate.condition === 'all');
 
   if (!rule) {
     if (!koma) notes.push('コマ表未登録');
     const changes = [...everyone, ...mine]
       .filter(isKomaException)
       .filter((change) => !change.approval);
-    if (changes.length > 0 || approved) notes.push('臨時変更あり');
+    if (changes.length > 0 || approved) notes.push('予定の変更あり');
     // 承認した申請は、コマ表と主将の入力より優先する
     const condition = approved?.kind ?? komaConditionOf(weekday, koma, changes);
     rule = rules.find((candidate) => candidate.condition === condition);
@@ -216,6 +242,7 @@ export function resolvePracticePlan(input: {
     lateNotice: effectiveNotice(mine, 'late_notice'),
     joined: mine.some((exception) => exception.kind === 'join'),
     komaRequestPending: requests.some((request) => request.approval === 'pending'),
+    event,
     notes,
   };
 }

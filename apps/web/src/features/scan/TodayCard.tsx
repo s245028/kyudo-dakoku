@@ -1,4 +1,4 @@
-import { PART_LABELS } from '@kyudo/core';
+import { describeEvent, PART_LABELS } from '@kyudo/core';
 import { totalRemaining, type HomeView } from '../../lib/home.ts';
 
 export function TodayCard({
@@ -12,12 +12,15 @@ export function TodayCard({
   onShowNotices?: (() => void) | undefined;
 }) {
   const total = totalRemaining(view.penalties);
+  const event = view.plan?.event;
 
   return (
     <div className="today-card">
       <div>
         <p className="today-label">
-          {view.plan ? `今日の集合（${PART_LABELS[view.plan.part]}）` : '今日の練習'}
+          {view.plan
+            ? `今日の集合（${event?.title ?? PART_LABELS[view.plan.part]}）`
+            : '今日の練習'}
         </p>
         <p className="today-value">{view.plan ? view.plan.deadline : 'なし'}</p>
       </div>
@@ -29,6 +32,12 @@ export function TodayCard({
         <span className="today-label">あなたの罰</span>
         <span className="today-value">{total ? `${total}個` : 'なし'}</span>
       </button>
+      {event && (
+        <div className="today-event">
+          <p>{describeEvent(event)}</p>
+          {event.memo && <p>{event.memo}</p>}
+        </div>
+      )}
       {onShowNotices && (
         <button type="button" className="secondary today-notice" onClick={onShowNotices}>
           {view.retired ? '参加する練習日を選ぶ' : '欠席・遅刻を連絡する'}

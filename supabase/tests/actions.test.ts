@@ -273,7 +273,7 @@ describe('判定', () => {
   it('11: 夜の判定で無断欠席と罰。繰り返しても1件', async () => {
     const { id } = await join();
 
-    expect(await judgeAll()).toBe(1);
+    expect(await judgeAll()).toMatchObject({ judged: 1 });
     await judgeAll();
 
     expect(await attendance(id)).toMatchObject([{ auto_result: 'absent_unexcused' }]);

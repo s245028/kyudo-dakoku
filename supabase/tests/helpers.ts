@@ -45,6 +45,7 @@ export async function insertMember(
     grade: Grade;
     status: MemberStatus;
     role: Role;
+    is_admin: boolean;
     approved: boolean;
     retired_on: string | null;
     auth_user_id: string | null;

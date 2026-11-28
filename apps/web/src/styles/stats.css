@@ -193,6 +193,11 @@
   stroke: var(--data);
 }
 
+.chart-goal {
+  stroke: var(--ink);
+  stroke-dasharray: 4 3;
+}
+
 .chart-line {
   fill: none;
   stroke: var(--data);
@@ -222,6 +227,7 @@
 
 .rank-table .name {
   text-align: left;
+  white-space: nowrap;
 }
 
 .rank-table .sorted {
@@ -284,4 +290,100 @@
   border-top: 1px solid var(--line);
   color: var(--sub);
   font-size: 12px;
+}
+
+.stats > .choice-row:first-child {
+  margin-top: 0;
+}
+
+/* 部員を横に並べた縦棒。軸は残して、横になぞる */
+.member-bars {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  margin: 8px 0 0;
+  padding-block: 4px;
+  border-block: 2px solid var(--ink);
+}
+
+.member-bars svg {
+  display: block;
+}
+
+.member-bars-scroll {
+  overflow-x: auto;
+}
+
+.member-name {
+  fill: var(--ink);
+  font-size: 11px;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.matrix-scroll {
+  max-height: 70vh;
+  margin-top: 8px;
+  overflow: auto;
+  border-block: 2px solid var(--ink);
+}
+
+.matrix-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-table th,
+.matrix-table td {
+  min-width: 46px;
+  padding: 6px 4px;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+}
+
+/* 日付の列と名前の行は、送っても残す */
+.matrix-table tr > :first-child {
+  position: sticky;
+  left: 0;
+  min-width: 54px;
+  background: var(--head);
+  text-align: left;
+}
+
+.matrix-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 100px;
+  background: var(--head);
+  vertical-align: bottom;
+}
+
+.matrix-table thead th:first-child {
+  z-index: 2;
+}
+
+.matrix-table thead span {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+.matrix-table td small {
+  display: block;
+  font-size: 10px;
+  color: var(--sub);
+}
+
+.hit-breakdown {
+  font-size: 13px;
+}
+
+.hit-breakdown li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
 }

@@ -26,13 +26,13 @@ afterAll(async () => {
   await sql.end();
 });
 
-/** 在室の通知を購読する。購読できたかと、届いた回数を返す */
-async function listen(device: Device) {
+/** 通知を購読する。購読できたかと、届いた回数を返す */
+async function listen(device: Device, topic = 'presence') {
   await device.client.realtime.setAuth(device.accessToken);
   const received: unknown[] = [];
   const status = await new Promise<string>((resolve) => {
     device.client
-      .channel('presence', { config: { private: true } })
+      .channel(topic, { config: { private: true } })
       .on('broadcast', { event: 'changed' }, (message) => received.push(message))
       .subscribe((state) => {
         if (String(state) !== 'CLOSED') resolve(String(state));
@@ -63,6 +63,31 @@ describe('在室一覧の更新通知', () => {
 
   it('承認していない端末は購読できない', async () => {
     expect((await listen(pending)).status).toBe('CHANNEL_ERROR');
+  });
+});
+
+describe('的中の記録の更新通知', () => {
+  it('記録が変わると、承認済みの部員の画面に届く', async () => {
+    const { status, received } = await listen(approved, 'hits');
+    expect(status).toBe('SUBSCRIBED');
+
+    await sql`insert into public.hit_records
+        (member_id, practice_date, category, mode, shots, hits, revision, updated_at)
+      values (${memberId}, current_date, 'drill', 'total', 4, 1, 1, now())`;
+
+    await expect
+      .poll(
+        async () => {
+          await sql`update public.hit_records set hits = 2 where member_id = ${memberId}`;
+          return received.length;
+        },
+        { timeout: 15_000, interval: 500 },
+      )
+      .toBeGreaterThan(0);
+  });
+
+  it('承認していない端末は購読できない', async () => {
+    expect((await listen(pending, 'hits')).status).toBe('CHANNEL_ERROR');
   });
 });
 

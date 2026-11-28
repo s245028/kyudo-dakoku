@@ -36,9 +36,10 @@ export async function requireEnrolledMember(tx: Sql, userId: string): Promise<Me
 /**
  * 管理の操作をする人。`id` は部員の id で、管理者ログイン（部員ではない）は null。
  * 記録した人の列には、この `id` をそのまま入れる。
- * `isAdmin` は、管理者ログインか、役職が管理者の部員。
+ * `isAdmin` は、管理者ログインか、管理者に指定された部員。
+ * `administers` は、主将と同じ管理の操作もできるか。
  */
-export type Actor = { id: string | null; isAdmin: boolean };
+export type Actor = { id: string | null; isAdmin: boolean; administers: boolean };
 
 export async function isAdmin(tx: Sql, userId: string): Promise<boolean> {
   const [admin] = await tx`select 1 from public.admins where auth_user_id = ${userId}`;
@@ -53,10 +54,10 @@ async function requireActor(
   allows: (member: MemberRow) => boolean,
   refusal: string,
 ): Promise<Actor> {
-  if (await isAdmin(tx, userId)) return { id: null, isAdmin: true };
+  if (await isAdmin(tx, userId)) return { id: null, isAdmin: true, administers: true };
   const member = await findMemberByDevice(tx, userId);
   if (!member || !allows(member)) throw new AppError(refusal);
-  return { id: member.id, isAdmin: member.role === 'admin' };
+  return { id: member.id, isAdmin: member.isAdmin, administers: canAdminister(member) };
 }
 
 export const requireOfficer = (tx: Sql, userId: string) =>
@@ -71,4 +72,13 @@ export const requireLineupEditor = (tx: Sql, userId: string) =>
     userId,
     canEditLineups,
     '立ち順を作れるのは、主将・男子副将・女子副将・主務・管理者だけです。',
+  );
+
+/** 部全体と部員ごとの予定を変える人。立ち順を作れる人と同じ */
+export const requireScheduleEditor = (tx: Sql, userId: string) =>
+  requireActor(
+    tx,
+    userId,
+    canEditLineups,
+    '予定を変えられるのは、主将・男子副将・女子副将・主務・管理者だけです。',
   );

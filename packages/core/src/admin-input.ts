@@ -53,6 +53,7 @@ export type MemberUpdate = Partial<{
   grade: Grade;
   status: MemberStatus;
   role: Role;
+  isAdmin: boolean;
   retiredOn: PracticeDate | null;
 }>;
 
@@ -81,6 +82,10 @@ export function validateMemberUpdate(
     const role = oneOf(ROLES, input['role']);
     if (!role) return invalid('役職を選んでください。');
     update.role = role;
+  }
+  if (input['isAdmin'] !== undefined) {
+    if (typeof input['isAdmin'] !== 'boolean') return invalid('管理者の指定が正しくありません。');
+    update.isAdmin = input['isAdmin'];
   }
   if (input['status'] !== undefined) {
     const status = oneOf(MEMBER_STATUSES, input['status']);
@@ -122,6 +127,7 @@ export function validateException(input: Raw): Validated<NewException> {
 
   if (!isPracticeDate(date)) return invalid('日付が正しくありません。');
   if (!kind) return invalid('内容を選んでください。');
+  if (kind === 'event') return invalid('行事は「部全体の予定」で入れてください。');
   if (!memberId && !EVERYONE_EXCEPTION_KINDS.includes(kind)) {
     return invalid('この内容は、部員を選んでください。');
   }
@@ -155,6 +161,7 @@ const NUMBER_SETTINGS = {
   undoSeconds: { min: 0, max: 600, label: '取り消しできる秒数' },
   noticeLeadMinutes: { min: 0, max: 1440, label: '連絡の締め切り' },
   penaltyDoublingDays: { min: 1, max: 365, label: '罰が倍になる日数' },
+  leaderPenaltyMultiplier: { min: 1, max: 10, label: '上4役の罰の倍率' },
 } as const;
 
 export function validateSettings(input: Raw): Validated<EditableSettings> {
@@ -180,10 +187,16 @@ export function validateSettings(input: Raw): Validated<EditableSettings> {
     return invalid(`自動退室の時刻は${LATEST_AUTO_CHECKOUT_TIME}までにしてください。`);
   }
 
+  const hitStartDate = text(input['hitStartDate']) || null;
+  if (hitStartDate !== null && !isPracticeDate(hitStartDate)) {
+    return invalid('的中の記録を始める日が正しくありません。');
+  }
+
   return {
     ok: true,
     value: {
       ...numbers,
+      hitStartDate,
       dojoLatitude: noLocation ? null : latitude,
       dojoLongitude: noLocation ? null : longitude,
       autoCheckoutTime,
