@@ -31,7 +31,7 @@ export async function updateSettings({ sql, userId, now }: RequestContext, param
 export async function saveRule({ sql, userId }: RequestContext, params: Params) {
   const input = validatePracticeRule(objectParam(params, 'rule'));
   if (!input.ok) throw new AppError(input.message);
-  const { weekday, condition, part, deadline, startTime } = input.value;
+  const { weekday, condition, part, deadline, startTime, endTime } = input.value;
 
   await inTransaction(sql, async (tx) => {
     await requireCaptain(tx, userId);
@@ -41,9 +41,11 @@ export async function saveRule({ sql, userId }: RequestContext, params: Params) 
       part,
       deadline,
       start_time: startTime,
+      end_time: endTime,
     })}
     on conflict (weekday, condition) do update set
-      part = excluded.part, deadline = excluded.deadline, start_time = excluded.start_time`;
+      part = excluded.part, deadline = excluded.deadline, start_time = excluded.start_time,
+      end_time = excluded.end_time`;
   });
   return {};
 }

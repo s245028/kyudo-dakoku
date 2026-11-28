@@ -2,6 +2,7 @@ import {
   arrangeLineup,
   GROUP_SIZES,
   groupSizeOf,
+  isAway,
   isLineupStale,
   MAX_GROUP_SIZE,
   LINEUP_FORMAT_LABELS,
@@ -21,6 +22,7 @@ import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { readLineupDraft, writeLineupDraft, type LineupDraft } from '../../lib/lineupDraft.ts';
 import type { SavedLineup } from '../../lib/lineupQueries.ts';
 import { useAction } from '../../lib/useAction.ts';
+import { useNow } from '../../lib/useNow.ts';
 import { LineupCanvas } from './LineupCanvas.tsx';
 import type { Tag } from './TagFace.tsx';
 import { Options } from '../admin/Options.tsx';
@@ -64,6 +66,7 @@ export function LineupEditor(props: LineupEditorProps) {
     if (edited) keep({ ...edited, groupSize: size });
   }
   const action = useAction();
+  const now = useNow();
 
   const keep = (next: LineupDraft | null) => {
     setEdited(next);
@@ -83,12 +86,16 @@ export function LineupEditor(props: LineupEditorProps) {
     const previous = history.at(-1);
     keep(previous ? { ...edited, lineup: previous, history: history.slice(0, -1) } : null);
   }
-  const arrange = () =>
+  /** 練習が始まったあとは、道場にいる人だけで並べる */
+  function arrange() {
+    const at = new Date();
+    const present = participants.filter((entry) => !isAway(entry, at));
     edit({
       format,
-      groups: arrangeLineup(format, participants, groupSize),
+      groups: arrangeLineup(format, present, groupSize),
       published: draft?.published ?? false,
     });
+  }
 
   const tagOf = (id: string): Tag => {
     const entry = participants.find((candidate) => candidate.person.id === id);
@@ -99,9 +106,11 @@ export function LineupEditor(props: LineupEditorProps) {
   };
 
   const placed = new Set(draft?.groups.flat());
-  const bench = participants
-    .filter((entry) => entry.status !== 'absent' && !placed.has(entry.person.id))
-    .map((entry) => tagOf(entry.person.id));
+  const unplaced = participants.filter(
+    (entry) => entry.status !== 'absent' && !placed.has(entry.person.id),
+  );
+  const tagsWhere = (away: boolean) =>
+    unplaced.filter((entry) => isAway(entry, now) === away).map((entry) => tagOf(entry.person.id));
   const warnings = draft
     ? lineupWarnings(
         draft.format,
@@ -195,7 +204,8 @@ export function LineupEditor(props: LineupEditorProps) {
           <LineupCanvas
             draft={draft}
             groupSize={editingSize}
-            bench={bench}
+            bench={tagsWhere(false)}
+            away={tagsWhere(true)}
             tagOf={tagOf}
             onChange={(groups) => edit({ ...draft, groups })}
           >

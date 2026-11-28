@@ -60,6 +60,20 @@ export async function rejudge({ sql, userId, now }: RequestContext, params: Para
 }
 
 /**
+ * 今日の出欠一覧を、今の状態にする。画面を開いたときに呼ぶ。罰は打刻と夜の処理でつけるので、
+ * ここでは変えない。夜の処理のあとは、罰と食い違わないように何もしない。
+ */
+export async function refreshAttendance({ sql, userId, now }: RequestContext) {
+  const date = toPracticeDate(now);
+  await inTransaction(sql, async (tx) => {
+    await requireCaptain(tx, userId);
+    const [done] = await tx`select 1 from public.nightly_runs where practice_date = ${date}`;
+    if (!done) await judgeDate(tx, { date, now, memberIds: null, keepPenalties: true });
+  });
+  return {};
+}
+
+/**
  * 手動判定で上書きする。自動判定は計算し直さず、最終判定に合わせて自動の罰だけを直す。
  * 過去の日を、今のコマ表で判定し直してしまわないため。
  */

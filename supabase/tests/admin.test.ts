@@ -85,6 +85,7 @@ describe('権限', () => {
     'admin-delete-exception',
     'admin-review-notice',
     'admin-rejudge',
+    'admin-refresh-attendance',
     'admin-set-manual',
     'admin-update-settings',
     'admin-save-rule',
@@ -423,11 +424,14 @@ describe('設定', () => {
   it('練習ルールを追加して置き換え、削除する', async () => {
     const rule = { weekday: 3, condition: 'all', part: 'whole', startTime: '09:30' };
     await must('captain', 'admin-save-rule', { rule: { ...rule, deadline: '09:00' } });
-    await must('captain', 'admin-save-rule', { rule: { ...rule, deadline: '08:45' } });
+    await must('captain', 'admin-save-rule', {
+      rule: { ...rule, deadline: '08:45', endTime: '12:00' },
+    });
 
-    const rows = await sql<{ id: string; deadline: string }[]>`
-      select id, deadline::text from public.practice_rules where weekday = 3`;
-    expect(rows).toMatchObject([{ deadline: '08:45:00' }]);
+    const rows = await sql<{ id: string; deadline: string; end: string }[]>`
+      select id, deadline::text, end_time::text as end
+      from public.practice_rules where weekday = 3`;
+    expect(rows).toMatchObject([{ deadline: '08:45:00', end: '12:00:00' }]);
 
     await must('captain', 'admin-delete-rule', { ruleId: rows[0]!.id });
     expect(await sql`select 1 from public.practice_rules where weekday = 3`).toHaveLength(0);

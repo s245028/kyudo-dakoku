@@ -198,6 +198,7 @@ export function validatePracticeRule(input: Raw): Validated<PracticeRule> {
   const part = oneOf(PARTS, input['part']);
   const deadline = text(input['deadline']);
   const startTime = text(input['startTime']);
+  const endTime = text(input['endTime']) || null;
 
   if (!isIntegerIn(weekday, 0, 6)) return invalid('曜日を選んでください。');
   if (!condition) return invalid('条件を選んでください。');
@@ -205,7 +206,10 @@ export function validatePracticeRule(input: Raw): Validated<PracticeRule> {
   if (!isClockTime(deadline) || !isClockTime(startTime)) {
     return invalid('集合時刻と練習開始の時刻を入力してください。');
   }
-  return { ok: true, value: { weekday, condition, part, deadline, startTime } };
+  if (endTime !== null && !(isClockTime(endTime) && endTime > startTime)) {
+    return invalid('練習の終了は、開始より後の時刻にしてください。');
+  }
+  return { ok: true, value: { weekday, condition, part, deadline, startTime, endTime } };
 }
 
 export function validatePenaltyType(

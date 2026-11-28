@@ -37,6 +37,7 @@ export function RulesForm({ rules, sending, run }: RulesFormProps) {
               </strong>
               <small className="sub">
                 {PART_LABELS[rule.part]}・{rule.deadline}集合・{rule.startTime}開始
+                {rule.endTime ? `・${rule.endTime}終了` : '・終了未設定'}
               </small>
             </span>
             <span className="row-actions">
@@ -89,6 +90,10 @@ export function RulesForm({ rules, sending, run }: RulesFormProps) {
         <label>
           練習開始
           <input type="time" name="startTime" defaultValue={editing?.startTime} required />
+        </label>
+        <label>
+          練習終了（これより後の入室は欠席）
+          <input type="time" name="endTime" defaultValue={editing?.endTime ?? ''} />
         </label>
         <button type="submit" disabled={sending}>
           ルールを保存

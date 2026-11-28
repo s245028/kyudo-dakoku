@@ -29,6 +29,7 @@ afterAll(async () => {
 });
 
 async function resetSettings() {
+  await sql`update public.practice_rules set end_time = null`;
   await sql`update public.settings set value = 'false' where key = 'komaLocked'`;
   await sql`update public.settings set value = 'null'
     where key in ('dojoLatitude', 'dojoLongitude')`;
@@ -191,6 +192,37 @@ describe('打刻', () => {
     });
     expect(await attendance(id)).toMatchObject([{ auto_result: 'late' }]);
     expect(await sql`select 1 from public.attendance`).toHaveLength(1);
+  });
+
+  it('53: 練習の終了後の入室は、その場で無断欠席の罰がつく', async () => {
+    const { id } = await join();
+    await sql`update public.practice_rules set end_time = '21:00'`;
+
+    const result = await run('scan', { qr: QR }, at('21:30'));
+
+    expect(result).toMatchObject({
+      scan: { lateMinutes: 0, missed: true, penaltyAdded: true },
+      home: { penalties: [{ reason: '無断欠席' }] },
+    });
+    expect(await attendance(id)).toMatchObject([{ auto_result: 'absent_unexcused' }]);
+  });
+
+  it('54: 出欠を開いたときの判定は、罰を変えない', async () => {
+    const { id } = await join();
+    await sql`insert into public.exceptions (date, member_id, kind, contacted_at)
+      values (${DATE}, ${id}, 'absent_notice', ${at('16:30')})`;
+    const captain = await signInDevice();
+    await insertMember(sql, { auth_user_id: captain.userId, role: 'captain' });
+    const refresh = () => run('admin-refresh-attendance', {}, at('17:30'), captain.userId);
+
+    expect(await refresh()).toMatchObject({ ok: true });
+    expect(await attendance(id)).toMatchObject([{ auto_result: 'absent_notice_overdue' }]);
+    expect(await penalties()).toEqual([]);
+
+    await sql`delete from public.attendance`;
+    await sql`insert into public.nightly_runs (practice_date, ran_at) values (${DATE}, ${at('22:15')})`;
+    expect(await refresh()).toMatchObject({ ok: true });
+    expect(await attendance(id)).toEqual([]);
   });
 
   it('締め切り内に連絡した遅刻は罰がつかない', async () => {

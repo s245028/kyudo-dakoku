@@ -113,6 +113,11 @@ describe('練習ルールと罰の種類', () => {
     expect(validatePracticeRule(RULES[0]!)).toEqual({ ok: true, value: RULES[0] });
     expect(validatePracticeRule({ ...RULES[0], deadline: '' }).ok).toBe(false);
     expect(validatePracticeRule({ ...RULES[0], weekday: 7 }).ok).toBe(false);
+    expect(validatePracticeRule({ ...RULES[0], endTime: '' })).toMatchObject({
+      value: { endTime: null },
+    });
+    expect(validatePracticeRule({ ...RULES[0], endTime: '19:30' }).ok).toBe(true);
+    expect(validatePracticeRule({ ...RULES[0], endTime: RULES[0]!.startTime }).ok).toBe(false);
   });
 
   it('基本の数は1以上', () => {

@@ -3,6 +3,7 @@ import { AppError } from './errors.ts';
 import {
   addException,
   deleteException,
+  refreshAttendance,
   rejudge,
   setManualJudgement,
 } from './actions/attendance.ts';
@@ -63,6 +64,7 @@ export const ACTIONS = {
   'admin-save-lineup': saveLineup,
   'admin-delete-lineup': deleteLineup,
   'admin-rejudge': rejudge,
+  'admin-refresh-attendance': refreshAttendance,
   'admin-set-manual': setManualJudgement,
   'admin-update-settings': updateSettings,
   'admin-save-rule': saveRule,

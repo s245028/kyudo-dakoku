@@ -51,6 +51,8 @@ export type PracticeRule = {
   /** 集合時刻。これを過ぎた入室は遅刻 */
   deadline: ClockTime;
   startTime: ClockTime;
+  /** 練習の終了。これより後の入室は、来なかったのと同じ。決めていなければ null */
+  endTime: ClockTime | null;
 };
 
 export const KOMA_KEYS = ['mon4', 'mon5', 'tue4', 'tue5', 'thu4', 'thu5'] as const;
@@ -106,6 +108,7 @@ export type PracticePlan = {
   part: Part;
   deadline: ClockTime;
   startTime: ClockTime;
+  endTime: ClockTime | null;
   /** 個人の「休み」。判定は「対象外」になる */
   exempt: boolean;
   absentNotice: Notice | null;
@@ -207,6 +210,7 @@ export function resolvePracticePlan(input: {
     part: rule.part,
     deadline: rule.deadline,
     startTime: rule.startTime,
+    endTime: rule.endTime,
     exempt: mine.some((exception) => exception.kind === 'day_off'),
     absentNotice: effectiveNotice(mine, 'absent_notice'),
     lateNotice: effectiveNotice(mine, 'late_notice'),

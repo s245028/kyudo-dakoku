@@ -39,6 +39,7 @@ async function loadRecordedPlans(
  * 必ずトランザクションの中で呼ぶ。`memberIds` が null なら対象者全員。
  * 判定の対象でない部員の記録には触れない。戻り値は判定した行数。
  * `keepRecordedPlan` なら、出欠一覧にある人は記録した区分と集合時刻のまま判定する。
+ * `keepPenalties` なら、出欠一覧だけを直して、罰は変えない。
  */
 export async function judgeDate(
   tx: Sql,
@@ -47,6 +48,7 @@ export async function judgeDate(
     now: Date;
     memberIds: readonly string[] | null;
     keepRecordedPlan?: boolean;
+    keepPenalties?: boolean;
   },
 ): Promise<number> {
   const { date, now, memberIds } = input;
@@ -109,7 +111,7 @@ export async function judgeDate(
     });
   }
 
-  await syncAutoPenalties(tx, date, judged);
+  if (!input.keepPenalties) await syncAutoPenalties(tx, date, judged);
   return judged.filter((entry) => entry.result !== null).length;
 }
 

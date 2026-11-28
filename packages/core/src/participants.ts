@@ -1,6 +1,6 @@
 // その日の練習に参加する人。立ち順を決めるときに使う
-import { lateMinutesOf } from './attendance.ts';
-import { toPracticeDate, weekdayOf, type PracticeDate } from './date.ts';
+import { isAfterPractice, lateMinutesOf } from './attendance.ts';
+import { toInstant, toPracticeDate, weekdayOf, type PracticeDate } from './date.ts';
 import {
   isApprovedMember,
   isRetiredOn,
@@ -38,7 +38,13 @@ export type Participant = {
   pending: boolean;
   /** いま道場にいる */
   inRoom: boolean;
+  /** その人の練習が始まる時刻 */
+  startsAt: Date;
 };
+
+/** 練習が始まっているのに、道場にいない。並べるときは外しておく */
+export const isAway = (entry: Participant, now: Date) =>
+  entry.status !== 'absent' && !entry.inRoom && now >= entry.startsAt;
 
 /** その日に練習がある区分。参加者がいない区分も返す。練習がなければ空。 */
 export function practiceParts(
@@ -87,7 +93,9 @@ export function listParticipants(input: {
     const firstIn = mine.find((punch) => punch.kind === 'in');
     const notice = firstIn ? null : (plan.absentNotice ?? plan.lateNotice);
     let status: ParticipationStatus = 'expected';
-    if (firstIn) {
+    if (firstIn && isAfterPractice(date, plan.endTime, firstIn.at)) {
+      status = 'absent';
+    } else if (firstIn) {
       if (lateMinutesOf(date, plan.deadline, firstIn.at) > 0) status = 'late';
     } else if (plan.absentNotice) {
       status = 'absent';
@@ -101,6 +109,7 @@ export function listParticipants(input: {
         status,
         pending: notice?.approval === 'pending' || plan.komaRequestPending,
         inRoom: mine.at(-1)?.kind === 'in',
+        startsAt: toInstant(date, plan.startTime),
       },
     ];
   });

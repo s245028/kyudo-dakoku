@@ -16,7 +16,14 @@ import {
   type LineupGroups,
 } from './lineup.ts';
 import type { Grade, Role } from './member.ts';
-import { listParticipants, practiceParts, type Participant, type Person } from './participants.ts';
+import {
+  isAway,
+  listParticipants,
+  practiceParts,
+  type Participant,
+  type Person,
+} from './participants.ts';
+import { toInstant } from './date.ts';
 import {
   aMember,
   anException,
@@ -46,6 +53,7 @@ const entry = (
   status: overrides.status ?? 'expected',
   pending: false,
   inRoom: false,
+  startsAt: toInstant(MONDAY, '17:30'),
 });
 
 const many = (count: number) =>
@@ -105,6 +113,30 @@ describe('参加者', () => {
       { status: 'absent', inRoom: false, pending: true },
       { status: 'expected', pending: false },
     ]);
+  });
+});
+
+describe('道場にいない人', () => {
+  const start = toInstant(MONDAY, '17:30');
+
+  it('練習が始まったあと、道場にいない参加者を指す', () => {
+    expect(isAway(entry('m1'), new Date(start.getTime() - 1))).toBe(false);
+    expect(isAway(entry('m1'), start)).toBe(true);
+    expect(isAway({ ...entry('m1'), inRoom: true }, start)).toBe(false);
+    expect(isAway(entry('m1', { status: 'absent' }), start)).toBe(false);
+  });
+
+  it('練習の終了後に入室した人は欠席にする', () => {
+    const [found] = listParticipants({
+      date: MONDAY,
+      members: [person('m1')],
+      rules: RULES.map((rule) => ({ ...rule, endTime: '19:00' })),
+      komaByMember: new Map(),
+      exceptions: [],
+      punches: [aPunch(MONDAY, '19:30:00')],
+    });
+
+    expect(found).toMatchObject({ status: 'absent', startsAt: start });
   });
 });
 

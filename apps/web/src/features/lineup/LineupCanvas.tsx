@@ -35,6 +35,8 @@ type LineupCanvasProps = {
   groupSize: GroupSize;
   /** 板にいない参加者 */
   bench: Tag[];
+  /** 板にいない参加者のうち、練習が始まっても道場にいない人 */
+  away: Tag[];
   tagOf: (memberId: string) => Tag;
   onChange: (groups: Lineup['groups']) => void;
   children?: React.ReactNode;
@@ -45,7 +47,7 @@ type LineupCanvasProps = {
  * 札を押してから、入れ替える札か移す先を押しても直せる。
  */
 export function LineupCanvas(props: LineupCanvasProps) {
-  const { draft, groupSize, bench, tagOf, onChange, children } = props;
+  const { draft, groupSize, bench, away, tagOf, onChange, children } = props;
   const [selected, setSelected] = useState<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   /** ドラッグ中の札を、どの札のどこに落とすか */
@@ -105,6 +107,15 @@ export function LineupCanvas(props: LineupCanvasProps) {
     drop(selected, { type: 'tag', memberId });
   }
 
+  const unplacedTag = (tag: Tag) => (
+    <DraggableTag
+      key={tag.id}
+      tag={tag}
+      selected={tag.id === selected}
+      onClick={() => pick(tag.id)}
+    />
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -137,14 +148,7 @@ export function LineupCanvas(props: LineupCanvasProps) {
       />
       {children}
       <Bench count={bench.length}>
-        {bench.map((tag) => (
-          <DraggableTag
-            key={tag.id}
-            tag={tag}
-            selected={tag.id === selected}
-            onClick={() => pick(tag.id)}
-          />
-        ))}
+        {bench.map(unplacedTag)}
         {selected !== null && placed.has(selected) && (
           <button
             type="button"
@@ -158,6 +162,13 @@ export function LineupCanvas(props: LineupCanvasProps) {
           <span className="bench-guide">ここに置くと外れます</span>
         )}
       </Bench>
+      {away.length > 0 && (
+        <div className="bench-area">
+          <h3>道場にいない人（{away.length}人）</h3>
+          <p className="hint">入室すると「入れていない人」に移ります。</p>
+          <div className="bench">{away.map(unplacedTag)}</div>
+        </div>
+      )}
       <DragOverlay dropAnimation={null}>
         {dragging && (
           <span className="tag tag-ghost">

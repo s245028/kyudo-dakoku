@@ -77,7 +77,7 @@ export async function lockJudgeableMembers(
 export async function loadRules(sql: Sql): Promise<PracticeRule[]> {
   return sql<PracticeRule[]>`
     select weekday, condition, part, to_char(deadline, 'HH24:MI') as deadline,
-      to_char(start_time, 'HH24:MI') as "startTime"
+      to_char(start_time, 'HH24:MI') as "startTime", to_char(end_time, 'HH24:MI') as "endTime"
     from public.practice_rules`;
 }
 
