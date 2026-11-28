@@ -1,5 +1,4 @@
 import {
-  NOTICE_KIND_LABELS,
   describeEvent,
   PART_LABELS,
   type JoinDay,
@@ -8,10 +7,10 @@ import {
   type NoticeKind,
 } from '@kyudo/core';
 import { useState } from 'react';
-import { ConfirmButton } from '../../components/ConfirmButton.tsx';
 import { dateWithWeekday } from '../../lib/format.ts';
 import type { RunAction } from '../../lib/useAction.ts';
 import { KomaChange } from './KomaChange.tsx';
+import { NoticeActions } from './NoticeActions.tsx';
 import { NoticeForm } from './NoticeForm.tsx';
 import { NoticeStatus } from './NoticeStatus.tsx';
 
@@ -31,7 +30,7 @@ export function PracticeDayRow(props: PracticeDayRowProps) {
   const sent = notice?.notice ?? null;
 
   return (
-    <li>
+    <li className="day-card">
       <div className="practice-day">
         <span className="practice-date">
           {dateWithWeekday(date)}
@@ -43,55 +42,19 @@ export function PracticeDayRow(props: PracticeDayRowProps) {
           {day.event?.memo && <small>{day.event.memo}</small>}
         </span>
         {join && (
-          <span className="row-actions">
-            {join.joined && <span className="join-status">参加予定</span>}
-            {join.joined && join.canCancel && (
-              <button
-                type="button"
-                className="small secondary"
-                disabled={sending}
-                onClick={() => void run('unjoin', { date })}
-              >
-                取消
-              </button>
-            )}
-            {!join.joined && join.canJoin && (
-              <button
-                type="button"
-                className="small"
-                disabled={sending}
-                onClick={() => void run('join', { date })}
-              >
-                参加する
-              </button>
-            )}
+          <span className={join.joined ? 'join-chip join-chip-on' : 'join-chip'}>
+            {join.joined ? '参加予定' : '未登録'}
           </span>
         )}
       </div>
       {sent && <NoticeStatus notice={sent} />}
-      {notice && !writing && (notice.canSubmit || notice.canCancel) && (
-        <div className="notice-actions">
-          {notice.canSubmit &&
-            (Object.keys(NOTICE_KIND_LABELS) as NoticeKind[]).map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                className="small secondary"
-                disabled={sending}
-                onClick={() => setWriting(kind)}
-              >
-                {sent ? `${NOTICE_KIND_LABELS[kind]}で出し直す` : `${NOTICE_KIND_LABELS[kind]}する`}
-              </button>
-            ))}
-          {notice.canCancel && (
-            <ConfirmButton
-              label="連絡を取り消す"
-              className="small secondary"
-              disabled={sending}
-              onConfirm={() => void run('cancel-notice', { date })}
-            />
-          )}
-        </div>
+      {notice && !writing && (
+        <NoticeActions
+          day={notice}
+          sending={sending}
+          onWrite={setWriting}
+          onCancel={() => void run('cancel-notice', { date })}
+        />
       )}
       {notice?.canSubmit && writing && (
         <NoticeForm
@@ -105,6 +68,21 @@ export function PracticeDayRow(props: PracticeDayRowProps) {
         />
       )}
       {komaDay && <KomaChange day={komaDay} sending={sending} run={run} />}
+      {join && !join.joined && join.canJoin && (
+        <button type="button" disabled={sending} onClick={() => void run('join', { date })}>
+          参加する
+        </button>
+      )}
+      {join?.joined && join.canCancel && (
+        <button
+          type="button"
+          className="link-button"
+          disabled={sending}
+          onClick={() => void run('unjoin', { date })}
+        >
+          参加を取り消す
+        </button>
+      )}
     </li>
   );
 }

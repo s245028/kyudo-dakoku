@@ -5,6 +5,8 @@
   --card: #fff;
   --soft: #faf8f3;
   --line: #b9b2a2;
+  /* 押せるものと箱の区切り。背景との明暗差を3:1以上にする */
+  --line-strong: #736c60;
   --green: #1f5a40;
   --green-soft: #e4efe8;
   --accent: #2f7a55;
@@ -13,6 +15,8 @@
   --red-faint: #fdf3f1;
   --gold-soft: #fff7d6;
   --gold-line: #e8d98a;
+  --gold-strong: #fff0bd;
+  --gold-ink: #5c4400;
   --content-width: 520px;
   --wood: #f4e1bd;
   --radius: 8px;
