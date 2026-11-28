@@ -27,7 +27,7 @@ export function TotalRecord({
         射数と的中数を直す
       </button>
       <ConfirmButton
-        label="一射ずつの入力に置き換える"
+        label="○×の入力に置き換える"
         className="secondary"
         disabled={sending}
         onConfirm={onShots}
