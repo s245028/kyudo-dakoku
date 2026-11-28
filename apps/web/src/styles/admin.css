@@ -71,10 +71,13 @@ small.sub {
   background: var(--soft);
 }
 
-.judgement {
+.manual-mark {
   flex-shrink: 0;
-  font-weight: 700;
-  text-align: right;
+}
+
+.group-heading {
+  margin: 18px 0 6px;
+  font-size: 15px;
 }
 
 .row-note {

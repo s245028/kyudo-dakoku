@@ -36,10 +36,7 @@ export function AttendanceRow({ entry, sending, run }: AttendanceRowProps) {
             {clock(entry.lastOut)}
           </small>
         </span>
-        <span className="judgement">
-          {JUDGEMENT_LABELS[entry.finalResult]}
-          {entry.manualResult && <small className="sub">手動</small>}
-        </span>
+        {entry.manualResult && <small className="sub manual-mark">手動</small>}
       </button>
       {entry.note && <p className="row-note">{entry.note}</p>}
       {open && (

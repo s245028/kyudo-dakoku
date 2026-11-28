@@ -60,7 +60,13 @@ function Recorded({
         </p>
       ) : (
         <>
-          <p className={scan.lateMinutes > 0 ? 'result-judge result-judge-late' : 'result-judge'}>
+          <p
+            className={
+              scan.lateMinutes > 0 || scan.missed
+                ? 'result-judge result-judge-late'
+                : 'result-judge'
+            }
+          >
             {scan.message}
             {scan.penaltyAdded && '　罰がつきました（罰タブで確認）'}
             {scan.penaltyPending && '　連絡か申請が承認待ちのため、罰は保留しています'}

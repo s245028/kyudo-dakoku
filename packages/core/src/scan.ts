@@ -1,5 +1,5 @@
 import { toInstant, toPracticeDate, type ClockTime, type PracticeDate } from './date.ts';
-import { lateMinutesOf } from './attendance.ts';
+import { isAfterPractice, lateMinutesOf } from './attendance.ts';
 import { isEnrolled, isRetiredOn, STATUS_LABELS, type Member } from './member.ts';
 import { PART_LABELS, type PracticePlan } from './practice.ts';
 import { validPunches, type Punch, type PunchKind } from './punch.ts';
@@ -46,22 +46,29 @@ export function decideScan<T extends Punch>(input: {
   return { action: 'record', kind, firstInToday };
 }
 
-/** その日の最初の入室の結果を、画面に出す文にする。出すものがなければ null。 */
+/**
+ * その日の最初の入室の結果を、画面に出す文にする。出すものがなければ null。
+ * `missed` は、練習が終わった後の入室。
+ */
 export function describeFirstEntry(input: {
   member: Pick<Member, 'status' | 'retiredOn'>;
   date: PracticeDate;
   plan: PracticePlan | null;
   enteredAt: Date;
-}): { message: string; lateMinutes: number } | null {
+}): { message: string; lateMinutes: number; missed: boolean } | null {
   const { member, date, plan, enteredAt } = input;
   if (!plan || plan.exempt) return null;
   if (isRetiredOn(member, date) && !plan.joined) {
-    return { message: '引退後の参加（参加登録なし・判定なし）', lateMinutes: 0 };
+    return { message: '引退後の参加（参加登録なし・判定なし）', lateMinutes: 0, missed: false };
+  }
+  if (isAfterPractice(date, plan.endTime, enteredAt)) {
+    const message = `練習の終了後の入室（${PART_LABELS[plan.part]}・${plan.endTime}終了のため欠席の扱い）`;
+    return { message, lateMinutes: 0, missed: true };
   }
   const late = lateMinutesOf(date, plan.deadline, enteredAt);
   const basis = `${PART_LABELS[plan.part]}・${plan.deadline}基準`;
   const message = late > 0 ? `遅刻 ${late}分（${basis}）` : `時間内（${basis}）`;
-  return { message, lateMinutes: late };
+  return { message, lateMinutes: late, missed: false };
 }
 
 /** 打刻を取り消せない理由。取り消せるなら null。 */

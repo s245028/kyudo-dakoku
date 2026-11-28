@@ -24,7 +24,14 @@ const home: HomeData = {
     requiresLocation: false,
   },
   rules: [
-    { weekday: 1, condition: 'no_koma', part: 'first', deadline: '17:00', startTime: '17:30' },
+    {
+      weekday: 1,
+      condition: 'no_koma',
+      part: 'first',
+      deadline: '17:00',
+      startTime: '17:30',
+      endTime: null,
+    },
   ],
   koma: null,
   exceptions: [],

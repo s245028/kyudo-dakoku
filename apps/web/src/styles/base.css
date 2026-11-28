@@ -134,3 +134,29 @@ ul {
   font-size: 28px;
   font-variant-numeric: tabular-nums;
 }
+
+.choice-row {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  margin: 18px 0 4px;
+  border: 1px solid var(--choice, var(--ink));
+}
+
+.choice-row button {
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 4px;
+  border-radius: 0;
+  background: #fff;
+  color: var(--choice, var(--ink));
+}
+
+.choice-row button + button {
+  border-left: 1px solid var(--choice, var(--ink));
+}
+
+.choice-row button[aria-pressed='true'] {
+  background: var(--choice, var(--ink));
+  color: #fff;
+}

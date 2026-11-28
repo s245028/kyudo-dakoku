@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { finalJudgement, judgeAttendance, type JudgementInput } from './attendance.ts';
+import {
+  finalJudgement,
+  GROUP_JUDGEMENTS,
+  groupAttendance,
+  JUDGEMENTS,
+  judgeAttendance,
+  type JudgementInput,
+} from './attendance.ts';
 import { toInstant } from './date.ts';
 import { DEFAULT_SETTINGS } from './settings.ts';
 import {
@@ -284,6 +291,94 @@ describe('在室時間と自動退室（受け入れテスト24）', () => {
 
   it('当日の入室中は今までの時間を数える', () => {
     expect(judge({ punches: [aPunch(MONDAY, '20:00:00')] })?.minutes).toBe(60);
+  });
+});
+
+describe('練習の終了後の入室（受け入れテスト51〜52）', () => {
+  const rules = RULES.map((rule) => ({
+    ...rule,
+    endTime: rule.part === 'second' ? '21:30' : '19:30',
+  }));
+  const enter = (time: string, overrides: Partial<JudgementInput> = {}) =>
+    judge({ rules, punches: [aPunch(MONDAY, time)], ...overrides });
+
+  it('51: 終了の時刻までの入室は遅刻、過ぎると無断欠席', () => {
+    expect(enter('19:30:00')).toMatchObject({ result: 'late', lateMinutes: 150 });
+    expect(enter('19:30:01')).toMatchObject({
+      result: 'absent_unexcused',
+      lateMinutes: null,
+      notes: ['練習の終了後に入室（19:30）'],
+    });
+  });
+
+  it('遅刻の連絡があれば、欠席の連絡として扱う', () => {
+    const exceptions = [
+      anException(MONDAY, 'late_notice', { contactedAt: toInstant(MONDAY, '15:00') }),
+    ];
+
+    expect(enter('20:00:00', { exceptions })?.result).toBe('absent_notified');
+  });
+
+  it('52: 来ていない人は、終了の時刻で欠席が確定する', () => {
+    const at = (time: string) => judge({ rules, now: toInstant(MONDAY, time) })?.result;
+
+    expect(at('19:29')).toBe('not_arrived');
+    expect(at('19:30')).toBe('absent_unexcused');
+  });
+
+  it('終了の時刻を決めていなければ、後からの入室は遅刻', () => {
+    expect(judge({ punches: [aPunch(MONDAY, '21:00:00')] })?.result).toBe('late');
+  });
+
+  it('記録した区分で判定し直すときは、その区分の終了の時刻を使う', () => {
+    const recorded = { part: 'second' as const, deadline: '19:15' };
+
+    expect(enter('20:00:00', { recorded })?.result).toBe('late');
+  });
+});
+
+describe('出欠一覧の分け方', () => {
+  const entry = (memberId: string, finalResult: (typeof JUDGEMENTS)[number]) => ({
+    memberId,
+    finalResult,
+  });
+
+  it('どの判定も、どれか1つの分け方に入る', () => {
+    expect(Object.values(GROUP_JUDGEMENTS).flat().sort()).toEqual([...JUDGEMENTS].sort());
+  });
+
+  it('判定ごとにまとめ、該当者のいない判定は出さない', () => {
+    const groups = groupAttendance(
+      [
+        entry('a', 'late'),
+        entry('b', 'absent_unexcused'),
+        entry('c', 'late'),
+        entry('d', 'present'),
+      ],
+      [],
+    );
+
+    expect(groups.unnotified.map((section) => [section.label, section.entries.length])).toEqual([
+      ['無断欠席', 1],
+      ['遅刻', 2],
+    ]);
+    expect(groups.notified).toEqual([]);
+    expect(groups.present).toHaveLength(1);
+  });
+
+  it('遅刻の連絡をして来ていない人は、連絡あり。却下した連絡は数えない', () => {
+    const groups = groupAttendance(
+      [entry('a', 'not_arrived'), entry('b', 'not_arrived')],
+      [
+        { memberId: 'a', kind: 'late_notice', approval: 'pending' },
+        { memberId: 'b', kind: 'late_notice', approval: 'rejected' },
+      ],
+    );
+
+    expect(groups.notified).toMatchObject([
+      { label: '未到着（遅刻の連絡あり）', entries: [{ memberId: 'a' }] },
+    ]);
+    expect(groups.unnotified).toMatchObject([{ label: '未到着', entries: [{ memberId: 'b' }] }]);
   });
 });
 

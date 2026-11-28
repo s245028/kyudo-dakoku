@@ -19,7 +19,8 @@ describe('初期値', () => {
 
   it('練習ルール', async () => {
     const rows = await sql`select weekday, condition, part,
-      to_char(deadline, 'HH24:MI') as deadline, to_char(start_time, 'HH24:MI') as "startTime"
+      to_char(deadline, 'HH24:MI') as deadline, to_char(start_time, 'HH24:MI') as "startTime",
+      to_char(end_time, 'HH24:MI') as "endTime"
       from public.practice_rules`;
 
     expect(rows).toHaveLength(RULES.length);

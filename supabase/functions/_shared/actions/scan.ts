@@ -80,15 +80,15 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
         exceptions: await loadExceptions(tx, date),
       });
       entry = describeFirstEntry({ member, date, plan, enteredAt: now });
-      // 遅刻の罰は打刻した時点でつける（夜の判定を待たない）
-      if (entry && entry.lateMinutes > 0) {
+      // 遅刻と、練習後の入室（欠席）の罰は、打刻した時点でつける（夜の判定を待たない）
+      if (entry && (entry.lateMinutes > 0 || entry.missed)) {
         await judgeDate(tx, { date, now, memberIds: [member.id] });
         const [penalty] = await tx`
           select 1 from public.penalties where auto_key = ${autoPenaltyKey(date, member.id)}`;
         penaltyAdded = penalty !== undefined;
         const [pending] = await tx`select 1 from public.attendance
           where practice_date = ${date} and member_id = ${member.id}
-            and final_result = 'late_pending'`;
+            and final_result in ('late_pending', 'absent_pending')`;
         penaltyPending = pending !== undefined;
       }
     }
@@ -99,6 +99,7 @@ export async function scan({ sql, userId, now }: RequestContext, params: Params)
       time: toClockTime(now),
       message: entry?.message ?? '',
       lateMinutes: entry?.lateMinutes ?? 0,
+      missed: entry?.missed ?? false,
       penaltyAdded,
       penaltyPending,
       undoSeconds: settings.undoSeconds,

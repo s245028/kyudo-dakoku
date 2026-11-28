@@ -1,4 +1,11 @@
-import { toInstant, toPracticeDate, type ClockTime, type PracticeDate } from './date.ts';
+import {
+  toClockTime,
+  toInstant,
+  toPracticeDate,
+  weekdayOf,
+  type ClockTime,
+  type PracticeDate,
+} from './date.ts';
 import { isApprovedMember, isRetiredOn, type Member } from './member.ts';
 import {
   isKomaRequest,
@@ -51,6 +58,76 @@ export const JUDGEMENT_LABELS: Record<Judgement, string> = {
   unregistered: '参加（登録なし）',
 };
 
+/** 出欠一覧の分け方。連絡の有無で分け、出席にはほかの判定しない人もまとめる */
+export const ATTENDANCE_GROUPS = ['unnotified', 'notified', 'present'] as const;
+export type AttendanceGroup = (typeof ATTENDANCE_GROUPS)[number];
+
+export const ATTENDANCE_GROUP_LABELS: Record<AttendanceGroup, string> = {
+  unnotified: '連絡なし',
+  notified: '連絡あり',
+  present: '出席',
+};
+
+/** 分け方ごとの判定。画面に出す順に並べる */
+export const GROUP_JUDGEMENTS: Record<AttendanceGroup, readonly Judgement[]> = {
+  unnotified: ['absent_unexcused', 'late', 'not_arrived'],
+  notified: [
+    'absent_pending',
+    'late_pending',
+    'absent_notified',
+    'late_notified',
+    'absent_notice_overdue',
+    'late_notice_overdue',
+  ],
+  present: ['present', 'exempt', 'unregistered'],
+};
+
+export type AttendanceSection<T> = { label: string; entries: T[] };
+
+/**
+ * 最終判定で分け、さらに判定ごとにまとめる。該当者のいない見出しは返さない。
+ * 遅刻の連絡をしてまだ来ていない人は、判定は未到着でも「連絡あり」に入れる。
+ * `exceptions` はその日の臨時変更。却下した連絡は、連絡がないのと同じ。
+ */
+export function groupAttendance<T extends { memberId: string; finalResult: Judgement }>(
+  entries: readonly T[],
+  exceptions: readonly Pick<PracticeException, 'memberId' | 'kind' | 'approval'>[],
+): Record<AttendanceGroup, AttendanceSection<T>[]> {
+  const awaited = new Set(
+    entries
+      .filter(
+        (entry) =>
+          entry.finalResult === 'not_arrived' &&
+          exceptions.some(
+            (exception) =>
+              exception.memberId === entry.memberId &&
+              exception.kind === 'late_notice' &&
+              exception.approval !== 'rejected',
+          ),
+      )
+      .map((entry) => entry.memberId),
+  );
+  const sections = (group: AttendanceGroup): AttendanceSection<T>[] =>
+    GROUP_JUDGEMENTS[group].map((judgement) => ({
+      label: JUDGEMENT_LABELS[judgement],
+      entries: entries.filter(
+        (entry) => entry.finalResult === judgement && !awaited.has(entry.memberId),
+      ),
+    }));
+  const filled = (list: AttendanceSection<T>[]) => list.filter((section) => section.entries.length);
+  return {
+    unnotified: filled(sections('unnotified')),
+    notified: filled([
+      {
+        label: '未到着（遅刻の連絡あり）',
+        entries: entries.filter((entry) => awaited.has(entry.memberId)),
+      },
+      ...sections('notified'),
+    ]),
+    present: filled(sections('present')),
+  };
+}
+
 export type AttendanceRecord = {
   date: PracticeDate;
   memberId: string;
@@ -74,6 +151,16 @@ const wholeSeconds = (instant: Date) => Math.floor(instant.getTime() / 1000);
 export function lateMinutesOf(date: PracticeDate, deadline: ClockTime, enteredAt: Date): number {
   const seconds = wholeSeconds(enteredAt) - wholeSeconds(toInstant(date, deadline));
   return seconds > 0 ? Math.ceil(seconds / 60) : 0;
+}
+
+/** 練習が終わった後の入室か。終了の時刻を決めていなければ false。 */
+export function isAfterPractice(
+  date: PracticeDate,
+  endTime: ClockTime | null,
+  enteredAt: Date,
+): boolean {
+  // 保存しておいた古い内容には、終了の時刻がない
+  return Boolean(endTime) && lateMinutesOf(date, endTime!, enteredAt) > 0;
 }
 
 /** 欠席・遅刻の連絡や、参加の取り消しができる最後の瞬間。 */
@@ -108,9 +195,15 @@ function judgeNotice(
   return notice.approval === 'pending' ? `${kind}_pending` : `${kind}_notified`;
 }
 
-/** その日の自動退室の時刻を過ぎて、来ていない人の欠席が確定したか。 */
-function isAbsenceSettled(date: PracticeDate, now: Date, autoCheckoutTime: ClockTime): boolean {
-  return now.getTime() >= toInstant(date, autoCheckoutTime).getTime();
+/** 練習の終了か自動退室の時刻を過ぎて、来ていない人の欠席が確定したか。 */
+function isAbsenceSettled(
+  date: PracticeDate,
+  now: Date,
+  endTime: ClockTime | null,
+  autoCheckoutTime: ClockTime,
+): boolean {
+  const passed = (time: ClockTime) => now.getTime() >= toInstant(date, time).getTime();
+  return (Boolean(endTime) && passed(endTime!)) || passed(autoCheckoutTime);
 }
 
 function decideResult(input: {
@@ -137,7 +230,11 @@ function decideResult(input: {
 
   const limit = noticeDeadlineOf(date, plan.deadline, settings.noticeLeadMinutes);
 
-  if (firstIn) {
+  // 練習の後の入室（自主練習など）は、来なかったのと同じに判定する
+  const missed = firstIn !== null && isAfterPractice(date, plan.endTime, firstIn);
+  if (missed) notes.push(`練習の終了後に入室（${toClockTime(firstIn)}）`);
+
+  if (firstIn && !missed) {
     const late = lateMinutesOf(date, plan.deadline, firstIn);
     if (late === 0) return done('present');
     const notice = plan.lateNotice ?? plan.absentNotice;
@@ -145,7 +242,7 @@ function decideResult(input: {
     return done(judgeNotice(notice, limit, notes, 'late'), late);
   }
 
-  const settled = isAbsenceSettled(date, now, settings.autoCheckoutTime);
+  const settled = isAbsenceSettled(date, now, plan.endTime, settings.autoCheckoutTime);
   const notice = plan.absentNotice ?? plan.lateNotice;
   if (!notice) return done(settled ? 'absent_unexcused' : 'not_arrived');
   // 遅刻の連絡だけなら、欠席が確定するまで到着を待つ
@@ -169,12 +266,19 @@ function planFor(
   resolved: PracticePlan,
   recorded: PlanTime | null | undefined,
   mine: readonly PracticeException[],
+  rules: readonly PracticeRule[],
 ): PracticePlan {
   if (!recorded) return resolved;
   const requests = mine.filter(isKomaRequest);
   if (requests.some((request) => request.approval === 'approved')) return resolved;
   const base = requests.findLast((request) => request.basePlan)?.basePlan;
-  return { ...resolved, ...(base ?? recorded) };
+  const time = base ?? recorded;
+  // 区分が変わるときは、その区分の終了の時刻にする
+  const endTime =
+    time.part === resolved.part
+      ? resolved.endTime
+      : (rules.find((rule) => rule.part === time.part)?.endTime ?? null);
+  return { ...resolved, ...time, endTime };
 }
 
 /** 入室から退室までの合計。当日の入室中は、今までの時間を足す。 */
@@ -226,6 +330,7 @@ export function judgeAttendance(input: JudgementInput): AttendanceRecord | null 
     input.exceptions.filter(
       (exception) => exception.date === date && exception.memberId === member.id,
     ),
+    input.rules.filter((rule) => rule.weekday === weekdayOf(date)),
   );
 
   const mine = validPunches(input.punches).filter(

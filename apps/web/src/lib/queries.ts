@@ -111,6 +111,13 @@ export async function loadExceptionsSince(date: string): Promise<StoredException
   return rows.map(toStoredException);
 }
 
+export async function loadExceptionsOn(date: string): Promise<StoredException[]> {
+  const rows = await read<ExceptionReply[]>(() =>
+    supabase().from('exceptions').select(EXCEPTION_COLUMNS).eq('date', date),
+  );
+  return rows.map(toStoredException);
+}
+
 /** 欠席・遅刻の連絡と、コマ変更の申請。指定した日以降のものと、それより前の承認待ち。 */
 export async function loadNotices(since: string): Promise<StoredException[]> {
   const rows = await read<ExceptionReply[]>(() =>
@@ -147,7 +154,7 @@ export async function loadRules(): Promise<StoredRule[]> {
   const rows = await read<StoredRule[]>(() =>
     supabase()
       .from('practice_rules')
-      .select('id, weekday, condition, part, deadline, startTime:start_time')
+      .select('id, weekday, condition, part, deadline, startTime:start_time, endTime:end_time')
       .order('weekday')
       .order('deadline'),
   );
@@ -156,6 +163,7 @@ export async function loadRules(): Promise<StoredRule[]> {
     ...rule,
     deadline: rule.deadline.slice(0, 5),
     startTime: rule.startTime.slice(0, 5),
+    endTime: rule.endTime?.slice(0, 5) ?? null,
   }));
 }
 

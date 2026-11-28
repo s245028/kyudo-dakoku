@@ -10,14 +10,42 @@ export const WEDNESDAY = '2026-12-02';
 export const SATURDAY = '2026-12-05';
 
 const weekdayRules = (weekday: number): PracticeRule[] => [
-  { weekday, condition: 'no_koma', part: 'first', deadline: '17:00', startTime: '17:30' },
-  { weekday, condition: 'koma4', part: 'first', deadline: '17:30', startTime: '17:30' },
-  { weekday, condition: 'koma5', part: 'second', deadline: '19:15', startTime: '19:45' },
+  {
+    weekday,
+    condition: 'no_koma',
+    part: 'first',
+    deadline: '17:00',
+    startTime: '17:30',
+    endTime: null,
+  },
+  {
+    weekday,
+    condition: 'koma4',
+    part: 'first',
+    deadline: '17:30',
+    startTime: '17:30',
+    endTime: null,
+  },
+  {
+    weekday,
+    condition: 'koma5',
+    part: 'second',
+    deadline: '19:15',
+    startTime: '19:45',
+    endTime: null,
+  },
 ];
 
 export const RULES: PracticeRule[] = [
   ...[1, 2, 4].flatMap(weekdayRules),
-  { weekday: 6, condition: 'all', part: 'whole', deadline: '08:20', startTime: '09:15' },
+  {
+    weekday: 6,
+    condition: 'all',
+    part: 'whole',
+    deadline: '08:20',
+    startTime: '09:15',
+    endTime: null,
+  },
 ];
 
 export const NO_KOMA: Koma = {

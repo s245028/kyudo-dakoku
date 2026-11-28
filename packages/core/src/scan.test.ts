@@ -128,6 +128,29 @@ describe('最初の入室の結果', () => {
     expect(describeEntry('17:02:30')).toEqual({
       message: '遅刻 3分（前半・17:00基準）',
       lateMinutes: 3,
+      missed: false,
+    });
+  });
+
+  it('練習の終了後の入室は、欠席の扱いと伝える', () => {
+    const plan = resolvePracticePlan({
+      date: MONDAY,
+      memberId: 'm1',
+      rules: RULES.map((rule) => ({ ...rule, endTime: '19:30' })),
+      koma: NO_KOMA,
+      exceptions: [],
+    });
+    const result = describeFirstEntry({
+      member: aMember(),
+      date: MONDAY,
+      plan,
+      enteredAt: at('19:31:00'),
+    });
+
+    expect(result).toEqual({
+      message: '練習の終了後の入室（前半・19:30終了のため欠席の扱い）',
+      lateMinutes: 0,
+      missed: true,
     });
   });
 
