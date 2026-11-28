@@ -1,7 +1,6 @@
 // 名簿の操作（主将）
 import {
   adminOnlyRefusal,
-  ROLES,
   toPracticeDate,
   validateMemberUpdate,
 } from '../../../../packages/core/src/index.ts';
@@ -18,7 +17,7 @@ import { homeSnapshot, lockRoster, type MemberRow } from '../store.ts';
 export async function ensureManagerRemains(tx: Sql, actor: Actor): Promise<void> {
   if (actor.id === null) return;
   const [captain] = await tx`select 1 from public.members
-    where role in ('captain', 'admin') and approved and status in ('active', 'retired')
+    where (role = 'captain' or is_admin) and approved and status in ('active', 'retired')
       and auth_user_id is not null
     limit 1`;
   if (!captain) {
@@ -40,8 +39,16 @@ async function changeMember(
     const actor = await requireCaptain(tx, userId);
     const target = roster.find((member) => member.id === memberId);
     if (!target) throw new AppError('部員が見つかりません。画面を開き直してください。');
-    const nextRole = ROLES.find((role) => role === objectParam(params, 'changes')['role']);
-    refuseIf(adminOnlyRefusal({ actorIsAdmin: actor.isAdmin, targetRole: target.role, nextRole }));
+    const requested = objectParam(params, 'changes')['isAdmin'];
+    refuseIf(
+      adminOnlyRefusal({
+        actorIsAdmin: actor.isAdmin,
+        targetIsAdmin: target.isAdmin,
+        // 今と同じ値は、変更ではない
+        nextIsAdmin:
+          typeof requested === 'boolean' && requested !== target.isAdmin ? requested : undefined,
+      }),
+    );
     await change(tx, target, actor);
     await ensureManagerRemains(tx, actor);
   });
@@ -61,8 +68,12 @@ export const updateMember = (context: RequestContext, params: Params) =>
       toPracticeDate(context.now),
     );
     if (!update.ok) throw new AppError(update.message);
-    const { retiredOn, ...rest } = update.value;
-    const columns = { ...rest, ...(retiredOn !== undefined ? { retired_on: retiredOn } : {}) };
+    const { retiredOn, isAdmin, ...rest } = update.value;
+    const columns = {
+      ...rest,
+      ...(retiredOn !== undefined ? { retired_on: retiredOn } : {}),
+      ...(isAdmin !== undefined ? { is_admin: isAdmin } : {}),
+    };
     if (Object.keys(columns).length === 0) return;
     await tx`update public.members set ${tx(columns)} where id = ${target.id}`;
   });
@@ -74,13 +85,14 @@ export const resetDevice = (context: RequestContext, params: Params) =>
     await tx`delete from public.device_transfers where member_id = ${target.id}`;
   });
 
-/** その部員の記録（打刻・出欠・罰・臨時変更）があるか。コマ表だけなら記録とみなさない。 */
+/** その部員の記録（打刻・出欠・罰・臨時変更・的中）があるか。コマ表だけなら記録とみなさない。 */
 async function hasRecords(tx: Sql, memberId: string): Promise<boolean> {
   const [record] = await tx`
     select 1 from public.punches where member_id = ${memberId}
     union all select 1 from public.attendance where member_id = ${memberId}
     union all select 1 from public.penalties where member_id = ${memberId}
     union all select 1 from public.exceptions where member_id = ${memberId}
+    union all select 1 from public.hit_records where member_id = ${memberId}
     limit 1`;
   return record !== undefined;
 }

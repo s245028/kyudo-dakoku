@@ -1,5 +1,6 @@
 import { addDays, daysBetween, isPracticeDate, type PracticeDate } from './date.ts';
 import type { Judgement } from './attendance.ts';
+import { LEADER_ROLES, type Role } from './member.ts';
 import { invalid, type Validated } from './validation.ts';
 
 /** 判定によって自動でつく罰の理由。罰の種類（DB の `penalty_types`）の名前と一致させる。 */
@@ -145,6 +146,35 @@ export function summarizePenalty(input: {
   return { ...count, openTasks, unassigned: unassignedCount(count.remaining, openTasks.length) };
 }
 
+/** 終わっていない罰。残りの数を計算する材料 */
+export type OpenPenalty = Omit<Parameters<typeof summarizePenalty>[0], 'today' | 'doublingDays'>;
+
+/** 終わっていない罰全部の、やることを割り当てていない数の合計。 */
+export function totalUnassigned(
+  penalties: readonly OpenPenalty[],
+  today: PracticeDate,
+  doublingDays: number,
+): number {
+  return penalties.reduce(
+    (total, penalty) => total + summarizePenalty({ ...penalty, today, doublingDays }).unassigned,
+    0,
+  );
+}
+
+/** 今日になって倍になり、割り当てていない数が増えた罰があるか。 */
+export function hasDoubledToday(
+  penalties: readonly OpenPenalty[],
+  today: PracticeDate,
+  doublingDays: number,
+): boolean {
+  const yesterday = addDays(today, -1);
+  return penalties.some(
+    (penalty) =>
+      totalUnassigned([penalty], today, doublingDays) >
+      totalUnassigned([penalty], yesterday, doublingDays),
+  );
+}
+
 /**
  * 自分の罰は、消化も取り消しもできない（ほかの副務に依頼する）。管理者は除く。
  * できない理由を返す。できるなら null。
@@ -176,9 +206,19 @@ export function taskSuggestions(contentsNewestFirst: readonly string[]): string[
   return [...new Set(contentsNewestFirst.filter(Boolean))].slice(0, TASK_SUGGESTION_LIMIT);
 }
 
+/**
+ * 罰1回あたりの数の倍率。上4役（主将・男子副将・女子副将・主務）は、部員より多い。
+ * つけるときの役職で決め、あとで役職が変わっても、ついた罰は変えない。
+ */
+export function penaltyMultiplier(role: Role, leaderMultiplier: number): number {
+  return LEADER_ROLES.includes(role) ? leaderMultiplier : 1;
+}
+
 export type NewPenalty = {
   reason: string;
+  /** 理由ごとの数に、倍率をかけた数 */
   baseCount: number;
+  multiplier: number;
   date: PracticeDate;
   memo: string;
   contents: string[];
@@ -191,6 +231,8 @@ export function validateNewPenalty(input: {
   memo: string;
   contents: readonly string[];
   types: readonly PenaltyType[];
+  /** 罰を受ける人の倍率 */
+  multiplier?: number;
 }): Validated<NewPenalty> {
   const type = input.types.find((candidate) => candidate.reason === input.reason.trim());
   if (!type) return invalid('罰の理由を選んでください。');
@@ -200,12 +242,14 @@ export function validateNewPenalty(input: {
   if (type.reason === OTHER_PENALTY_REASON && !memo) {
     return invalid('「その他」のときはメモに内容を書いてください。');
   }
+  const multiplier = input.multiplier ?? 1;
+  const baseCount = type.baseCount * multiplier;
   const contents = input.contents.map(cleanTaskContent).filter(Boolean);
-  if (contents.length !== type.baseCount) {
-    return invalid(`罰${type.baseCount}個ぶんの「やること」をすべて入力してください。`);
+  if (contents.length !== baseCount) {
+    return invalid(`罰${baseCount}個ぶんの「やること」をすべて入力してください。`);
   }
   return {
     ok: true,
-    value: { reason: type.reason, baseCount: type.baseCount, date: input.date, memo, contents },
+    value: { reason: type.reason, baseCount, multiplier, date: input.date, memo, contents },
   };
 }

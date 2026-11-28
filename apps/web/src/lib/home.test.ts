@@ -13,6 +13,7 @@ const home: HomeData = {
     gender: 'male',
     status: 'active',
     role: 'member',
+    isAdmin: false,
     approved: true,
     retiredOn: null,
   },
@@ -22,6 +23,8 @@ const home: HomeData = {
     penaltyDoublingDays: 7,
     undoSeconds: 60,
     requiresLocation: false,
+    hitStartDate: null,
+    leaderPenaltyMultiplier: 2,
   },
   rules: [
     {

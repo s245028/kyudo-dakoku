@@ -22,11 +22,42 @@ const late = (overrides: Partial<ExistingAutoPenalty> = {}): ExistingAutoPenalty
   autoKey: autoPenaltyKey(MONDAY, 'm1'),
   reason: '遅刻',
   baseCount: 1,
+  multiplier: 1,
   locked: false,
   ...overrides,
 });
 
 const nothing = { create: [], update: [], remove: [] };
+
+describe('上4役の倍率', () => {
+  const doubled = (
+    result: Parameters<typeof planAutoPenaltySync>[0]['judged'][number]['result'],
+    existing: ExistingAutoPenalty[] = [],
+    multiplier = 2,
+  ) =>
+    planAutoPenaltySync({
+      date: MONDAY,
+      judged: [{ memberId: 'm1', result }],
+      existing,
+      types: DEFAULT_PENALTY_TYPES,
+      multiplierOf: () => multiplier,
+    });
+
+  it('新しい自動の罰は、倍率をかけた数でつく', () => {
+    expect(doubled('late').create).toMatchObject([{ baseCount: 2, multiplier: 2 }]);
+  });
+
+  it('理由が変わっても、つけたときの倍率のまま', () => {
+    expect(doubled('absent_unexcused', [late({ baseCount: 2, multiplier: 2 })], 1).update).toEqual([
+      { id: 'p1', reason: '無断欠席', baseCount: 2 },
+    ]);
+  });
+
+  it('役職が変わったあとに判定し直しても、ついた罰は増えも減りもしない', () => {
+    expect(doubled('late', [late()])).toEqual(nothing);
+    expect(doubled('late', [late({ baseCount: 2, multiplier: 2 })], 1)).toEqual(nothing);
+  });
+});
 
 function judgedResult(input: { time?: string; now?: string; join?: boolean; retired?: boolean }) {
   return (
@@ -56,6 +87,7 @@ describe('判定から自動の罰を決める（受け入れテスト2・10・1
         date: MONDAY,
         reason,
         baseCount: 1,
+        multiplier: 1,
       },
     ]);
   });

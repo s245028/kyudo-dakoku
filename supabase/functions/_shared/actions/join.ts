@@ -10,18 +10,16 @@ import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
 import { stringParam, type Params } from '../params.ts';
+import { notifyPenaltyWaiting } from '../push.ts';
 import { homeSnapshot, loadExceptions, loadKoma, loadRules, loadSettings } from '../store.ts';
 
 /** 引退した人の参加の登録と取り消し。登録は集合時刻まで、取り消しは連絡の締め切りまで。 */
-async function changeJoin(
-  { sql, userId, now }: RequestContext,
-  params: Params,
-  action: 'join' | 'cancel',
-) {
+async function changeJoin(context: RequestContext, params: Params, action: 'join' | 'cancel') {
+  const { sql, userId, now } = context;
   const date = stringParam(params, 'date');
   const today = toPracticeDate(now);
 
-  await inTransaction(sql, async (tx) => {
+  const added = await inTransaction(sql, async (tx) => {
     const member = await requireEnrolledMember(tx, userId);
     const decision = decideJoin({
       member,
@@ -35,7 +33,7 @@ async function changeJoin(
       settings: await loadSettings(tx),
     });
     if (!decision.ok) throw new AppError(decision.message);
-    if (decision.change === 'none') return;
+    if (decision.change === 'none') return 0;
 
     if (decision.change === 'add') {
       await tx`insert into public.exceptions ${tx({
@@ -56,8 +54,10 @@ async function changeJoin(
             and (kind in ${tx([...NOTICE_KINDS])} or approval is not null)
           ))`;
     }
-    if (date === today) await judgeDate(tx, { date, now, memberIds: [member.id] });
+    if (date !== today) return 0;
+    return (await judgeDate(tx, { date, now, memberIds: [member.id] })).addedPenalties;
   });
+  if (added > 0) await notifyPenaltyWaiting(context);
   return { home: await homeSnapshot(sql, userId, today) };
 }
 

@@ -54,7 +54,10 @@ function komaDayOf(context: NoticeContext, date: PracticeDate): KomaRequestDay |
     date,
     exceptions: others,
   });
-  if (!base || base.exempt || (isRetiredOn(member, date) && !base.joined)) return null;
+  // 行事の日は全員が同じ時刻なので、コマの申請はない
+  if (!base || base.event || base.exempt || (isRetiredOn(member, date) && !base.joined)) {
+    return null;
+  }
 
   const weekday = weekdayOf(date);
   const choices = rules.flatMap((rule): KomaChoice[] => {

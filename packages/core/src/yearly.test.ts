@@ -4,8 +4,12 @@ import {
   canAdminister,
   canEditLineups,
   canManagePenalties,
-  officerArea,
+  canViewStats,
+  OFFICER_SECTIONS,
+  officerSections,
+  roleLabels,
   ROLES,
+  type Role,
 } from './member.ts';
 import { validateRegistration } from './registration.ts';
 import { aMember, MONDAY } from './testing.ts';
@@ -25,6 +29,7 @@ const roster = (
   studentNo: id.toUpperCase(),
   grade,
   role: 'member',
+  isAdmin: false,
   ...overrides,
 });
 
@@ -102,25 +107,29 @@ describe('ほかの役職がある場合の代替わり', () => {
 });
 
 describe('管理者がいる場合の代替わり', () => {
-  const run = (captainNos: string[]) =>
+  const run = (captainNos: string[], role: Role = 'member') =>
     planGenerationChange({
-      members: [...members, roster('dev', 'B3', { role: 'admin' })],
+      members: [...members, roster('dev', 'B3', { role, isAdmin: true })],
       retiringGrade: 'B3',
       captainNos,
       viceNos: [],
       today: MONDAY,
     });
 
-  it('管理者は引退しても役職が残り、主将の指定がなくても実行できる', () => {
-    const result = run([]);
+  it('引退すると役職は外れて管理者の指定は残り、主将の指定がなくても実行できる', () => {
+    const result = run([], 'treasurer');
 
     expect(result.ok && result.value.updated).toContainEqual(
-      expect.objectContaining({ id: 'dev', status: 'retired', role: 'admin' }),
+      expect.objectContaining({ id: 'dev', status: 'retired', role: 'member', isAdmin: true }),
     );
   });
 
-  it('管理者を新しい主将に指定することはできない', () => {
-    expect(run(['DEV'])).toMatchObject({ ok: false });
+  it('管理者の人も、新しい主将に指定できる', () => {
+    const result = run(['DEV']);
+
+    expect(result.ok && result.value.updated).toContainEqual(
+      expect.objectContaining({ id: 'dev', role: 'captain', isAdmin: true }),
+    );
   });
 });
 
@@ -168,37 +177,46 @@ describe('学年の繰り上げ（受け入れテスト26）', () => {
   });
 });
 
-describe('権限', () => {
-  const as = (role: RosterMember['role'], approved = true) => ({
-    ...aMember({ approved }),
-    role,
-  });
+const as = (role: Role, options: { isAdmin?: boolean; approved?: boolean } = {}) => ({
+  ...aMember({ approved: options.approved ?? true }),
+  role,
+  isAdmin: options.isAdmin ?? false,
+});
 
-  it('管理者は主将と同じ操作ができる', () => {
-    expect([canAdminister(as('admin')), canManagePenalties(as('admin'))]).toEqual([true, true]);
-    expect(canAdminister(as('admin', false))).toBe(false);
+describe('権限', () => {
+  it('管理者は、役職が何でも主将の操作と罰の操作ができる', () => {
+    for (const role of ROLES) {
+      const admin = as(role, { isAdmin: true });
+      expect([canAdminister(admin), canManagePenalties(admin)]).toEqual([true, true]);
+    }
+    expect(canAdminister(as('member', { isAdmin: true, approved: false }))).toBe(false);
   });
 
   it('管理者の付け外しと、管理者の変更は管理者だけ', () => {
-    const refusal = (
-      actorIsAdmin: boolean,
-      targetRole: RosterMember['role'],
-      nextRole?: RosterMember['role'],
-    ) => adminOnlyRefusal({ actorIsAdmin, targetRole, nextRole });
+    const refusal = (actorIsAdmin: boolean, targetIsAdmin: boolean, nextIsAdmin?: boolean) =>
+      adminOnlyRefusal({ actorIsAdmin, targetIsAdmin, nextIsAdmin });
 
-    expect(refusal(false, 'admin')).not.toBeNull();
-    expect(refusal(false, 'member', 'admin')).not.toBeNull();
-    expect(refusal(false, 'vice', 'member')).toBeNull();
-    expect(refusal(true, 'admin', 'member')).toBeNull();
+    expect(refusal(false, true)).not.toBeNull();
+    expect(refusal(false, false, true)).not.toBeNull();
+    expect(refusal(false, false, false)).toBeNull();
+    expect(refusal(false, false)).toBeNull();
+    expect(refusal(true, true, false)).toBeNull();
   });
 
-  it('部員の役職のうち、管理は主将、罰の操作は主将と副務', () => {
+  it('部員の役職のうち、管理は主将、罰の操作は副務', () => {
     expect([canAdminister(as('captain')), canAdminister(as('vice'))]).toEqual([true, false]);
-    expect([canManagePenalties(as('vice')), canManagePenalties(as('member'))]).toEqual([
+    expect([canManagePenalties(as('vice')), canManagePenalties(as('captain'))]).toEqual([
       true,
       false,
     ]);
-    expect(canAdminister(as('captain', false))).toBe(false);
+    expect(canManagePenalties(as('member'))).toBe(false);
+    expect(canAdminister(as('captain', { approved: false }))).toBe(false);
+  });
+
+  it('画面の役職の名前は、管理者を後ろに足す', () => {
+    expect(roleLabels(as('captain', { isAdmin: true }))).toEqual(['主将', '管理者']);
+    expect(roleLabels(as('member', { isAdmin: true }))).toEqual(['管理者']);
+    expect(roleLabels(as('member'))).toEqual([]);
   });
 });
 
@@ -224,44 +242,52 @@ describe('部員登録の入力', () => {
 });
 
 describe('役職と権限', () => {
-  it('男子副将・女子副将・主務・会計の権限は部員と同じ', () => {
-    const roles = ['men_vice_captain', 'women_vice_captain', 'chief_manager', 'treasurer'] as const;
+  it('会計の権限は部員と同じ', () => {
+    const treasurer = as('treasurer');
 
-    for (const role of roles) {
-      expect(ROLES).toContain(role);
-      expect(canAdminister({ ...aMember(), role })).toBe(false);
-      expect(canManagePenalties({ ...aMember(), role })).toBe(false);
-    }
+    expect([canAdminister(treasurer), canManagePenalties(treasurer)]).toEqual([false, false]);
+    expect(officerSections(treasurer)).toEqual([]);
+  });
+
+  it('立ち順と予定を扱えるのは4役と管理者', () => {
+    expect(canEditLineups(as('chief_manager'))).toBe(true);
+    expect(canEditLineups(as('vice'))).toBe(false);
+    expect(canEditLineups(as('vice', { isAdmin: true }))).toBe(true);
+  });
+
+  it('集計を見られるのは主将・副務・男女の副将・管理者', () => {
+    const viewers = ROLES.filter((role) => canViewStats(as(role)));
+
+    expect(viewers).toEqual(['captain', 'men_vice_captain', 'women_vice_captain', 'vice']);
+    expect(canViewStats(as('chief_manager', { isAdmin: true }))).toBe(true);
   });
 });
 
-describe('罰の権限', () => {
-  const as = (role: 'captain' | 'vice' | 'admin') => ({ ...aMember(), role });
+describe('役職の画面の項目', () => {
+  it('管理者はすべてで、主将は罰の管理を除くすべて', () => {
+    const admin = officerSections(as('member', { isAdmin: true }));
 
-  it('罰を扱えるのは副務と管理者で、主将はできない', () => {
-    expect(canManagePenalties(as('captain'))).toBe(false);
-    expect(canManagePenalties(as('vice'))).toBe(true);
-    expect(canManagePenalties(as('admin'))).toBe(true);
+    expect(admin).toEqual([...OFFICER_SECTIONS]);
+    expect(officerSections(as('captain'))).toEqual(
+      admin.filter((section) => section !== 'penalties'),
+    );
   });
-});
-
-describe('役職タブ', () => {
-  const area = (role: Parameters<typeof officerArea>[0]['role'], approved = true) =>
-    officerArea({ ...aMember({ approved }), role });
 
   it('役職ごとに出すものが違う', () => {
-    expect([area('captain'), area('admin')]).toEqual(['admin', 'admin']);
-    expect([area('men_vice_captain'), area('women_vice_captain'), area('chief_manager')]).toEqual([
+    expect(officerSections(as('men_vice_captain'))).toEqual([
       'lineup',
-      'lineup',
-      'lineup',
+      'clubSchedule',
+      'memberSchedule',
+      'stats',
+      'export',
     ]);
-    expect(area('vice')).toBe('vice');
-    expect([area('member'), area('treasurer'), area('captain', false)]).toEqual([null, null, null]);
-  });
-
-  it('立ち順を作れるのは4役と管理者', () => {
-    expect(canEditLineups({ ...aMember(), role: 'chief_manager' })).toBe(true);
-    expect(canEditLineups({ ...aMember(), role: 'vice' })).toBe(false);
+    expect(officerSections(as('chief_manager'))).toEqual([
+      'lineup',
+      'clubSchedule',
+      'memberSchedule',
+    ]);
+    expect(officerSections(as('vice'))).toEqual(['notices', 'penalties', 'stats', 'export']);
+    expect(officerSections(as('member'))).toEqual([]);
+    expect(officerSections(as('captain', { approved: false }))).toEqual([]);
   });
 });

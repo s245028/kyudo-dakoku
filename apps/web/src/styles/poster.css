@@ -1,0 +1,163 @@
+/* 張り出し用の紙。画面では見本を出し、印刷では紙の部分だけを出す */
+.poster-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  overflow: auto;
+  background: #d9d9d6;
+}
+
+.poster-toolbar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 10px) 14px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.poster-hint {
+  padding: 8px 14px 0;
+  font-size: 12px;
+}
+
+/* 画面の幅に合わせて字を縮め、紙と同じ並びで見せる。紙の中の幅は55文字ぶん */
+.poster-sheet {
+  width: fit-content;
+  margin: 8px auto 24px;
+  padding: 1.5em;
+  background: #fff;
+  color: #000;
+  font-size: min(12.6px, calc((100vw - 16px) / 58));
+  text-size-adjust: none;
+}
+
+.poster-sheet h1 {
+  margin: 0;
+  font-size: 2em;
+  text-align: center;
+}
+
+.poster-subtitle {
+  margin-top: 4px;
+  text-align: center;
+}
+
+.poster-columns {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.4em;
+  width: 55em;
+  margin-top: 1.4em;
+}
+
+.poster-compact {
+  width: 65.5em;
+  font-size: 0.84em;
+}
+
+.poster-stacked {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.poster-columns section {
+  flex: 1;
+}
+
+.poster-sheet h2 {
+  margin: 0 0 0.3em;
+  font-size: 1.4em;
+  text-align: center;
+}
+
+.poster-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  border-block: 2px solid #000;
+  font-variant-numeric: tabular-nums;
+}
+
+.poster-sheet th,
+.poster-sheet td {
+  padding: 0.25em 0.15em;
+  border-bottom: 1px solid #bbb;
+  text-align: right;
+  /* 名前は2行にしない */
+  white-space: nowrap;
+}
+
+.poster-sheet th {
+  border-bottom-color: #000;
+  font-size: 0.85em;
+}
+
+.poster-sheet th:first-child,
+.poster-sheet td:first-child {
+  width: 3em;
+  text-align: center;
+}
+
+.poster-sheet th:nth-child(2),
+.poster-sheet td:nth-child(2) {
+  text-align: left;
+}
+
+.poster-top td {
+  font-size: 1.15em;
+  font-weight: 800;
+}
+
+.poster-metric {
+  font-weight: 800;
+}
+
+.poster-note {
+  margin-top: 1.4em;
+  font-size: 0.9em;
+}
+
+@page {
+  size: a4 portrait;
+  margin: 12mm;
+}
+
+@media print {
+  /* 紙を作っている間だけ、ほかの画面を出さない */
+  body:has(.poster-layer) {
+    height: auto;
+    background: #fff;
+  }
+
+  html:has(.poster-layer) {
+    height: auto;
+  }
+
+  body:has(.poster-layer) > #root,
+  .poster-toolbar,
+  .poster-hint {
+    display: none;
+  }
+
+  .poster-layer {
+    position: static;
+    overflow: visible;
+    background: #fff;
+  }
+
+  .poster-sheet {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    font-size: 9.5pt;
+  }
+
+  .poster-columns {
+    width: auto;
+  }
+
+  .poster-sheet tr {
+    break-inside: avoid;
+  }
+}

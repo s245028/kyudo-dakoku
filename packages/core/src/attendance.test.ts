@@ -126,7 +126,7 @@ describe('臨時変更（受け入れテスト6・12）', () => {
       exceptions: [anException(MONDAY, 'koma4'), anException(MONDAY, 'no_koma')],
     });
 
-    expect(record).toMatchObject({ deadline: '17:30', notes: ['臨時変更あり'] });
+    expect(record).toMatchObject({ deadline: '17:30', notes: ['予定の変更あり'] });
   });
 
   it('全員の変更と個人の変更を重ねる', () => {
@@ -140,7 +140,7 @@ describe('臨時変更（受け入れテスト6・12）', () => {
 
     expect(record).toMatchObject({
       deadline: '19:15',
-      notes: ['臨時変更あり', '5コマあり：補講'],
+      notes: ['予定の変更あり', '5コマあり：補講'],
     });
   });
 

@@ -193,3 +193,53 @@ button.link-button {
 .admin-login {
   margin-top: 24px;
 }
+
+/* 名前で探す部員の選択欄 */
+.member-options {
+  max-height: 240px;
+  margin: 4px 0 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-small);
+  background: #fff;
+}
+
+.member-options li + li {
+  border-top: 1px solid var(--line);
+}
+
+.member-options button,
+.form .member-options button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 46px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  text-align: left;
+}
+
+.member-options small {
+  flex-shrink: 0;
+  color: var(--sub);
+  font-weight: 400;
+}
+
+/* 数字の後ろに単位を添える入力欄 */
+.unit-input {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.unit-input input {
+  flex: 1;
+}

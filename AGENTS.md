@@ -27,15 +27,20 @@
 | 画面 | コード |
 |---|---|
 | 部員／状態（現役・引退・休部・退部・卒業） | member / status (`active` `retired` `suspended` `graduated`) |
-| 役職（部員・主将・男子副将・女子副将・主務・副務・会計・管理者） | role (`member` `captain` `men_vice_captain` `women_vice_captain` `chief_manager` `vice` `treasurer` `admin`) |
+| 役職（部員・主将・男子副将・女子副将・主務・副務・会計） | role (`member` `captain` `men_vice_captain` `women_vice_captain` `chief_manager` `vice` `treasurer`) |
+| 管理者（役職と別の指定） | is_admin |
+| 部全体の予定／部員ごとの予定（公欠・コマの変更） | schedule（臨時変更のうち `day_off` `no_koma` `koma4` `koma5`） |
+| 行事（例会・射会など）／引く射数 | event（臨時変更の `event`） / shots |
 | 打刻（入室・退室・自動退室） | punch (`in` `out` `auto_out`) |
 | 練習ルール／区分（前半・後半・全体）／集合時刻 | practice rule / part / deadline |
 | コマ表（4コマ・5コマ） | koma |
-| 臨時変更（休み・4・5コマなし・4コマあり・5コマあり・欠席連絡済・遅刻連絡済・参加） | exception (`day_off` `no_koma` `koma4` `koma5` `absent_notice` `late_notice` `join`) |
+| 臨時変更（画面では予定と事前連絡。休み・4・5コマなし・4コマあり・5コマあり・欠席連絡済・遅刻連絡済・参加） | exception (`day_off` `no_koma` `koma4` `koma5` `absent_notice` `late_notice` `join`) |
 | 出欠一覧／自動判定／手動判定／最終判定 | attendance / auto_result / manual_result / final_result |
 | 罰／基本の数／残りの数 | penalty / base_count / remaining |
 | やること（罰1個ぶん）／消化 | penalty task / complete |
 | 代替わり／学年の繰り上げ | generation change / grade promotion |
+| 的中の記録（立ち・射込み・自練、合計・一射ずつ） | hit record (`standing` `drill` `self`, `total` `shots`) |
+| 射数／的中数／的中率／順位／張り出し | shots / hits / hit rate / ranking / poster |
 
 ## テスト
 - `packages/core` の関数を変えたら、必ずテストを足すか直す。`docs/supabase-migration.md` の10章（受け入れテスト）はすべてテストにする。

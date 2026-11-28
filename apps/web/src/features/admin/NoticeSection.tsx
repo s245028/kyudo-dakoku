@@ -1,15 +1,27 @@
 import { addDays } from '@kyudo/core';
 import { useCallback } from 'react';
 import type { Home } from '../../lib/home.ts';
-import { loadNotices, loadRoster, loadRules, type StoredException } from '../../lib/queries.ts';
+import {
+  loadJoins,
+  loadNotices,
+  loadRoster,
+  loadRules,
+  type RosterEntry,
+  type StoredException,
+} from '../../lib/queries.ts';
 import { useAction } from '../../lib/useAction.ts';
 import { useRemote } from '../../lib/useRemote.ts';
+import { JoinSection } from './JoinSection.tsx';
 import { NoticeRow } from './NoticeRow.tsx';
+import { ProxyNoticeForm } from './ProxyNoticeForm.tsx';
 
 /** 判断を変えられるように、さかのぼって出す日数 */
 const HISTORY_DAYS = 7;
 
-/** 部員からの欠席・遅刻の連絡と、コマ変更の申請。承認待ちを承認・却下する。 */
+/** 欠席・遅刻の連絡、コマ変更の申請、引退した人の参加。承認待ちを承認・却下する。 */
+const canSendNotice = (member: RosterEntry) =>
+  member.approved && (member.status === 'active' || member.status === 'retired');
+
 export function NoticeSection({
   today,
   onHome,
@@ -17,24 +29,25 @@ export function NoticeSection({
 }: {
   today: string;
   onHome: (home: Home) => void;
-  /** 副務は見るだけで、承認と却下はできない */
+  /** 副務は見るだけで、承認・却下も入力もできない */
   readOnly?: boolean;
 }) {
   const load = useCallback(async () => {
     const since = addDays(today, -HISTORY_DAYS);
-    const [members, notices, rules] = await Promise.all([
+    const [members, notices, joins, rules] = await Promise.all([
       loadRoster(),
       loadNotices(since),
+      loadJoins(today),
       loadRules(),
     ]);
-    return { members, notices, rules };
+    return { members, notices, joins, rules };
   }, [today]);
   const { data, error, reload } = useRemote(load);
   const action = useAction();
 
   const run = (name: string, params: object) =>
-    action.run<{ home: Home }>(name, params, async ({ home }) => {
-      onHome(home);
+    action.run<{ home?: Home }>(name, params, async ({ home }) => {
+      if (home) onHome(home);
       await reload();
     });
 
@@ -75,10 +88,28 @@ export function NoticeSection({
           : '承認か却下をするまで、その人の罰は保留します。却下は、連絡や申請がないのと同じ扱いです。'}
       </p>
       {list(pending, '承認待ちはありません')}
-      <h3>{HISTORY_DAYS}日前からの連絡</h3>
+      <h3>事前連絡</h3>
       {list(
         notices.filter((notice) => notice.approval !== 'pending'),
         'ありません',
+      )}
+      {!readOnly && (
+        <ProxyNoticeForm
+          members={data?.members.filter(canSendNotice) ?? []}
+          today={today}
+          sending={action.sending}
+          run={run}
+        />
+      )}
+      {data && (
+        <JoinSection
+          joins={data.joins}
+          members={data.members}
+          today={today}
+          sending={action.sending}
+          readOnly={readOnly}
+          run={run}
+        />
       )}
     </>
   );

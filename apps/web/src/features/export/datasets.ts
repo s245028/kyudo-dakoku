@@ -55,7 +55,18 @@ async function members(): Promise<Table> {
     readEveryRow<{ id: string; registered_at: string }>('members', 'id, registered_at', ['id']),
   ]);
   return {
-    header: ['学生番号', '名前', '学年', '性別', '状態', '役職', '承認', '引退日', '登録日時'],
+    header: [
+      '学生番号',
+      '名前',
+      '学年',
+      '性別',
+      '状態',
+      '役職',
+      '管理者',
+      '承認',
+      '引退日',
+      '登録日時',
+    ],
     rows: roster.map((member) => [
       member.studentNo,
       member.name,
@@ -63,6 +74,7 @@ async function members(): Promise<Table> {
       GENDER_LABELS[member.gender],
       STATUS_LABELS[member.status],
       ROLE_LABELS[member.role],
+      member.isAdmin ? '管理者' : '',
       member.approved ? '承認済み' : '承認待ち',
       member.retiredOn,
       dateTime(extra.find((row) => row.id === member.id)?.registered_at ?? null),
@@ -237,6 +249,7 @@ async function tasks(): Promise<Table> {
 }
 
 type ExceptionRow = {
+  event_title: string | null;
   date: string;
   member_id: string | null;
   kind: ExceptionKind;
@@ -266,7 +279,8 @@ async function exceptions(): Promise<Table> {
       row.date,
       ...who(row.member_id),
       EXCEPTION_LABELS[row.kind],
-      row.memo,
+      // 行事は、名前と内容をメモの欄に入れる
+      [row.event_title, row.memo].filter(Boolean).join('：'),
       dateTime(row.contacted_at),
       row.approval ? APPROVAL_LABELS[row.approval] : '',
       row.rejection_reason,
@@ -295,7 +309,7 @@ export const DATASETS = {
   punches: { label: '打刻ログ', load: punches },
   penalties: { label: '罰一覧', load: penalties },
   tasks: { label: '罰の割り当て', load: tasks },
-  exceptions: { label: '臨時変更', load: exceptions },
+  exceptions: { label: '予定と連絡', load: exceptions },
   koma: { label: 'コマ表', load: koma },
 } satisfies Record<string, { label: string; load: (today: string) => Promise<Table> }>;
 

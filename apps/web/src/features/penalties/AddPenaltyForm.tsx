@@ -1,5 +1,6 @@
-import type { PenaltyType } from '@kyudo/core';
+import { penaltyMultiplier, type PenaltyType } from '@kyudo/core';
 import { useState, type FormEvent } from 'react';
+import { MemberPicker, type PickerMember } from '../../components/MemberPicker.tsx';
 import type { RosterEntry } from '../../lib/queries.ts';
 import type { PenaltyOperations } from './operations.ts';
 
@@ -7,17 +8,28 @@ type AddPenaltyFormProps = {
   members: RosterEntry[];
   types: PenaltyType[];
   today: string;
+  /** 上4役の罰の倍率 */
+  leaderMultiplier: number;
   operations: PenaltyOperations;
 };
 
 /** 私物の出しっぱなしなど、副務がつける罰 */
-export function AddPenaltyForm({ members, types, today, operations }: AddPenaltyFormProps) {
+export function AddPenaltyForm({
+  members,
+  types,
+  today,
+  leaderMultiplier,
+  operations,
+}: AddPenaltyFormProps) {
   const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<PickerMember | null>(null);
   const [reason, setReason] = useState('');
   const [contents, setContents] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const type = types.find((candidate) => candidate.reason === reason) ?? types[0];
-  const count = type?.baseCount ?? 1;
+  const role = members.find((member) => member.id === target?.id)?.role;
+  const multiplier = role ? penaltyMultiplier(role, leaderMultiplier) : 1;
+  const count = (type?.baseCount ?? 1) * multiplier;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,19 +55,7 @@ export function AddPenaltyForm({ members, types, today, operations }: AddPenalty
       </button>
       {open && (
         <form className="form add-penalty" onSubmit={(event) => void submit(event)}>
-          <label>
-            部員
-            <select name="memberId" required defaultValue="">
-              <option value="" disabled>
-                選んでください
-              </option>
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.name}（{member.studentNo}）
-                </option>
-              ))}
-            </select>
-          </label>
+          <MemberPicker members={members} onChoose={setTarget} />
           <label>
             理由
             <select value={type?.reason ?? ''} onChange={(event) => setReason(event.target.value)}>
@@ -70,6 +70,11 @@ export function AddPenaltyForm({ members, types, today, operations }: AddPenalty
           </label>
           <fieldset className="field-group">
             <legend>やること（罰1個ごと）</legend>
+            {multiplier > 1 && (
+              <p className="sub">
+                上4役のため{multiplier}倍で、{count}個になります。
+              </p>
+            )}
             {Array.from({ length: count }, (_, index) => (
               <input
                 key={index}

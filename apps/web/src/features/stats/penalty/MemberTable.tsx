@@ -1,5 +1,5 @@
 import { shortDate, type PenaltyDetail, type PenaltyStats } from '@kyudo/core';
-import type { RosterEntry } from '../../../lib/queries.ts';
+import type { DirectoryEntry } from '../../../lib/queries.ts';
 import { RankTable } from '../RankTable.tsx';
 
 const COLUMNS = { added: 'つけた', done: '消化', remaining: '残り' };
@@ -26,7 +26,7 @@ export function MemberTable({
   members,
 }: {
   byMember: PenaltyStats['byMember'];
-  members: readonly RosterEntry[];
+  members: readonly DirectoryEntry[];
 }) {
   if (byMember.length === 0) return <p className="empty">当てはまる部員はいません。</p>;
 

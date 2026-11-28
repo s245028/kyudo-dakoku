@@ -1,11 +1,11 @@
 import {
   NOTICE_KIND_LABELS,
+  describeEvent,
   PART_LABELS,
   type JoinDay,
   type KomaRequestDay,
   type NoticeDay,
   type NoticeKind,
-  type Part,
 } from '@kyudo/core';
 import { useState } from 'react';
 import { ConfirmButton } from '../../components/ConfirmButton.tsx';
@@ -16,7 +16,7 @@ import { NoticeForm } from './NoticeForm.tsx';
 import { NoticeStatus } from './NoticeStatus.tsx';
 
 type PracticeDayRowProps = {
-  day: { date: string; part: Part; deadline: string };
+  day: Pick<NoticeDay, 'date' | 'part' | 'deadline' | 'event'>;
   join: JoinDay | undefined;
   notice: NoticeDay | undefined;
   komaDay: KomaRequestDay | undefined;
@@ -36,8 +36,11 @@ export function PracticeDayRow(props: PracticeDayRowProps) {
         <span className="practice-date">
           {dateWithWeekday(date)}
           <small>
-            {day.deadline}集合・{PART_LABELS[day.part]}
+            {day.event
+              ? `${day.event.title}（${describeEvent(day.event)}）`
+              : `${day.deadline}集合・${PART_LABELS[day.part]}`}
           </small>
+          {day.event?.memo && <small>{day.event.memo}</small>}
         </span>
         {join && (
           <span className="row-actions">

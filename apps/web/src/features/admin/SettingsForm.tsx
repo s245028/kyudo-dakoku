@@ -5,6 +5,11 @@ import type { RunAction } from '../../lib/useAction.ts';
 const NUMBER_FIELDS = [
   ['noticeLeadMinutes', '連絡の締め切り（集合の何分前）'],
   ['penaltyDoublingDays', '罰が倍になる日数'],
+  ['leaderPenaltyMultiplier', '上4役の罰の倍率（主将・男女の副将・主務。1なら部員と同じ）'],
+] as const;
+
+/** ふだん変えない、打刻の細かい決まり */
+const DETAIL_FIELDS = [
   ['duplicateScanSeconds', '二重読み取りを無視する秒数'],
   ['undoSeconds', '打刻を取り消せる秒数'],
   ['allowedDistanceMeters', '道場からの許容距離（m）'],
@@ -39,9 +44,13 @@ export function SettingsForm({
     const ok = await run('admin-update-settings', {
       settings: {
         ...Object.fromEntries(
-          [...NUMBER_FIELDS, ...COORDINATE_FIELDS].map(([key]) => [key, number(key)]),
+          [...NUMBER_FIELDS, ...DETAIL_FIELDS, ...COORDINATE_FIELDS].map(([key]) => [
+            key,
+            number(key),
+          ]),
         ),
         autoCheckoutTime: read('autoCheckoutTime'),
+        hitStartDate: read('hitStartDate') || null,
         komaLocked: input.get('komaLocked') === 'on',
       },
     });
@@ -69,12 +78,27 @@ export function SettingsForm({
           required
         />
       </label>
-      {COORDINATE_FIELDS.map(([key, label]) => (
-        <label key={key}>
-          {label}
-          <input name={key} inputMode="decimal" defaultValue={settings[key] ?? ''} />
-        </label>
-      ))}
+      <label>
+        的中の記録を始める日（空なら記録できない）
+        <input type="date" name="hitStartDate" defaultValue={settings.hitStartDate ?? ''} />
+      </label>
+      <details className="disclosure">
+        <summary>詳しい設定（打刻と位置の確認）</summary>
+        <div className="disclosure-body">
+          {DETAIL_FIELDS.map(([key, label]) => (
+            <label key={key}>
+              {label}
+              <input type="number" name={key} defaultValue={settings[key]} min={0} required />
+            </label>
+          ))}
+          {COORDINATE_FIELDS.map(([key, label]) => (
+            <label key={key}>
+              {label}
+              <input name={key} inputMode="decimal" defaultValue={settings[key] ?? ''} />
+            </label>
+          ))}
+        </div>
+      </details>
       <button type="submit" disabled={sending}>
         設定を保存
       </button>

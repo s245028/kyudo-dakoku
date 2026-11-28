@@ -1,4 +1,4 @@
-import type { ClockTime } from './date.ts';
+import type { ClockTime, PracticeDate } from './date.ts';
 
 export type Settings = {
   /** 入口に貼った QR の中身。値はリポジトリに書かない */
@@ -14,6 +14,10 @@ export type Settings = {
   /** 集合時刻の何分前までの連絡を締め切り内とするか */
   noticeLeadMinutes: number;
   penaltyDoublingDays: number;
+  /** 上4役の罰1回あたりの数の倍率 */
+  leaderPenaltyMultiplier: number;
+  /** 的中の記録を始める日。決まるまでは記録できない */
+  hitStartDate: PracticeDate | null;
 };
 
 export const DEFAULT_SETTINGS: Readonly<Settings> = {
@@ -27,4 +31,6 @@ export const DEFAULT_SETTINGS: Readonly<Settings> = {
   komaLocked: false,
   noticeLeadMinutes: 60,
   penaltyDoublingDays: 7,
+  leaderPenaltyMultiplier: 2,
+  hitStartDate: null,
 };

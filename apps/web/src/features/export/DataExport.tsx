@@ -4,7 +4,8 @@ import { messageOf } from '../../lib/api.ts';
 import { saveFile } from '../../lib/saveFile.ts';
 import { DATASETS, type DatasetId } from './datasets.ts';
 
-export function ExportSection({ today }: { today: string }) {
+/** 記録の一覧を CSV で書き出す。個人情報を含むので、主将と管理者だけ */
+export function DataExport({ today }: { today: string }) {
   /** 作成して、保存を待っているファイル */
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<DatasetId | null>(null);
@@ -27,7 +28,7 @@ export function ExportSection({ today }: { today: string }) {
 
   return (
     <>
-      <h3>CSV の書き出し</h3>
+      <h3>データ（CSV）</h3>
       <p className="hint">部員の個人情報が含まれます。保存先と共有する相手に気をつけてください。</p>
       {(Object.keys(DATASETS) as DatasetId[]).map((id) => (
         <button

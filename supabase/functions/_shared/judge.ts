@@ -1,6 +1,7 @@
 import {
   finalJudgement,
   judgeAttendance,
+  penaltyMultiplier,
   planAutoPenaltySync,
   autoPenaltyKey,
   type ExistingAutoPenalty,
@@ -9,6 +10,7 @@ import {
   type Part,
   type PracticeDate,
   type Review,
+  type Role,
 } from '../../../packages/core/src/index.ts';
 import type { Sql } from './db.ts';
 import {
@@ -37,7 +39,7 @@ async function loadRecordedPlans(
 /**
  * その日の出欠を判定して、出欠一覧と自動の罰を合わせる。判定はここだけで行う。
  * 必ずトランザクションの中で呼ぶ。`memberIds` が null なら対象者全員。
- * 判定の対象でない部員の記録には触れない。戻り値は判定した行数。
+ * 判定の対象でない部員の記録には触れない。戻り値は、判定した行数と、新しくついた罰の数。
  * `keepRecordedPlan` なら、出欠一覧にある人は記録した区分と集合時刻のまま判定する。
  * `keepPenalties` なら、出欠一覧だけを直して、罰は変えない。
  */
@@ -50,10 +52,10 @@ export async function judgeDate(
     keepRecordedPlan?: boolean;
     keepPenalties?: boolean;
   },
-): Promise<number> {
+): Promise<{ judged: number; addedPenalties: number }> {
   const { date, now, memberIds } = input;
   const members = await lockJudgeableMembers(tx, memberIds);
-  if (members.length === 0) return 0;
+  if (members.length === 0) return { judged: 0, addedPenalties: 0 };
 
   const ids = members.map((member) => member.id);
   const settings = await loadSettings(tx);
@@ -111,11 +113,11 @@ export async function judgeDate(
     });
   }
 
-  if (!input.keepPenalties) await syncAutoPenalties(tx, date, judged);
-  return judged.filter((entry) => entry.result !== null).length;
+  const addedPenalties = input.keepPenalties ? 0 : await syncAutoPenalties(tx, date, judged);
+  return { judged: judged.filter((entry) => entry.result !== null).length, addedPenalties };
 }
 
-/** その日の自動の罰を、最終判定に合わせる。 */
+/** その日の自動の罰を、最終判定に合わせる。戻り値は、新しくついた罰の数。 */
 export async function syncAutoPenalties(
   tx: Sql,
   date: PracticeDate,
@@ -124,7 +126,7 @@ export async function syncAutoPenalties(
   const keys = judged.map((entry) => autoPenaltyKey(date, entry.memberId));
   const existing = await tx<ExistingAutoPenalty[]>`
     select p.id, p.auto_key as "autoKey", p.reason, p.base_count as "baseCount",
-      p.completed_on is not null
+      p.multiplier, p.completed_on is not null
         or exists (select 1 from public.penalty_tasks t where t.penalty_id = p.id) as locked
     from public.penalties p where p.auto_key in ${tx(keys)}`;
   const types = await loadPenaltyTypes(tx);
@@ -132,7 +134,21 @@ export async function syncAutoPenalties(
     select member_id as "memberId",
       (reviewed_at at time zone 'Asia/Tokyo')::date::text as "reviewedOn"
     from public.exceptions where date = ${date} and reviewed_at is not null`;
-  const changes = planAutoPenaltySync({ date, judged, existing, types, reviews });
+  const roles = await tx<{ id: string; role: Role }[]>`
+    select id, role from public.members
+    where id in ${tx(judged.map((entry) => entry.memberId))}`;
+  const { leaderPenaltyMultiplier } = await loadSettings(tx);
+  const changes = planAutoPenaltySync({
+    date,
+    judged,
+    existing,
+    types,
+    reviews,
+    multiplierOf: (memberId) => {
+      const role = roles.find((member) => member.id === memberId)?.role ?? 'member';
+      return penaltyMultiplier(role, leaderPenaltyMultiplier);
+    },
+  });
 
   if (changes.remove.length > 0) {
     await tx`delete from public.penalties where id in ${tx(changes.remove)}`;
@@ -147,8 +163,10 @@ export async function syncAutoPenalties(
       member_id: penalty.memberId,
       reason: penalty.reason,
       base_count: penalty.baseCount,
+      multiplier: penalty.multiplier,
       auto_key: penalty.autoKey,
       counted_from: penalty.countedFrom ?? null,
     })}`;
   }
+  return changes.create.length;
 }

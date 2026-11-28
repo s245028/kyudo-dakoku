@@ -1,7 +1,19 @@
 // 通知（Web Push）を送る。送れなくても、元の操作は成功のままにする
 import webpush from 'web-push';
-import type { PushMessage, PushSubscriptionInput } from '../../../packages/core/src/index.ts';
+import {
+  PENALTY_WAITING_MESSAGE,
+  toPracticeDate,
+  totalUnassigned,
+  waitingCount,
+  type MemberStatus,
+  type OpenPenalty,
+  type PushMessage,
+  type PushSubscriptionInput,
+  type Role,
+  type WaitingCounts,
+} from '../../../packages/core/src/index.ts';
 import type { Sql } from './db.ts';
+import { loadSettings } from './store.ts';
 
 /** 通知の送り主として中継先に伝える連絡先。個人のアドレスは使わない */
 const VAPID_SUBJECT = 'https://kyudo-dakoku.vercel.app';
@@ -84,29 +96,97 @@ export async function notify(
   }
 }
 
-/** 主将と管理者に知らせる。送った本人は除く。 */
-export async function notifyManagers(
-  { sql, userId, sendPush }: { sql: Sql; userId: string; sendPush?: PushSender },
-  message: PushMessage,
-): Promise<void> {
-  const managers = await managerUserIds(sql);
-  await notify(
-    sql,
-    managers.filter((id) => id !== userId),
-    message,
-    sendPush,
-  );
+/** 通知を受け取る役職の人。アイコンの数は、役職で変わる */
+type Officer = {
+  userId: string;
+  role: Role;
+  isAdmin: boolean;
+  status: MemberStatus;
+  approved: boolean;
+};
+
+/** `userId` は操作した人。夜の処理にはいない */
+type OfficerContext = {
+  sql: Sql;
+  userId?: string;
+  now: Date;
+  sendPush?: PushSender | undefined;
+};
+
+/** 対応を待っているものの数。数えられなければ、数を送らない */
+async function waitingCounts(sql: Sql, now: Date): Promise<WaitingCounts | undefined> {
+  try {
+    const [row] = await sql<{ notices: number; members: number; penalties: OpenPenalty[] }[]>`
+      select private.pending_notice_count() as notices,
+        private.pending_member_count() as members,
+        private.open_penalties(null) as penalties`;
+    const { penaltyDoublingDays } = await loadSettings(sql);
+    const tasks = totalUnassigned(row!.penalties, toPracticeDate(now), penaltyDoublingDays);
+    return { notices: row!.notices, members: row!.members, tasks };
+  } catch (error) {
+    console.error('push count failed', (error as { name?: string }).name);
+    return undefined;
+  }
 }
 
-/** 主将と管理者（部員と管理者ログイン）のログイン */
-async function managerUserIds(sql: Sql): Promise<string[]> {
-  const rows = await sql<{ id: string }[]>`
-    select auth_user_id as id from public.members
-    where approved and status in ('active', 'retired') and role in ('captain', 'admin')
+/**
+ * 役職の人に知らせる。操作した本人は除く。アイコンには、その人の対応を待っている数を出す。
+ * 送れなくても、元の操作は成功のままにする。
+ */
+async function notifyOfficers(
+  { sql, userId, now, sendPush }: OfficerContext,
+  load: (sql: Sql) => Promise<Officer[]>,
+  message: PushMessage,
+): Promise<void> {
+  try {
+    const officers = (await load(sql)).filter((officer) => officer.userId !== userId);
+    if (officers.length === 0) return;
+    const counts = await waitingCounts(sql, now);
+    await Promise.all(
+      officers.map((officer) => {
+        const badge = counts && waitingCount(officer, counts);
+        return notify(
+          sql,
+          [officer.userId],
+          badge === undefined ? message : { ...message, badge },
+          sendPush,
+        );
+      }),
+    );
+  } catch (error) {
+    console.error('push failed', (error as { name?: string }).name);
+  }
+}
+
+/** 主将と管理者に知らせる。 */
+export const notifyManagers = (context: OfficerContext, message: PushMessage) =>
+  notifyOfficers(context, loadManagers, message);
+
+/** 副務に、罰の割り当て待ちが増えたことを知らせる。 */
+export const notifyPenaltyWaiting = (context: OfficerContext) =>
+  notifyOfficers(context, loadViceOfficers, PENALTY_WAITING_MESSAGE);
+
+/** 主将と管理者（部員と管理者ログイン） */
+async function loadManagers(sql: Sql): Promise<Officer[]> {
+  return sql<Officer[]>`
+    select auth_user_id as "userId", role, is_admin as "isAdmin", status, approved
+    from public.members
+    where approved and status in ('active', 'retired') and (role = 'captain' or is_admin)
       and auth_user_id is not null
-    union
-    select auth_user_id from public.admins`;
-  return rows.map((row) => row.id);
+    union all
+    select auth_user_id, 'member', true, 'active', true from public.admins a
+    where not exists (
+      select 1 from public.members m
+      where m.auth_user_id = a.auth_user_id and m.approved
+        and m.status in ('active', 'retired') and (m.role = 'captain' or m.is_admin))`;
+}
+
+async function loadViceOfficers(sql: Sql): Promise<Officer[]> {
+  return sql<Officer[]>`
+    select auth_user_id as "userId", role, is_admin as "isAdmin", status, approved
+    from public.members
+    where approved and status in ('active', 'retired') and role = 'vice'
+      and auth_user_id is not null`;
 }
 
 export async function memberUserIds(sql: Sql, memberId: string): Promise<string[]> {

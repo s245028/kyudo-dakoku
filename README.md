@@ -76,7 +76,15 @@ update public.members set approved = true, role = 'captain' where student_no = '
 select vault.create_secret('https://<プロジェクトID>.supabase.co/functions/v1/nightly', 'nightly_url');
 ```
 
-2人目以降の承認や役職の変更は、主将がアプリの「役職」タブで行います。罰の統計は、主将と副務が「役職」→「集計」で見られます。
+2人目以降の承認や役職の変更は、主将がアプリの名前の左の3本線 →「名簿」で行います。管理者は役職と別の指定で、管理者の人が名簿で付けます。罰の統計は、主将・副務・男女の副将が3本線 →「集計」で見られます。
+
+### 的中の記録を始める
+
+1. 主将か管理者が3本線 →「アプリの設定」の「的中の記録を始める日」を入れて保存します。空の間は記録できません。
+2. 部員は下の「的中」タブで記録します。一射ずつ○×を入れるか、「採点簿などの記録を入力」でその日の射数と的中数を入れます。同じ日の同じ区分は1件で、足し算にはなりません。
+3. 順位は同じタブの「記録・順位」、部全体の数は3本線 →「集計」の「的中」で見ます。張り出す紙は3本線 →「書き出し」で、印刷用の画面か Excel を出します。
+
+記録を間違えたときは、本人か副務・管理者が、順位の名前 → 日付 の順に押して直します。詳しい決まりは `docs/supabase-migration.md` の 2.9 にあります。
 
 部員にアプリのリンクを LINE で送るときは、末尾に `?openExternalBrowser=1` をつけます（例：`https://kyudo-dakoku.vercel.app/?openExternalBrowser=1`）。LINE の中のブラウザは保存場所が別なので、そこでは登録できないようにしています。
 
@@ -95,7 +103,7 @@ select id from auth.users where email = 'メールアドレス';
 3. アプリの部員登録画面か「自分」タブの下にある **管理者ログイン** から入ります。戻るときは **ログアウト** を押します。
 
 権限を外すときは `delete from public.admins;` を実行します。
-夜の自動処理が動いたかは、「役職」→「出欠」の下に表示されます。
+夜の自動処理が動いたかは、3本線 →「出欠」の下に表示されます。
 
 一時停止対策は、GitHub の **Settings → Secrets and variables → Actions → Variables** に `SUPABASE_URL` と `SUPABASE_PUBLISHABLE_KEY` を追加すると動きます。**Actions** の「Keep Supabase awake」を **Run workflow** で実行して確認できます。
 

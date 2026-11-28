@@ -1,0 +1,406 @@
+/* 的中の入力・順位・分析。表とグラフの基本は stats.css を使う */
+.hits > .choice-row:first-child {
+  margin-top: 0;
+}
+
+.date-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.date-pager button {
+  width: 48px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 20px;
+}
+
+.date-pager strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hit-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 10px;
+  border-block: 2px solid var(--ink);
+}
+
+.hit-card,
+button.hit-card {
+  display: block;
+  min-height: 0;
+  margin: 0;
+  padding: 7px 2px 8px;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: center;
+}
+
+.hit-card + .hit-card {
+  border-left: 1px solid var(--line);
+}
+
+.hit-card b {
+  display: block;
+  font-size: 18px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+.hit-card small {
+  display: block;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hit-card-total {
+  background: var(--ink);
+  color: #fff;
+}
+
+button.hit-card[aria-pressed='true'] {
+  background: var(--green-soft);
+  box-shadow: inset 0 -4px var(--data);
+  font-weight: 800;
+}
+
+button.import-button {
+  background: #fff;
+  color: var(--data);
+  border: 2px solid var(--data);
+}
+
+.entry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.entry-head h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.save-state {
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.shot-rows {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--ink);
+}
+
+.shot-row {
+  display: grid;
+  grid-template-columns: 24px repeat(4, minmax(0, 1fr)) 40px 52px;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line);
+}
+
+.shot-number,
+.shot-row > b {
+  align-self: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.shot-number {
+  color: var(--sub);
+  font-size: 13px;
+}
+
+.shot-row > b {
+  justify-self: end;
+  font-size: 14px;
+}
+
+button.shot-cell {
+  display: grid;
+  place-items: center;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  background: #fff;
+  /* 続けて押しても拡大しない */
+  touch-action: manipulation;
+}
+
+button.shot-cell:nth-of-type(4) {
+  border-right: 1px solid var(--line);
+}
+
+button.shot-cell:active:not(:disabled) {
+  transform: none;
+  background: var(--gold-soft);
+}
+
+.shot-cell svg {
+  width: 32px;
+  height: 32px;
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.shot-hit {
+  stroke: var(--data);
+}
+
+.shot-miss {
+  stroke: var(--red);
+}
+
+button.shot-delete {
+  align-self: center;
+  justify-self: end;
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 4px;
+  background: transparent;
+  color: var(--sub);
+  font-size: 12px;
+  font-weight: 400;
+  text-decoration: underline;
+}
+
+button.shot-delete.danger {
+  background: var(--red);
+  color: #fff;
+  text-decoration: none;
+  line-height: 1.3;
+}
+
+button.add-row {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  min-height: 0;
+  margin: 14px auto 0;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.add-row svg {
+  width: 46px;
+  height: 46px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.add-row circle {
+  stroke: var(--data-pale);
+}
+
+.add-row path {
+  stroke: var(--data);
+}
+
+.total-figure {
+  margin-top: 10px;
+  padding: 12px 0;
+  border-block: 1px solid var(--line);
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+button.text-button {
+  width: auto;
+  min-height: 40px;
+  margin: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--data);
+  font-size: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bulk h3 {
+  margin: 8px 0 0;
+}
+
+.bulk-table tbody th {
+  width: 5em;
+  font-weight: 700;
+}
+
+.bulk-table thead th {
+  text-align: center;
+}
+
+.bulk-table td {
+  text-align: center;
+}
+
+.bulk-table input {
+  padding: 8px 12px;
+  border-color: var(--ink);
+  font-size: 22px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.bulk-table td .sub {
+  display: block;
+}
+
+.bulk-table td button {
+  margin-top: 6px;
+}
+
+/* 順位の表を送っても、選択欄と列の見出しは上に残す */
+.hit-filters {
+  position: sticky;
+  top: -16px;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 1fr;
+  align-content: center;
+  gap: 8px;
+  height: 84px;
+  margin: 6px -16px 0;
+  padding: 0 16px;
+  background: #fff;
+  border-bottom: 2px solid var(--ink);
+}
+
+.hit-filters label,
+.hit-selects label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hit-filters select,
+.hit-selects select {
+  padding: 8px;
+  border-color: var(--ink);
+}
+
+.hit-selects {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.data-table.ranking-table {
+  margin-top: 0;
+  border-top: 0;
+  /* 見出しを固定するため、線を重ねない */
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.ranking-table thead th {
+  position: sticky;
+  /* 上の選択欄（84px）のすぐ下。画面の内側の余白（16px）を引く */
+  top: 68px;
+  z-index: 1;
+}
+
+.ranking-table th:first-child,
+.ranking-table td:first-child {
+  width: 40px;
+  text-align: center;
+}
+
+.ranking-table th:nth-child(2) {
+  text-align: left;
+}
+
+.ranking-table th,
+.ranking-table td {
+  height: 44px;
+  padding-block: 0;
+}
+
+.ranking-table tbody th .text-button {
+  color: var(--ink);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.ranking-table td:last-child {
+  font-weight: 700;
+}
+
+.ranking-table tr.own > * {
+  background: var(--green-soft);
+  font-weight: 800;
+}
+
+.ranking-table tr.own .text-button {
+  font-weight: 800;
+}
+
+.daily-table th,
+.daily-table td {
+  padding-inline: 2px;
+  font-size: 13px;
+}
+
+.daily-table td small {
+  display: block;
+  font-size: 11px;
+  color: var(--sub);
+}
+
+.hit-history {
+  font-size: 13px;
+}
+
+.hit-history li {
+  display: grid;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.hit-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding: 10px 0;
+  border-block: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+
+.hit-total strong {
+  font-size: 28px;
+}
+
+.hits h3 {
+  font-size: 15px;
+}

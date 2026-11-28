@@ -25,6 +25,7 @@ export type MemberRow = Member & {
   grade: Grade;
   status: MemberStatus;
   role: Role;
+  isAdmin: boolean;
 };
 
 export type StoredPunch = Punch & { id: number };
@@ -36,7 +37,7 @@ export async function loadSettings(sql: Sql): Promise<Settings> {
 }
 
 const memberColumns = (sql: Sql) => sql`
-  id, student_no as "studentNo", name, grade, status, role, approved,
+  id, student_no as "studentNo", name, grade, status, role, is_admin as "isAdmin", approved,
   retired_on::text as "retiredOn"`;
 
 export async function findMemberByDevice(sql: Sql, userId: string): Promise<MemberRow | null> {
@@ -100,8 +101,9 @@ export async function loadExceptions(
       coalesce(created_by = member_id, false) as "selfSubmitted",
       case when base_part is not null then jsonb_build_object(
         'part', base_part, 'deadline', to_char(base_deadline, 'HH24:MI')
-      ) end as "basePlan"
-    from public.exceptions where date between ${from} and ${to}
+      ) end as "basePlan",
+      private.event_of(e) as event
+    from public.exceptions e where date between ${from} and ${to}
     order by date, created_at, id`;
 }
 

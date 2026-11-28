@@ -18,6 +18,7 @@ const containing = (text: string): unknown => expect.stringContaining(text);
 async function resetData() {
   await clearRecords(sql);
   await sql`update public.settings set value = '7' where key = 'penaltyDoublingDays'`;
+  await sql`update public.settings set value = '2' where key = 'leaderPenaltyMultiplier'`;
   await sql`update public.penalty_types set base_count = 1`;
   await sql`delete from public.penalty_types where reason = '試験用の理由'`;
   await sql`delete from public.practice_rules where weekday = 3`;
@@ -116,6 +117,7 @@ describe('権限', () => {
       komaLocked: false,
       noticeLeadMinutes: 60,
       penaltyDoublingDays: 7,
+      leaderPenaltyMultiplier: 2,
     },
     rule: {
       weekday: 3,
@@ -412,6 +414,7 @@ describe('設定', () => {
       komaLocked: false,
       noticeLeadMinutes: 60,
       penaltyDoublingDays: 10,
+      leaderPenaltyMultiplier: 2,
     };
 
     await must('captain', 'admin-update-settings', { settings });
@@ -523,8 +526,8 @@ describe('罰の権限', () => {
     expect(await penalties()).toMatchObject([{ completed_on: DATE }]);
   });
 
-  it('管理者の役職の部員は、自分の罰も消化できる', async () => {
-    await sql`update public.members set role = 'admin' where id = ${ids.vice}`;
+  it('管理者の副務は、自分の罰も消化できる', async () => {
+    await sql`update public.members set is_admin = true where id = ${ids.vice}`;
     await must('vice', 'add-penalty', { ...newPenalty(), memberId: ids.vice });
 
     expect(await run('vice', 'complete-task', { taskId: await taskOf() })).toMatchObject({
@@ -541,5 +544,48 @@ describe('罰の権限', () => {
       ok: false,
       error: containing('消化した分'),
     });
+  });
+});
+
+describe('上4役の罰', () => {
+  /** 主将に、遅刻の自動の罰がつく状況を作って判定する */
+  async function judgeLateCaptain() {
+    await sql`insert into public.punches (member_id, punched_at, kind, via)
+      values (${ids.captain}, ${at('18:00')}, 'in', 'app')`;
+    await must('captain', 'admin-rejudge', { date: DATE });
+    return sql<{ baseCount: number; multiplier: number }[]>`
+      select base_count as "baseCount", multiplier from public.penalties
+      where member_id = ${ids.captain}`;
+  }
+
+  it('自動の罰は倍の数でつき、役職が変わったあとに判定し直しても変わらない', async () => {
+    expect(await judgeLateCaptain()).toEqual([{ baseCount: 2, multiplier: 2 }]);
+
+    await sql`update public.members set role = 'member', is_admin = true
+      where id = ${ids.captain}`;
+    await must('captain', 'admin-rejudge', { date: DATE });
+
+    expect(
+      await sql`select base_count as "baseCount" from public.penalties
+        where member_id = ${ids.captain}`,
+    ).toEqual([{ baseCount: 2 }]);
+  });
+
+  it('倍率は設定で変えられる', async () => {
+    await sql`update public.settings set value = '3' where key = 'leaderPenaltyMultiplier'`;
+
+    expect(await judgeLateCaptain()).toEqual([{ baseCount: 3, multiplier: 3 }]);
+  });
+
+  it('副務がつけるときは、倍の数の「やること」が要る', async () => {
+    const penalty = { ...newPenalty(), memberId: ids.captain };
+
+    expect(await run('vice', 'add-penalty', penalty)).toMatchObject({
+      ok: false,
+      error: containing('罰2個ぶん'),
+    });
+    await must('vice', 'add-penalty', { ...penalty, contents: ['掃除', '的貼り'] });
+
+    expect(await tasks()).toHaveLength(2);
   });
 });

@@ -15,6 +15,7 @@ import {
   type PracticeException,
   type PracticeRule,
 } from './practice.ts';
+import type { PracticeEvent } from './event.ts';
 import type { Settings } from './settings.ts';
 
 /** 引退した人が参加を登録できる、今日から先の日数 */
@@ -27,6 +28,8 @@ export type JoinDay = {
   joined: boolean;
   canJoin: boolean;
   canCancel: boolean;
+  /** 行事の日なら、その内容 */
+  event: PracticeEvent | null;
 };
 
 export type JoinContext = {
@@ -58,6 +61,7 @@ export function upcomingJoinDays(context: JoinContext): JoinDay[] {
       deadline: plan.deadline,
       joined: plan.joined,
       canJoin,
+      event: plan.event,
       canCancel: now <= noticeDeadlineOf(date, plan.deadline, settings.noticeLeadMinutes),
     });
   }

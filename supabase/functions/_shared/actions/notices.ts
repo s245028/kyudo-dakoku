@@ -15,7 +15,7 @@ import { inTransaction } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
 import { stringParam, uuidParam, type Params } from '../params.ts';
-import { memberUserIds, notify, notifyManagers } from '../push.ts';
+import { memberUserIds, notify, notifyManagers, notifyPenaltyWaiting } from '../push.ts';
 import { homeSnapshot, loadNoticeContext } from '../store.ts';
 
 const SUBJECTS: Partial<Record<ExceptionKind, PushSubject>> = {
@@ -103,16 +103,16 @@ export async function reviewNotice(context: RequestContext, params: Params) {
         '承認の対象の連絡・申請がありません。本人が取り消したか、出し直しています。',
       );
     }
-    if (notice.date <= today) {
-      await judgeDate(tx, {
-        date: notice.date,
-        now,
-        memberIds: [notice.memberId],
-        keepRecordedPlan: notice.date < today,
-      });
-    }
-    return notice;
+    if (notice.date > today) return { ...notice, addedPenalties: 0 };
+    const { addedPenalties } = await judgeDate(tx, {
+      date: notice.date,
+      now,
+      memberIds: [notice.memberId],
+      keepRecordedPlan: notice.date < today,
+    });
+    return { ...notice, addedPenalties };
   });
+  if (reviewed.addedPenalties > 0) await notifyPenaltyWaiting(context);
   const message = reviewedMessage({
     date: reviewed.date,
     subject: SUBJECTS[reviewed.kind] ?? 'koma',

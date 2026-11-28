@@ -75,23 +75,6 @@ function AttendanceList({ date, isToday }: { date: string; isToday: boolean }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="secondary"
-        disabled={action.sending}
-        onClick={() => {
-          setMessage('');
-          void action.run<{ count: number }>('admin-rejudge', { date }, async ({ count }) => {
-            await reload();
-            setMessage(`${count}人分を判定しました`);
-          });
-        }}
-      >
-        この日を判定し直す
-      </button>
-      <p className="form-message" role="status">
-        {message}
-      </p>
       <p className="form-error" role="alert">
         {action.error || error}
       </p>
@@ -123,6 +106,26 @@ function AttendanceList({ date, isToday }: { date: string; isToday: boolean }) {
           ))}
         </>
       )}
+      <div className="recalculate">
+        <p className="hint">打刻・コマ表・予定をあとから直したときは、出欠を計算し直します。</p>
+        <button
+          type="button"
+          className="secondary"
+          disabled={action.sending}
+          onClick={() => {
+            setMessage('');
+            void action.run<{ count: number }>('admin-rejudge', { date }, async ({ count }) => {
+              await reload();
+              setMessage(`${count}人分を計算し直しました`);
+            });
+          }}
+        >
+          出欠を計算し直す
+        </button>
+        <p className="form-message" role="status">
+          {message}
+        </p>
+      </div>
     </>
   );
 }

@@ -97,12 +97,15 @@ describe('設定', () => {
 
   it.each([
     { penaltyDoublingDays: 0 },
+    { leaderPenaltyMultiplier: 0 },
+    { leaderPenaltyMultiplier: 1.5 },
     { undoSeconds: 1.5 },
     { allowedDistanceMeters: '150' },
     { dojoLatitude: 35 },
     { dojoLatitude: 91, dojoLongitude: 0 },
     { autoCheckoutTime: '25:00' },
     { autoCheckoutTime: '23:45' },
+    { hitStartDate: '2026-13-01' },
   ])('%o は拒否する', (change) => {
     expect(validateSettings({ ...settings, ...change }).ok).toBe(false);
   });

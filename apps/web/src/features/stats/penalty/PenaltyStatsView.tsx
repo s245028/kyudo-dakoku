@@ -2,20 +2,20 @@ import { previousPenaltyAmounts, summarizePenaltyStats, type StatsPeriod } from 
 import { useState } from 'react';
 import { ChoiceRow } from '../../../components/ChoiceRow.tsx';
 import { loadPenaltyRows, loadTaskRows, toPenaltyRecord } from '../../../lib/penaltyQueries.ts';
-import { loadRoster, loadSettings } from '../../../lib/queries.ts';
+import { loadDirectory, loadSettings } from '../../../lib/queries.ts';
 import { useRemote } from '../../../lib/useRemote.ts';
 import { MemberTable } from './MemberTable.tsx';
 import { PenaltySummary } from './PenaltySummary.tsx';
 import { PenaltyTrend } from './PenaltyTrend.tsx';
 import { ReasonTable } from './ReasonTable.tsx';
 
-const VIEWS = { trend: '推移', reason: '理由', member: '部員' };
+const VIEWS = { trend: '推移', reason: '理由', member: '部員別' };
 
 async function loadPenaltyData() {
   const [penalties, tasks, members, settings] = await Promise.all([
     loadPenaltyRows(),
     loadTaskRows(),
-    loadRoster(),
+    loadDirectory(),
     loadSettings(),
   ]);
   return {

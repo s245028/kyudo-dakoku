@@ -11,6 +11,7 @@ import { requireCaptain, type RequestContext } from '../context.ts';
 import { inTransaction, type Sql } from '../db.ts';
 import { AppError } from '../errors.ts';
 import { judgeDate } from '../judge.ts';
+import { notifyPenaltyWaiting } from '../push.ts';
 import { stringParam, type Params } from '../params.ts';
 import { homeSnapshot, lockRoster } from '../store.ts';
 import { ensureManagerRemains } from './members.ts';
@@ -26,12 +27,13 @@ async function saveRoster(tx: Sql, members: readonly RosterMember[]) {
   }
 }
 
-export async function changeGeneration({ sql, userId, now }: RequestContext, params: Params) {
+export async function changeGeneration(context: RequestContext, params: Params) {
+  const { sql, userId, now } = context;
   const retiringGrade = GRADES.find((grade) => grade === params['retiringGrade']);
   if (!retiringGrade) throw new AppError('引退する学年を選んでください。');
   const today = toPracticeDate(now);
 
-  const retired = await inTransaction(sql, async (tx) => {
+  const { retired, addedPenalties } = await inTransaction(sql, async (tx) => {
     const members = await lockRoster(tx);
     const actor = await requireCaptain(tx, userId);
     const plan = planGenerationChange({
@@ -45,9 +47,10 @@ export async function changeGeneration({ sql, userId, now }: RequestContext, par
     await saveRoster(tx, plan.value.updated);
     await ensureManagerRemains(tx, actor);
     // 引退した人を、今日の出欠に反映する
-    await judgeDate(tx, { date: today, now, memberIds: null });
-    return plan.value.retiringIds.length;
+    const judged = await judgeDate(tx, { date: today, now, memberIds: null });
+    return { retired: plan.value.retiringIds.length, addedPenalties: judged.addedPenalties };
   });
+  if (addedPenalties > 0) await notifyPenaltyWaiting(context);
   return { retired, home: await homeSnapshot(sql, userId, today) };
 }
 
