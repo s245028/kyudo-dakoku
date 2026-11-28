@@ -159,7 +159,7 @@ export function BulkForm({
                   <strong>
                     {tallyOf(category).hits}中／{tallyOf(category).shots}射
                   </strong>
-                  <small className="sub">一射ずつの記録があります</small>
+                  <small className="sub">○×の記録があります</small>
                   <ConfirmButton
                     label="合計に置き換える"
                     className="small secondary"

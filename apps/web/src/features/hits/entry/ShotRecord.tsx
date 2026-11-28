@@ -68,7 +68,7 @@ export function ShotRecord({
   return (
     <section>
       <div className="entry-head">
-        <h3>{HIT_CATEGORY_LABELS[target.category]}（一射ずつ）</h3>
+        <h3>{HIT_CATEGORY_LABELS[target.category]}</h3>
         <p className="save-state" role="status">
           {draft && !draft.problem && '未保存（端末に残しています）'}
           {!draft && record && `保存済み ${toClockTime(new Date(record.updatedAt))}`}
