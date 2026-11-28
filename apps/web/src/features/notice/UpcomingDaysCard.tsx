@@ -38,7 +38,7 @@ export function UpcomingDaysCard(props: UpcomingDaysCardProps) {
     action.run<{ home: Home }>(name, params, ({ home }) => onChanged(home));
 
   return (
-    <section className="section practice-days">
+    <section className="practice-days">
       <h3>{retired ? '参加する練習日' : '欠席・遅刻の連絡'}</h3>
       <DeadlineRules retired={retired} noticeLeadMinutes={noticeLeadMinutes} />
       <p className="form-error" role="alert">
